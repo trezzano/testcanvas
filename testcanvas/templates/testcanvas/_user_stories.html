@@ -1,0 +1,19 @@
+{% if flow_node %}
+    <h2>User Story · {{ flow_node.title }}</h2>
+    <a href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}" target="_blank"
+       class="btn-primary" style="display:inline-block;text-decoration:none;margin-bottom:.75rem;padding:.4rem .7rem;border-radius:6px;font-size:.82rem;">
+        🔗 Matrice di tracciabilità (US → AC → TC)
+    </a>
+    {% for us in user_stories %}
+        <div class="story-card">
+            <div class="code">{{ us.code }}</div>
+            <div class="title">{{ us.title }}</div>
+            {% if us.description %}<div class="desc">{{ us.description }}</div>{% endif %}
+        </div>
+    {% empty %}
+        <div class="sidebar-empty">Nessuna User Story per questo nodo.</div>
+    {% endfor %}
+{% else %}
+    <div class="sidebar-empty">Questo nodo non è ancora stato salvato.</div>
+{% endif %}
+

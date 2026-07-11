@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Maps</title>
+    <style>
+        body { font-family: system-ui, Arial, sans-serif; margin: 2rem; background: #f5f6f8; color: #1f2933; }
+        h1 { margin-bottom: 1.5rem; }
+        .card { background: #fff; border: 1px solid #e0e4e8; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem; }
+        .create-form { display: flex; gap: .5rem; }
+        input[type="text"] { flex: 1; padding: .55rem .75rem; border: 1px solid #cbd2d9; border-radius: 6px; font-size: 1rem; }
+        button, .btn { cursor: pointer; border: none; border-radius: 6px; padding: .55rem 1rem; font-size: .95rem; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-secondary { background: #e2e8f0; color: #1f2933; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: .65rem .5rem; border-bottom: 1px solid #eceff1; }
+        .messages { list-style: none; padding: 0; margin: 0 0 1.5rem; }
+        .messages li { padding: .6rem .9rem; border-radius: 6px; margin-bottom: .5rem; }
+        .messages .success { background: #dcfce7; color: #166534; }
+        .messages .error { background: #fee2e2; color: #991b1b; }
+        .actions { display: flex; gap: .5rem; }
+        .muted { color: #7b8794; font-size: .85rem; }
+    </style>
+</head>
+<body>
+    <h1>Application Maps</h1>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <div class="card">
+        <h2>Create a new flow</h2>
+        <form class="create-form" method="post" action="{% url 'testcanvas:map_create' %}">
+            {% csrf_token %}
+            <input type="text" name="name" placeholder="Flow name (e.g. Checkout Flow)" required>
+            <button type="submit" class="btn-primary">Create</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Existing flows</h2>
+        {% if maps %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Created</th>
+                        <th style="width: 220px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in maps %}
+                        <tr>
+                            <td>{{ m.name }}</td>
+                            <td class="muted">{{ m.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>
+                                <div class="actions">
+                                    <a class="btn btn-secondary" href="{% url 'testcanvas:map_editor' m.pk %}">Open editor</a>
+                                    <form method="post" action="{% url 'testcanvas:map_delete' m.pk %}"
+                                          onsubmit="return confirm('Delete this flow?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="muted">No flows yet. Create your first one above.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
+

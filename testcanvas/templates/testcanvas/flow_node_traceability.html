@@ -1,0 +1,549 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traceability · {{ flow_node.title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; font-family: 'Inter', system-ui, Arial, sans-serif; color: #1e293b; }
+        body { display: flex; flex-direction: column; overflow: hidden; }
+
+        header {
+            display: flex; align-items: center; gap: 1rem;
+            padding: .7rem 1.1rem; background: #0f172a; color: #fff; flex-shrink: 0;
+        }
+        header .crumbs { font-size: .78rem; color: #94a3b8; }
+        header .crumbs strong { color: #e2e8f0; }
+        header h1 { font-size: 1.05rem; margin: 0; }
+        header a { color: #9fb3c8; text-decoration: none; margin-left: auto; font-size: .85rem; }
+        header a:hover { color: #fff; }
+
+        /* Stats bar */
+        .stats { display: flex; gap: 1.6rem; padding: .6rem 1.1rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
+        .stat .n { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; line-height: 1; color: #1e293b; }
+        .stat.ok .n { color: #10b981; }
+        .stat.warn .n { color: #ef4444; }
+        .stat .l { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; margin-top: 3px; }
+
+        .main { flex: 1; display: flex; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px; flex-shrink: 0; overflow-y: auto; padding: 1rem;
+            background: #fff; border-right: 1px solid #e2e8f0;
+        }
+        .section-title {
+            font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+            color: #64748b; font-weight: 700; margin: 0 0 .6rem;
+        }
+        .section { margin-bottom: 1.5rem; }
+        .legend-row { display: flex; align-items: center; gap: .5rem; font-size: 12px; color: #64748b; margin-bottom: .5rem; }
+        .swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; display: inline-block; }
+
+        .cov-row {
+            display: flex; align-items: center; justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+            padding: .3rem .5rem; border: 1px solid #eef2f7; border-radius: 6px; margin-bottom: 4px;
+        }
+        .badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+        .badge.ok { background: #d1fae5; color: #059669; }
+        .badge.no { background: #fee2e2; color: #dc2626; }
+
+        /* Graph */
+        .graph-wrap { flex: 1; position: relative; min-width: 0; }
+        /* position + z-index: crea uno stacking context proprio così i layer <canvas>
+           di Cytoscape restano contenuti SOTTO le corsie (.lanes) e non intercettano
+           i click destinati ai link "Modifica". */
+        #cy { position: absolute; inset: 0; width: 100%; height: 100%; background: #fafbfc; z-index: 1; }
+
+        /* Corsie verticali US | AC | TC (overlay non interattivo) */
+        .lanes { position: absolute; inset: 0; display: flex; pointer-events: none; z-index: 5; }
+        .lane { flex: 1; position: relative; display: flex; justify-content: center; align-items: flex-start; }
+        .lane + .lane { border-left: 1px dashed #d8dee9; }
+        .lane-head {
+            margin-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+        }
+        .lane-title {
+            font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .06em; padding: 4px 12px; border-radius: 999px;
+        }
+        /* Link "Modifica": riabilita i click (le .lanes hanno pointer-events:none) */
+        .lane-edit {
+            pointer-events: auto; display: inline-flex; align-items: center; gap: 4px;
+            font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; text-decoration: none;
+            padding: 3px 10px; border-radius: 999px; border: 1px solid transparent;
+            background: #fff; color: #475569; box-shadow: 0 1px 3px rgba(15,23,42,.08);
+            transition: background .12s ease, color .12s ease, border-color .12s ease;
+        }
+        .lane-edit i { font-style: normal; font-size: 11px; }
+        /* Pulsante "Modifica" disabilitato finché non esistono i dati "genitore" */
+        .lane-edit.disabled {
+            pointer-events: none; opacity: .45; cursor: not-allowed;
+            box-shadow: none; background: #f1f5f9; color: #94a3b8;
+        }
+        .lane-us > .lane-head > .lane-title { background: #ede9fe; color: #6d28d9; }
+        .lane-us .lane-edit:hover  { background: #ede9fe; color: #6d28d9; border-color: #c4b5fd; }
+        .lane-ac > .lane-head > .lane-title { background: #d1fae5; color: #047857; }
+        .lane-ac .lane-edit:hover  { background: #d1fae5; color: #047857; border-color: #6ee7b7; }
+        .lane-tc > .lane-head > .lane-title { background: #e0f2fe; color: #0369a1; }
+        .lane-tc .lane-edit:hover  { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+        .lane-us { background: rgba(237,233,254,.35); }
+        .lane-ac { background: rgba(236,253,245,.35); }
+        .lane-tc { background: rgba(224,242,254,.35); }
+        #empty-state {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 8px; color: #94a3b8; z-index: 10;
+            font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: center; padding: 20px;
+            pointer-events: none;   /* non deve bloccare i pulsanti "Modifica" delle corsie */
+        }
+        #empty-state .empty-cta {
+            pointer-events: auto; margin-top: 6px; display: inline-flex; align-items: center; gap: 6px;
+            font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; text-decoration: none;
+            padding: 8px 16px; border-radius: 999px; background: #7c3aed; color: #fff;
+            box-shadow: 0 4px 12px rgba(124,58,237,.25); transition: background .12s ease;
+        }
+        #empty-state .empty-cta:hover { background: #6d28d9; }
+
+        /* CTA centrata dentro una corsia: appare quando quel livello è vuoto
+           ma il livello "genitore" esiste (es. AC vuoti ma User Story presenti). */
+        .lane-cta {
+            pointer-events: auto; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); z-index: 8;
+            display: none; align-items: center; gap: 6px;
+            font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; text-decoration: none;
+            padding: 8px 16px; border-radius: 999px; color: #fff;
+            box-shadow: 0 4px 12px rgba(15,23,42,.18); transition: background .12s ease;
+        }
+        .lane-cta i { font-style: normal; font-size: 14px; line-height: 1; }
+        .lane-cta.show { display: inline-flex; }
+        .lane-ac .lane-cta { background: #059669; }
+        .lane-ac .lane-cta:hover { background: #047857; }
+        .lane-tc .lane-cta { background: #0284c7; }
+        .lane-tc .lane-cta:hover { background: #0369a1; }
+
+        /* Node detail card */
+        #node-detail {
+            position: absolute; bottom: 16px; left: 16px; width: 300px; display: none; z-index: 15;
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem;
+            box-shadow: 0 12px 32px rgba(15,23,42,.12);
+        }
+        #nd-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 10px; }
+        #nd-badge.type-us { background: rgba(124,58,237,.15); color: #7c3aed; }
+        #nd-badge.type-ac-covered { background: rgba(16,185,129,.15); color: #059669; }
+        #nd-badge.type-ac-uncovered { background: rgba(239,68,68,.15); color: #dc2626; }
+        #nd-badge.type-tc { background: rgba(2,132,199,.15); color: #0284c7; }
+        #nd-close { border: none; background: transparent; cursor: pointer; font-size: 16px; color: #94a3b8; }
+        #nd-id { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; margin: .4rem 0 .2rem; }
+        #nd-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #64748b; }
+        #nd-desc { font-size: 12px; line-height: 1.55; color: #475569; margin-top: .5rem; }
+        #nd-meta { color: #94a3b8; font-size: 11px; margin-top: .6rem; }
+        #nd-edit {
+            display: none; margin-top: .8rem; text-align: center; cursor: pointer;
+            font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; text-decoration: none;
+            padding: 7px 12px; border-radius: 8px; background: #2563eb; color: #fff;
+            transition: background .12s ease; pointer-events: auto; position: relative; z-index: 2;
+        }
+        #nd-edit:hover { background: #1d4ed8; }
+
+        /* Hover tooltip */
+        #tooltip {
+            position: absolute; display: none; max-width: 320px; padding: 10px 12px; border-radius: 12px;
+            background: rgba(15,23,42,.94); color: #f8fafc; box-shadow: 0 12px 30px rgba(15,23,42,.24);
+            pointer-events: none; z-index: 20;
+        }
+        #tooltip .t-id { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 4px; }
+        #tooltip .t-desc { font-size: 12px; line-height: 1.45; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <div class="crumbs">
+                <strong>{{ application_map.name }}</strong> · Flow Node
+            </div>
+            <h1>{{ flow_node.local_graph_id }} — {{ flow_node.title }}</h1>
+        </div>
+        <a href="{% url 'testcanvas:map_editor' application_map.pk %}">← Torna all'editor</a>
+    </header>
+
+    <div class="stats">
+        <div class="stat"><div class="n" id="stat-us">0</div><div class="l">User Story</div></div>
+        <div class="stat"><div class="n" id="stat-ac">0</div><div class="l">Criteri</div></div>
+        <div class="stat"><div class="n" id="stat-tc">0</div><div class="l">Test Case</div></div>
+        <div class="stat ok"><div class="n" id="stat-covered">0</div><div class="l">Coperti</div></div>
+        <div class="stat warn"><div class="n" id="stat-uncovered">0</div><div class="l">Scoperti</div></div>
+    </div>
+
+    <div class="main">
+        <aside class="sidebar">
+            <div class="section">
+                <p class="section-title">Legenda</p>
+                <div class="legend-row"><span class="swatch" style="background:#ede9fe;border:2px solid #7c3aed;"></span> User Story</div>
+                <div class="legend-row"><span class="swatch" style="background:#d1fae5;border:2px solid #059669;border-radius:50%;"></span> Acceptance Criteria — coperto</div>
+                <div class="legend-row"><span class="swatch" style="background:#fee2e2;border:2px solid #ef4444;border-radius:50%;"></span> Acceptance Criteria — scoperto</div>
+                <div class="legend-row"><span class="swatch" style="background:#e0f2fe;border:2px dashed #0284c7;"></span> Test Case</div>
+            </div>
+
+            <div class="section">
+                <p class="section-title">Copertura AC</p>
+                <div id="coverage-list"></div>
+            </div>
+        </aside>
+
+        <div class="graph-wrap">
+            <div class="lanes">
+                <div class="lane lane-us">
+                    <div class="lane-head">
+                        <span class="lane-title">User Stories</span>
+                        <a id="edit-us" class="lane-edit" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="Manage User Stories">
+                            <i>✎</i> Modifica
+                        </a>
+                    </div>
+                </div>
+                <div class="lane lane-ac">
+                    <div class="lane-head">
+                        <span class="lane-title">Acceptance Criteria</span>
+                        <a id="edit-ac" class="lane-edit" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="Gestisci gli Acceptance Criteria (via User Story)">
+                            <i>✎</i> Modifica
+                        </a>
+                    </div>
+                    <a id="cta-ac" class="lane-cta" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
+                        <i>＋</i> Add Acceptance Criteria
+                    </a>
+                </div>
+                <div class="lane lane-tc">
+                    <div class="lane-head">
+                        <span class="lane-title">Test Cases</span>
+                        <a id="edit-tc" class="lane-edit" href="{% url 'testcanvas:test_case_manage' flow_node.pk %}" title="Gestisci i Test Cases">
+                            <i>✎</i> Modifica
+                        </a>
+                    </div>
+                    <a id="cta-tc" class="lane-cta" href="{% url 'testcanvas:test_case_manage' flow_node.pk %}">
+                        <i>＋</i> Add Test Cases
+                    </a>
+                </div>
+            </div>
+            <div id="cy"></div>
+            <div id="empty-state">
+                <div>Nessuna relazione da mostrare per questo Flow Node.</div>
+                <a class="empty-cta" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
+                    <i style="font-style:normal;">＋</i> Aggiungi una User Story
+                </a>
+            </div>
+
+            <div id="tooltip"><div class="t-id"></div><div class="t-desc"></div></div>
+
+            <div id="node-detail">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;">
+                    <span id="nd-badge"></span>
+                    <button id="nd-close" aria-label="Chiudi">&times;</button>
+                </div>
+                <div id="nd-id"></div>
+                <div id="nd-code"></div>
+                <div id="nd-desc"></div>
+                <div id="nd-meta"></div>
+                <a id="nd-edit" href="#">✎ Edit</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Schema fornito dal backend:
+    // {
+    //   "user_stories":        [{ id, code, name, description, acceptance_criteria:[AC_id,...] }],
+    //   "acceptance_criteria": [{ id, code, description }],
+    //   "test_cases":          [{ id, code, name, status, verifies:[AC_id,...] }]
+    // }
+    const GRAPH_DATA = {{ graph_data_json|safe }};
+
+    // URL template per le pagine di edit: lo "0" segnaposto verrà sostituito con il pk reale.
+    const EDIT_URLS = {
+        us: "{% url 'testcanvas:user_story_edit' flow_node.pk 0 %}",
+        ac: "{% url 'testcanvas:acceptance_criterion_edit' 0 %}",
+        tc: "{% url 'testcanvas:test_case_edit' 0 %}",
+        acManage: "{% url 'testcanvas:acceptance_criterion_manage' 0 %}",
+    };
+
+    function editUrlFor(node) {
+        const type = node.data('type');
+        if (type !== 'us' && type !== 'ac' && type !== 'tc') return null;
+        // Gli id dei nodi hanno la forma "US_<pk>" / "AC_<pk>" / "TC_<pk>".
+        const pk = String(node.data('id')).split('_')[1];
+        if (!pk) return null;
+        return EDIT_URLS[type].replace('/0/', '/' + pk + '/');
+    }
+
+    function buildParsed(data) {
+        const nodes = { us: {}, ac: {}, tc: {} };
+        const edges = [];
+
+        (data.user_stories || []).forEach(us => {
+            nodes.us[us.id] = { id: us.id, code: us.code || '', label: us.name || '', description: us.description || '' };
+            (us.acceptance_criteria || []).forEach(acId => {
+                if (!nodes.ac[acId]) nodes.ac[acId] = { id: acId, code: '', description: '' };
+                edges.push({ source: us.id, target: acId, kind: 'decompose' });
+            });
+        });
+
+        (data.acceptance_criteria || []).forEach(ac => {
+            nodes.ac[ac.id] = { id: ac.id, code: ac.code || '', description: ac.description || '' };
+        });
+
+        (data.test_cases || []).forEach(tc => {
+            nodes.tc[tc.id] = { id: tc.id, code: tc.code || '', label: tc.name || '', status: tc.status || '' };
+            (tc.verifies || []).forEach(acId => {
+                if (!nodes.ac[acId]) nodes.ac[acId] = { id: acId, code: '', description: '' };
+                edges.push({ source: tc.id, target: acId, kind: 'verify' });
+            });
+        });
+
+        return { nodes, edges };
+    }
+
+    function buildElements(parsed) {
+        const els = [];
+        const coverage = {};
+        Object.values(parsed.nodes.ac).forEach(a => coverage[a.id] = 0);
+        parsed.edges.forEach(e => { if (e.kind === 'verify') coverage[e.target] = (coverage[e.target] || 0) + 1; });
+
+        // --- Layout a tre colonne agganciate ai centri reali delle corsie US | AC | TC ---
+        // Le corsie (.lanes) sono tre colonne flex uguali larghe 1/3 ciascuna del
+        // contenitore: i loro centri cadono a 1/6, 3/6 e 5/6 della larghezza.
+        // Posizioniamo i nodi in coordinate-schermo e disattiviamo il fit, così
+        // l'allineamento resta corretto anche se una colonna è vuota.
+        const cyBox = document.getElementById('cy');
+        const CW = cyBox.clientWidth || 1200;
+        const CH = cyBox.clientHeight || 600;
+        const COL_X = { us: CW * (1 / 6), ac: CW * (3 / 6), tc: CW * (5 / 6) };
+        const ROW_GAP = 110;                           // distanza verticale tra nodi
+
+        function placeColumn(nodesArray, type) {
+            const positions = {};
+            const n = nodesArray.length;
+            // Centra verticalmente la colonna nel contenitore.
+            nodesArray.forEach((node, i) => {
+                positions[node.id] = { x: COL_X[type], y: CH / 2 + (i - (n - 1) / 2) * ROW_GAP };
+            });
+            return positions;
+        }
+
+        const usNodes = Object.values(parsed.nodes.us);
+        const acNodes = Object.values(parsed.nodes.ac).sort((a, b) => a.id.localeCompare(b.id));
+        const tcNodes = Object.values(parsed.nodes.tc).sort((a, b) => a.id.localeCompare(b.id));
+        const posUS = placeColumn(usNodes, 'us');
+        const posAC = placeColumn(acNodes, 'ac');
+        const posTC = placeColumn(tcNodes, 'tc');
+
+        usNodes.forEach(n =>
+            els.push({ data: { id: n.id, label: (n.code || n.id) + (n.label ? '\n' + n.label : ''), type: 'us', code: n.code, full: n.description }, position: posUS[n.id] })
+        );
+        acNodes.forEach(n => {
+            const covered = (coverage[n.id] || 0) > 0;
+            els.push({ data: { id: n.id, label: n.code || n.id, type: 'ac', covered, covCount: coverage[n.id] || 0, code: n.code, full: n.description }, position: posAC[n.id] });
+        });
+        tcNodes.forEach(n =>
+            els.push({ data: { id: n.id, label: n.code || n.id, type: 'tc', code: n.code, status: n.status, full: n.label }, position: posTC[n.id] })
+        );
+        parsed.edges.forEach((e, i) =>
+            els.push({ data: { id: 'e' + i, source: e.source, target: e.target, kind: e.kind } })
+        );
+        return { els, coverage, parsed };
+    }
+
+    const parsed = buildParsed(GRAPH_DATA);
+    const { els, coverage } = buildElements(parsed);
+
+    // --- Stats ---
+    const usCount = Object.keys(parsed.nodes.us).length;
+    const acCount = Object.keys(parsed.nodes.ac).length;
+    const tcCount = Object.keys(parsed.nodes.tc).length;
+    const coveredCount = Object.values(coverage).filter(c => c > 0).length;
+    document.getElementById('stat-us').textContent = usCount;
+    document.getElementById('stat-ac').textContent = acCount;
+    document.getElementById('stat-tc').textContent = tcCount;
+    document.getElementById('stat-covered').textContent = coveredCount;
+    document.getElementById('stat-uncovered').textContent = acCount - coveredCount;
+
+    // --- Abilitazione progressiva dei pulsanti "Modifica" ---
+    // US: sempre attivo (si può sempre aggiungere una User Story).
+    // AC: attivo solo se esiste almeno una User Story.
+    // TC: attivo solo se esiste almeno un Acceptance Criterion.
+    (function gateEditButtons() {
+        const acBtn = document.getElementById('edit-ac');
+        const tcBtn = document.getElementById('edit-tc');
+        const acCta = document.getElementById('cta-ac');
+        const tcCta = document.getElementById('cta-tc');
+
+        // --- Acceptance Criteria ---
+        const usPks = Object.keys(parsed.nodes.us).map(id => id.split('_')[1]).filter(Boolean);
+        if (usCount === 0) {
+            acBtn.classList.add('disabled');
+            acBtn.title = 'Aggiungi prima una User Story per creare gli Acceptance Criteria';
+        } else if (usPks.length === 1) {
+            // Un'unica User Story: il pulsante "Modifica" e la CTA puntano direttamente
+            // alla pagina di gestione dei suoi Acceptance Criteria (niente ambiguità).
+            const directAcUrl = EDIT_URLS.acManage.replace('/0/', '/' + usPks[0] + '/');
+            acBtn.href = directAcUrl;
+            acCta.href = directAcUrl;
+        }
+        if (usCount > 0 && acCount === 0) {
+            // Esistono User Story ma nessun Acceptance Criterion: mostra la CTA.
+            // Con più di una User Story si passa dall'elenco per scegliere quella giusta.
+            acCta.classList.add('show');
+        }
+
+        // --- Test Cases ---
+        if (acCount === 0) {
+            tcBtn.classList.add('disabled');
+            tcBtn.title = 'Aggiungi prima un Acceptance Criterion per creare i Test Case';
+        } else if (tcCount === 0) {
+            // Esistono Acceptance Criteria ma nessun Test Case: mostra la CTA.
+            tcCta.classList.add('show');
+        }
+    })();
+
+    // --- Coverage list ---
+    const covList = document.getElementById('coverage-list');
+    Object.keys(parsed.nodes.ac).sort().forEach(id => {
+        const c = coverage[id] || 0;
+        const ac = parsed.nodes.ac[id];
+        const row = document.createElement('div');
+        row.className = 'cov-row';
+        row.innerHTML = `<span>${ac.code || id}</span>
+            <span class="badge ${c > 0 ? 'ok' : 'no'}">${c > 0 ? c + ' TC' : 'scoperto'}</span>`;
+        covList.appendChild(row);
+    });
+
+    document.getElementById('empty-state').style.display = els.length ? 'none' : 'flex';
+
+    let cy = null;
+    if (els.length) {
+        cy = cytoscape({
+            container: document.getElementById('cy'),
+            elements: els,
+            style: [
+                { selector: 'node', style: {
+                    'font-family': 'JetBrains Mono, monospace', 'font-size': 10, 'color': '#1e293b',
+                    'text-wrap': 'wrap', 'text-max-width': '100px', 'text-valign': 'center', 'text-halign': 'center',
+                    'label': 'data(label)', 'border-width': 2,
+                }},
+                { selector: 'node[type="us"]', style: {
+                    'shape': 'round-rectangle', 'background-color': '#ede9fe', 'border-color': '#7c3aed',
+                    'color': '#3b0764', 'width': 150, 'height': 50, 'font-weight': 700, 'font-size': 11,
+                }},
+                { selector: 'node[type="ac"][?covered]', style: {
+                    'shape': 'ellipse', 'background-color': '#d1fae5', 'border-color': '#059669',
+                    'color': '#064e3b', 'width': 78, 'height': 78,
+                }},
+                { selector: 'node[type="ac"][!covered]', style: {
+                    'shape': 'ellipse', 'background-color': '#fee2e2', 'border-color': '#ef4444',
+                    'color': '#7f1d1d', 'width': 78, 'height': 78,
+                }},
+                { selector: 'node[type="tc"]', style: {
+                    'shape': 'round-rectangle', 'background-color': '#e0f2fe', 'border-color': '#0284c7',
+                    'border-style': 'dashed', 'color': '#0c4a6e', 'width': 110, 'height': 42,
+                }},
+                { selector: 'edge[kind="decompose"]', style: {
+                    'width': 2, 'line-color': '#c4b5fd', 'target-arrow-color': '#c4b5fd',
+                    'target-arrow-shape': 'triangle', 'curve-style': 'bezier',
+                }},
+                { selector: 'edge[kind="verify"]', style: {
+                    'width': 1.8, 'line-color': '#6ee7b7', 'target-arrow-color': '#6ee7b7',
+                    'target-arrow-shape': 'triangle', 'line-style': 'dashed', 'curve-style': 'bezier', 'opacity': 0.9,
+                }},
+                { selector: '.faded', style: { 'opacity': 0.45 } },
+                { selector: '.highlighted', style: { 'opacity': 1 } },
+            ],
+            layout: { name: 'preset', fit: false, padding: 0 },
+            // zoom/pan neutri: le posizioni sono già in coordinate-schermo,
+            // così i nodi cadono esattamente al centro delle rispettive corsie.
+            zoom: 1,
+            pan: { x: 0, y: 0 },
+            minZoom: 0.3, maxZoom: 2.5, wheelSensitivity: 0.25,
+        });
+
+        wireInteractions(cy);
+    }
+
+    function wireInteractions(cy) {
+        let selectedNode = null;
+        const graphWrap = document.querySelector('.graph-wrap');
+        const tooltip = document.getElementById('tooltip');
+        const tooltipId = tooltip.querySelector('.t-id');
+        const tooltipDesc = tooltip.querySelector('.t-desc');
+
+        function clearFocus() { cy.elements().removeClass('faded highlighted'); }
+        function focusRelations(node) {
+            cy.elements().addClass('faded').removeClass('highlighted');
+            node.closedNeighborhood().removeClass('faded').addClass('highlighted');
+        }
+        function hideTooltip() { tooltip.style.display = 'none'; }
+
+        function showTooltip(node, evt) {
+            tooltipId.textContent = node.data('code') || node.data('id');
+            tooltipDesc.textContent = node.data('full') || 'Nessuna descrizione disponibile.';
+            const rect = graphWrap.getBoundingClientRect();
+            const oe = evt.originalEvent;
+            const px = (oe ? oe.clientX : rect.left + evt.renderedPosition.x) - rect.left + 16;
+            const py = (oe ? oe.clientY : rect.top + evt.renderedPosition.y) - rect.top + 16;
+            tooltip.style.display = 'block';
+            tooltip.style.left = Math.max(8, px) + 'px';
+            tooltip.style.top = Math.max(8, py) + 'px';
+        }
+
+        cy.on('mouseover', 'node', evt => { if (!selectedNode) { focusRelations(evt.target); showTooltip(evt.target, evt); } });
+        cy.on('mousemove', 'node', evt => { if (tooltip.style.display === 'block') showTooltip(evt.target, evt); });
+        cy.on('mouseout', 'node', () => { hideTooltip(); if (!selectedNode) clearFocus(); });
+        cy.on('tap', 'node', evt => { selectedNode = evt.target; focusRelations(selectedNode); hideTooltip(); showCard(selectedNode); });
+        cy.on('tap', evt => { if (evt.target === cy) { selectedNode = null; clearFocus(); hideTooltip(); hideCard(); } });
+
+        document.getElementById('nd-close').onclick = () => { selectedNode = null; clearFocus(); hideCard(); };
+    }
+
+    function hideCard() { document.getElementById('node-detail').style.display = 'none'; }
+
+    function showCard(node) {
+        const type = node.data('type');
+        const typeLabel = { us: 'User Story', ac: 'Acceptance Criteria', tc: 'Test Case' }[type];
+        const badge = document.getElementById('nd-badge');
+        badge.textContent = typeLabel;
+        badge.className = 'type-' + (type === 'ac' ? (node.data('covered') ? 'ac-covered' : 'ac-uncovered') : type);
+
+        document.getElementById('nd-id').textContent = node.data('id');
+        document.getElementById('nd-code').textContent = node.data('code') || '';
+        document.getElementById('nd-desc').textContent = node.data('full') || 'Nessuna descrizione disponibile.';
+
+        let meta = '';
+        if (type === 'ac') meta = node.data('covered') ? `Coperto da ${node.data('covCount')} test case` : 'Nessun test case associato';
+        else if (type === 'tc' && node.data('status')) meta = 'Stato: ' + node.data('status');
+        document.getElementById('nd-meta').textContent = meta;
+
+        // Link alla pagina di edit (User Story, Acceptance Criteria e Test Case).
+        const editLink = document.getElementById('nd-edit');
+        const editUrl = editUrlFor(node);
+        if (editUrl) {
+            const editLabels = { us: 'User Story', ac: 'Acceptance Criterion', tc: 'Test Case' };
+            editLink.href = editUrl;
+            editLink.textContent = '✎ Edit ' + (editLabels[type] || '');
+            editLink.style.display = 'block';
+            // Navigazione esplicita: il canvas di Cytoscape può intercettare il click
+            // dell'anchor, quindi forziamo lo spostamento via JS.
+            editLink.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.location.href = editUrl; };
+        } else {
+            editLink.style.display = 'none';
+            editLink.onclick = null;
+        }
+
+        document.getElementById('node-detail').style.display = 'block';
+    }
+    </script>
+</body>
+</html>
+
