@@ -227,3 +227,4 @@ __marimo__/
 /docs/
 /.github/
 /.github/instructions/
+/testcanvas/mcp.py
