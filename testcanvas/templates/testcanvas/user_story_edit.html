@@ -1,82 +1,34 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit User Story · {{ user_story.code }}</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: system-ui, Arial, sans-serif; margin: 0; background: #f5f6f8; color: #1f2933; }
-        header {
-            display: flex; align-items: center; gap: 1rem;
-            padding: .8rem 1.2rem; background: #0f172a; color: #fff;
-        }
-        header .crumbs { font-size: .78rem; color: #94a3b8; }
-        header .crumbs strong { color: #e2e8f0; }
-        header h1 { font-size: 1.1rem; margin: 0; }
-        header a { color: #9fb3c8; text-decoration: none; margin-left: auto; font-size: .85rem; }
-        header a:hover { color: #fff; }
-
-        .wrap { max-width: 680px; margin: 2rem auto; padding: 0 1rem; }
-        .card { background: #fff; border: 1px solid #e0e4e8; border-radius: 10px; padding: 1.4rem; }
-        .card h2 { margin: 0 0 1rem; font-size: 1rem; }
-
-        .field { margin-bottom: 1rem; }
-        .field label { display: block; font-size: .8rem; font-weight: 600; color: #475569; margin-bottom: .35rem; }
-        .field-input {
-            width: 100%; padding: .55rem .7rem; border: 1px solid #cbd5e1;
-            border-radius: 6px; font-size: .92rem; font-family: inherit;
-        }
-        .field-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
-        .field .errors { color: #b91c1c; font-size: .8rem; margin-top: .3rem; }
-
-        button, .btn {
-            cursor: pointer; border: none; border-radius: 6px; padding: .55rem 1rem;
-            font-size: .9rem; text-decoration: none; display: inline-block; font-family: inherit;
-        }
-        .btn-primary { background: #2563eb; color: #fff; }
-        .btn-secondary { background: #e2e8f0; color: #1f2933; }
-        .form-actions { display: flex; gap: .6rem; margin-top: .4rem; }
-    </style>
-</head>
-<body>
-    <header>
-        <div>
-            <div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }}</div>
-            <h1>Edit User Story · {{ user_story.code }}</h1>
+{% extends "testcanvas/bases/base_page.html" %}
+{% block html_lang %}en{% endblock %}
+{% block title %}Edit User Story · {{ user_story.code }}{% endblock %}
+{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }}</div>{% endblock %}
+{% block page_heading %}Edit User Story · {{ user_story.code }}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>Edit details</h2>
+    <form method="post" action="{% url 'testcanvas:user_story_edit' flow_node.pk user_story.pk %}">
+        {% csrf_token %}
+        <div class="field">
+            <label for="{{ form.code.id_for_label }}">Code</label>
+            {{ form.code }}
+            {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
         </div>
-        <a href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">← Back to list</a>
-    </header>
-
-    <div class="wrap">
-        <div class="card">
-            <h2>Edit details</h2>
-            <form method="post"
-                  action="{% url 'testcanvas:user_story_edit' flow_node.pk user_story.pk %}">
-                {% csrf_token %}
-                <div class="field">
-                    <label for="{{ form.code.id_for_label }}">Code</label>
-                    {{ form.code }}
-                    {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
-                </div>
-                <div class="field">
-                    <label for="{{ form.title.id_for_label }}">Title</label>
-                    {{ form.title }}
-                    {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
-                </div>
-                <div class="field">
-                    <label for="{{ form.description.id_for_label }}">Description</label>
-                    {{ form.description }}
-                    {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Save changes</button>
-                    <a class="btn btn-secondary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">Cancel</a>
-                </div>
-            </form>
+        <div class="field">
+            <label for="{{ form.title.id_for_label }}">Title</label>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
         </div>
-    </div>
-</body>
-</html>
-
+        <div class="field">
+            <label for="{{ form.description.id_for_label }}">Description</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save changes</button>
+            <a class="btn btn-secondary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

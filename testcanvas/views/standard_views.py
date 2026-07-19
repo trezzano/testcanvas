@@ -2,13 +2,62 @@ import json
 
 import networkx as nx
 from django.contrib import messages
+from django.contrib.auth import login as auth_login, logout as auth_logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from .models import AcceptanceCriterion, ApplicationMap, FlowNode, TestCase, UserStory
-from .forms import AcceptanceCriterionForm, TestCaseForm, UserStoryForm
+from testcanvas.models import AcceptanceCriterion, ApplicationMap, FlowNode, TestCase, UserStory
+from testcanvas.forms import AcceptanceCriterionForm, TestCaseForm, UserStoryForm
 
+def index(request):
+    """Render the login page and authenticate users.
+
+    The landing page doubles as the sign-in screen: on GET it shows the login
+    form, on POST it validates the credentials with Django's
+    ``AuthenticationForm`` and, on success, starts the session and redirects to
+    the flow list. Already-authenticated users skip the form entirely.
+
+    Args:
+        request: The incoming HTTP request.
+
+    Returns:
+        An ``HttpResponse`` rendering the login page, or a redirect to the
+        flow list once the user is authenticated.
+    """
+    # Authenticated users have no reason to see the login screen again.
+    if request.user.is_authenticated:
+        return redirect('testcanvas:map_list')
+
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            # ``get_user`` returns the user validated by the form's clean step.
+            auth_login(request, form.get_user())
+            messages.success(request, f"Welcome back, {form.get_user().username}!")
+            return redirect('testcanvas:map_list')
+    else:
+        form = AuthenticationForm(request)
+
+    return render(request, 'testcanvas/index.html', {'form': form})
+
+@require_POST
+def logout_view(request):
+    """Log the current user out and return to the login page.
+
+    Args:
+        request: The incoming HTTP request (POST only, for CSRF safety).
+
+    Returns:
+        A redirect to the login page.
+    """
+    auth_logout(request)
+    messages.info(request, "You have been logged out.")
+    return redirect('testcanvas:index')
+
+@login_required
 def user_story_manage(request, node_id):
     """List and create UserStories for a given FlowNode.
 
@@ -39,6 +88,7 @@ def user_story_manage(request, node_id):
         'form': form,
     })
 
+@login_required
 def user_story_edit(request, node_id, pk):
     """Edit an existing UserStory belonging to the given FlowNode."""
     flow_node = get_object_or_404(
@@ -64,6 +114,7 @@ def user_story_edit(request, node_id, pk):
     })
 
 @require_POST
+@login_required
 def user_story_delete(request, node_id, pk):
     """Delete a UserStory belonging to the given FlowNode."""
     flow_node = get_object_or_404(FlowNode, pk=node_id)
@@ -73,6 +124,7 @@ def user_story_delete(request, node_id, pk):
     messages.success(request, f"User Story '{code}' deleted.")
     return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
 
+@login_required
 def acceptance_criterion_manage(request, user_story_id):
     """List and create AcceptanceCriteria for a given UserStory.
 
@@ -106,6 +158,7 @@ def acceptance_criterion_manage(request, user_story_id):
         'form': form,
     })
 
+@login_required
 def acceptance_criterion_edit(request, pk):
     """Edit an existing AcceptanceCriterion following the UserStory edit pattern."""
     criterion = get_object_or_404(
@@ -135,6 +188,7 @@ def acceptance_criterion_edit(request, pk):
     })
 
 @require_POST
+@login_required
 def acceptance_criterion_delete(request, pk):
     """Delete an AcceptanceCriterion, returning to its UserStory manage page."""
     criterion = get_object_or_404(
@@ -147,6 +201,39 @@ def acceptance_criterion_delete(request, pk):
     messages.success(request, f"Acceptance Criterion '{code}' deleted.")
     return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
 
+@login_required
+def node_acceptance_criteria(request, node_id):
+    """List every Acceptance Criterion of a FlowNode, grouped by User Story.
+
+    Acceptance Criteria always belong to a specific User Story, so a flow node
+    can hold criteria across several stories. This read-only overview shows each
+    story of the node together with its criteria and a link to manage them,
+    giving the traceability page a single AC-focused destination regardless of
+    how many User Stories the node has.
+
+    Args:
+        request: The incoming HTTP request.
+        node_id: Primary key of the ``FlowNode`` to inspect.
+
+    Returns:
+        An ``HttpResponse`` rendering the acceptance-criteria overview.
+    """
+    flow_node = get_object_or_404(
+        FlowNode.objects.select_related('application_map'),
+        pk=node_id,
+    )
+    user_stories = (
+        flow_node.user_stories
+        .prefetch_related('criteria')
+        .order_by('code')
+    )
+    return render(request, 'testcanvas/acceptance_criterion_overview.html', {
+        'flow_node': flow_node,
+        'application_map': flow_node.application_map,
+        'user_stories': user_stories,
+    })
+
+@login_required
 def test_case_manage(request, node_id):
     """List and create TestCases for a given FlowNode.
 
@@ -192,8 +279,8 @@ def test_case_manage(request, node_id):
         'form': form,
     })
 
-
 @require_POST
+@login_required
 def test_case_delete(request, node_id, pk):
     """Delete a TestCase, returning to the FlowNode test-case manage page."""
     flow_node = get_object_or_404(FlowNode, pk=node_id)
@@ -206,7 +293,7 @@ def test_case_delete(request, node_id, pk):
     messages.success(request, f"Test Case '{code}' deleted.")
     return redirect('testcanvas:test_case_manage', node_id=flow_node.pk)
 
-
+@login_required
 def test_case_edit(request, pk):
     """Edit an existing TestCase following the UserStory edit pattern."""
     test_case = get_object_or_404(
@@ -245,6 +332,7 @@ def test_case_edit(request, pk):
         'form': form,
     })
 
+@login_required
 def flow_node_traceability(request, node_id):
     """Render the ISTQB traceability graph for a single FlowNode.
 
@@ -261,7 +349,7 @@ def flow_node_traceability(request, node_id):
     acceptance_map = {}   # ac.pk -> dict (deduplicated)
     test_cases_map = {}   # tc.pk -> dict (deduplicated)
 
-    user_stories = (
+    user_stories = list(
         flow_node.user_stories
         .prefetch_related('criteria__test_cases')
         .all()
@@ -306,19 +394,39 @@ def flow_node_traceability(request, node_id):
         'test_cases': list(test_cases_map.values()),
     }
 
+    # --- Button-state values, computed server-side so the template (not JS)
+    # decides which lane buttons are enabled and where they point. ---
+    us_count = len(user_stories_payload)
+    ac_count = len(acceptance_map)
+    tc_count = len(test_cases_map)
+
+    # An Acceptance Criterion is "covered" when at least one Test Case verifies it.
+    covered_ac_ids = set()
+    for test_case in test_cases_map.values():
+        covered_ac_ids.update(test_case['verifies'])
+    covered_count = len(covered_ac_ids & set(acceptance_map))
+    uncovered_count = ac_count - covered_count
+
     context = {
         'flow_node': flow_node,
         'application_map': flow_node.application_map,
         'graph_data_json': json.dumps(graph_data),
+        'us_count': us_count,
+        'ac_count': ac_count,
+        'tc_count': tc_count,
+        'covered_count': covered_count,
+        'uncovered_count': uncovered_count,
     }
     return render(request, 'testcanvas/flow_node_traceability.html', context)
 
+@login_required
 def map_list(request):
     """List every ApplicationMap and allow the creation of a new one."""
     maps = ApplicationMap.objects.order_by('-created_at')
     return render(request, 'testcanvas/map_list.html', {'maps': maps})
 
 @require_POST
+@login_required
 def map_create(request):
     """Create a new (empty) ApplicationMap and jump straight into the editor."""
     name = (request.POST.get('name') or '').strip()
@@ -330,6 +438,7 @@ def map_create(request):
     messages.success(request, f"Flow '{name}' created.")
     return redirect('testcanvas:map_editor', pk=application_map.pk)
 
+@login_required
 def map_editor(request, pk):
     """Render the Cytoscape.js editor for a given ApplicationMap."""
     application_map = get_object_or_404(ApplicationMap, pk=pk)
@@ -343,6 +452,7 @@ def map_editor(request, pk):
     return render(request, 'testcanvas/map_editor.html', context)
 
 @require_POST
+@login_required
 def map_save(request, pk):
     """AJAX endpoint: persist the Cytoscape graph coming from the front-end.
 
@@ -413,6 +523,10 @@ def map_save(request, pk):
     if new_name:
         application_map.name = new_name
 
+    # Persist the rich-text description (Quill HTML) when provided.
+    if 'description' in payload:
+        application_map.description = payload.get('description') or ''
+
     application_map.save()
     return JsonResponse({
         'ok': True,
@@ -420,6 +534,7 @@ def map_save(request, pk):
         'name': application_map.name,
     })
 
+@login_required
 def node_user_stories(request, pk, node_id):
     """HTMX endpoint: render the UserStories linked to a graph node (via FlowNode) as an HTML partial."""
     application_map = get_object_or_404(ApplicationMap, pk=pk)
@@ -433,6 +548,7 @@ def node_user_stories(request, pk, node_id):
     })
 
 @require_POST
+@login_required
 def map_delete(request, pk):
     """Delete an ApplicationMap."""
     application_map = get_object_or_404(ApplicationMap, pk=pk)

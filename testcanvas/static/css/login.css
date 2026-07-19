@@ -1,0 +1,83 @@
+/* ----------------------------------------------------------------------
+   Login page styles.
+
+   The login screen shows a full-height, centered card floating over a
+   static gradient background. No animations are used.
+   Kept scoped to this page so the shared theme file stays clean.
+   ---------------------------------------------------------------------- */
+
+/* Modern display + text typefaces used only on the login screen.
+   "Space Grotesk" gives the brand a cool, geometric-tech feel while
+   "Inter" keeps the supporting tagline crisp and legible. */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@500;600&display=swap');
+
+.login {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background:
+        radial-gradient(1200px 600px at 80% -10%, #eef2ff 0%, transparent 60%),
+        radial-gradient(1000px 500px at -10% 110%, #f0fdfa 0%, transparent 55%),
+        var(--tc-bg);
+}
+
+/* Foreground login card. */
+.login__card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 420px;
+    margin: 1.5rem;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    /* Solid white to match the logo SVG background. */
+    background: #ffffff;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(99, 102, 241, 0.12);
+    border-radius: 1.25rem;
+    box-shadow: 0 20px 50px rgba(30, 41, 59, 0.12);
+}
+
+.login__logo {
+    width: min(180px, 55vw);
+    height: auto;
+    margin: 0 auto 1.5rem;
+    display: block;
+}
+
+/* Big, cool brand title with a subtle gradient fill. */
+.login__brand {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: clamp(2.25rem, 6vw, 3rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    margin: 0 0 0.5rem;
+    background: linear-gradient(135deg, #6366f1 0%, #14b8a6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+.login__tagline {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--tc-muted);
+    margin: 0 0 1.75rem;
+}
+
+.login__form {
+    text-align: left;
+}
+
+.login__errors {
+    margin-bottom: 1rem;
+}
+

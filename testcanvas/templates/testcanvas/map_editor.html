@@ -1,153 +1,51 @@
+{% extends "testcanvas/bases/base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor · {{ application_map.name }}</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <style>
-        html, body { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif; color: #1f2933; }
-        header { display: flex; align-items: center; gap: 1rem; padding: .75rem 1rem; background: #1f2933; color: #fff; }
-        header h1 { font-size: 1.1rem; margin: 0; }
-        header input { padding: .4rem .6rem; border: 1px solid #52606d; border-radius: 6px; background: #323f4b; color: #fff; font-size: .95rem; }
-        header a { color: #9fb3c8; text-decoration: none; margin-left: auto; }
-        .toolbar { display: flex; gap: .5rem; padding: .6rem 1rem; background: #f5f6f8; border-bottom: 1px solid #e0e4e8; flex-wrap: wrap; align-items: center; }
-        button { cursor: pointer; border: none; border-radius: 6px; padding: .5rem .9rem; font-size: .9rem; }
-        .btn-primary { background: #2563eb; color: #fff; }
-        .btn-secondary { background: #e2e8f0; color: #1f2933; }
-        .btn-danger { background: #ef4444; color: #fff; }
-        .hint { color: #7b8794; font-size: .8rem; margin-left: auto; }
-        #status { font-size: .85rem; margin-left: .5rem; }
-
-        /* ===== Layout area grafo + sidebar ===== */
-        .editor-body { position: relative; display: flex; height: calc(100vh - 120px); overflow: hidden; }
-        #cy { flex: 1 1 auto; height: 100%; background: #fafbfc; }
-
-        /* ===== Barra laterale sinistra (inspector) ===== */
-        .map-sidebar {
-            flex: 0 0 300px;   /* larghezza fissa: non si comprime né si allarga */
-            width: 300px;
-            box-sizing: border-box;
-            background: #ffffff;
-            border-right: 1px solid #e0e4e8;
-            box-shadow: 4px 0 18px rgba(0,0,0,.06);
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            transition: margin-left .25s ease;
-            padding: 1rem;
-        }
-        /* Collassata: scorre fuori a sinistra */
-        .map-sidebar.collapsed { margin-left: -300px; }
-
-        .map-sidebar h2 {
-            font-size: .78rem;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            color: #64748b;
-            margin: 0 0 .75rem;
-        }
-
-        /* ===== Tab della sidebar ===== */
-        .sidebar-tabs { display: flex; gap: 4px; margin-bottom: 1rem; }
-        .sidebar-tabs button {
-            flex: 1; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
-            padding: .5rem 0; font-size: .85rem; font-weight: 600; border-radius: 6px;
-        }
-        .sidebar-tabs button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
-        .tab-panel { display: none; }
-        .tab-panel.active { display: block; }
-
-        /* ===== User Story list ===== */
-        .story-card {
-            border: 1px solid #e2e8f0; border-radius: 8px; padding: .7rem .8rem;
-            margin-bottom: .6rem; background: #f8fafc;
-        }
-        .story-card .code { font-size: .72rem; font-weight: 700; color: #2563eb; letter-spacing: .03em; }
-        .story-card .title { font-size: .92rem; font-weight: 600; color: #1f2933; margin: .2rem 0; }
-        .story-card .desc { font-size: .82rem; color: #64748b; white-space: pre-wrap; }
-        .htmx-request #stories-content { opacity: .5; }
-        .sidebar-section { margin-bottom: 1.25rem; }
-        .sidebar-empty { color: #94a3b8; font-size: .85rem; padding: 1rem 0; }
-        .field { margin-bottom: .85rem; }
-        .field label { display: block; font-size: .78rem; font-weight: 600; color: #475569; margin-bottom: .35rem; }
-        .field label .val { float: right; font-weight: 400; color: #94a3b8; }
-        .field input[type="text"],
-        .field textarea {
-            width: 100%; box-sizing: border-box; padding: .45rem .55rem;
-            border: 1px solid #cbd5e1; border-radius: 6px; font-size: .9rem;
-            font-family: inherit;
-        }
-        .field textarea { resize: vertical; min-height: 70px; }
-        .field input[type="range"] { width: 100%; }
-
-        /* Griglia swatch colori */
-        .swatch-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
-        .swatch {
-            width: 100%; aspect-ratio: 1 / 1; border: 1px solid #cbd5e1;
-            border-radius: 5px; cursor: pointer; padding: 0;
-            transition: transform .1s ease;
-        }
-        .swatch:hover { transform: scale(1.1); }
-        .swatch.active { outline: 2px solid #2563eb; outline-offset: 1px; box-shadow: 0 0 0 1px #fff inset; }
-
-        /* Gruppo bottoni direzione arco */
-        .dir-group { display: flex; gap: 4px; }
-        .dir-group button {
-            flex: 1; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
-            padding: .45rem 0; font-size: 1rem; border-radius: 6px;
-        }
-        .dir-group button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
-
-        /* Pulsante per riaprire la sidebar quando è collassata */
-        .sidebar-toggle-tab {
-            position: absolute; top: 12px; left: 12px; z-index: 20;
-            background: #2563eb; color: #fff; border-radius: 6px;
-            padding: .45rem .7rem; font-size: .9rem; display: none;
-        }
-        .editor-body.sidebar-hidden .sidebar-toggle-tab { display: inline-block; }
-    </style>
-</head>
-<body>
+{% block html_lang %}en{% endblock %}
+{% block title %}Editor · {{ application_map.name }}{% endblock %}
+{% block body_class %}editor-page{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
+    {# Cache-buster (?v=...) forces the browser to reload the stylesheet after edits during development. #}
+    <link rel="stylesheet" href="{% static 'css/map_editor.css' %}?v={% now 'U' %}">
+{% endblock %}
+{% block body %}
     {% csrf_token %}
-    <header>
-        <h1>Application Map Editor</h1>
-        <input type="text" id="map-name" value="{{ application_map.name }}">
-        <a href="{% url 'testcanvas:map_list' %}">← Back to list</a>
+    <header class="app-header">
+        <input type="text" id="map-name" class="header-input" value="{{ application_map.name }}">
+        <div class="app-header__actions">
+            {# Page-specific action only; global logout lives in the shared navbar. #}
+            <a class="header-link" href="{% url 'testcanvas:map_list' %}">← Back to list</a>
+        </div>
     </header>
-
     <div class="toolbar">
-        <button class="btn-secondary" id="btn-toggle-sidebar">☰ Proprietà</button>
-        <button class="btn-secondary" id="btn-add-node">+ Node</button>
-        <button class="btn-secondary" id="btn-add-edge">+ Edge (link 2 selected)</button>
-        <button class="btn-secondary" id="btn-rename">Rename selected</button>
-        <button class="btn-danger" id="btn-delete">Delete selected</button>
-        <button class="btn-primary" id="btn-save">💾 Save</button>
+        <button class="btn btn-secondary" id="btn-toggle-sidebar">☰ Proprietà</button>
+        <button class="btn btn-secondary" id="btn-description" data-bs-toggle="modal" data-bs-target="#description-modal">📝 Description</button>
+        <button class="btn btn-secondary" id="btn-add-node">+ Node</button>
+        <button class="btn btn-secondary" id="btn-add-edge">+ Edge (link 2 selected)</button>
+        <button class="btn btn-secondary" id="btn-rename">Rename selected</button>
+        <button class="btn btn-danger" id="btn-delete">Delete selected</button>
+        <button class="btn btn-primary" id="btn-save">💾 Save</button>
+        <span class="toolbar-sep"></span>
+        <!-- Graph visualization controls grouped together -->
+        <div class="btn-group" role="group" aria-label="Graph visualization">
+            <button class="btn btn-secondary" id="btn-layout-td" title="Auto-orient the graph top → down (start on top, end at the bottom)">⬇ Auto Top-Down</button>
+            <button class="btn btn-secondary" id="btn-layout-lr" title="Auto-orient the graph left → right (start on the left, end on the right)">➡ Auto Left-Right</button>
+            <button class="btn btn-secondary" id="btn-fit" title="Fit the whole graph to the screen">⛶ Fit to screen</button>
+        </div>
         <span id="status"></span>
         <span class="hint">Tip: click a node then Shift+click another, then "+ Edge".</span>
     </div>
-
     <div class="editor-body" id="editor-body">
-        <!-- ===== Barra laterale sinistra ===== -->
         <aside class="map-sidebar" id="map-sidebar">
-            <!-- Tab switcher -->
             <div class="sidebar-tabs">
                 <button type="button" id="tab-btn-props" class="active" data-tab="props">Proprietà</button>
                 <button type="button" id="tab-btn-stories" data-tab="stories">User Story</button>
             </div>
-
-            <!-- ===== TAB: Proprietà ===== -->
             <div class="tab-panel active" id="tab-props">
                 <h2>Proprietà selezione</h2>
-
-                <!-- Nessuna selezione -->
                 <div class="sidebar-empty" id="sidebar-empty">
                     Seleziona un nodo o un arco per modificarne l'aspetto.
                 </div>
-
-                <!-- Proprietà NODO -->
                 <div class="sidebar-section" id="node-props" style="display:none;">
                     <div class="field">
                         <label>Nome nodo</label>
@@ -161,9 +59,16 @@
                         <label>Colore nodo</label>
                         <div class="swatch-grid" data-target="node-color"></div>
                     </div>
+                    <div class="field">
+                        <label>Forma nodo</label>
+                        <div class="shape-group" id="node-shape">
+                            <button type="button" data-shape="start"     class="shape-start"     title="Start (rettangolo verde)">Start</button>
+                            <button type="button" data-shape="end"       class="shape-end"       title="End (rettangolo arancione)">End</button>
+                            <button type="button" data-shape="condition" class="shape-condition" title="Condition (rombo giallo)">Condition</button>
+                            <button type="button" data-shape="squared"   class="shape-squared"   title="Squared (quadrato)">Squared</button>
+                        </div>
+                    </div>
                 </div>
-
-                <!-- Proprietà ARCO -->
                 <div class="sidebar-section" id="edge-props" style="display:none;">
                     <div class="field">
                         <label>Etichetta arco</label>
@@ -188,384 +93,50 @@
                     </div>
                 </div>
             </div>
-
-            <!-- ===== TAB: User Story (contenuto caricato via HTMX) ===== -->
             <div class="tab-panel" id="tab-stories">
                 <div id="stories-content">
                     <div class="sidebar-empty">Seleziona un nodo per vederne le User Story.</div>
                 </div>
             </div>
         </aside>
-
         <button class="sidebar-toggle-tab" id="sidebar-reopen" title="Mostra proprietà">☰</button>
         <div id="cy"></div>
     </div>
 
+    <!-- Rich-text description editor (Bootstrap modal + Quill) -->
+    <div class="modal fade" id="description-modal" tabindex="-1" data-bs-focus="false"
+         aria-labelledby="description-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="description-modal-label">Flow description</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="description-modal-hint">
+                        Edit the rich-text description of this flow. Changes are stored when you press <strong>💾 Save</strong>.
+                    </p>
+                    <div id="description-editor"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
     <script>
-        const GRAPH_DATA = {{ graph_data_json|safe }};
-        const SAVE_URL = "{% url 'testcanvas:map_save' application_map.pk %}";
-        // Base URL with a placeholder swapped at runtime for the selected node id (HTMX request).
-        const USER_STORIES_URL = "{% url 'testcanvas:node_user_stories' application_map.pk '__NODE_ID__' %}";
-
-
-        const NODE_DEFAULT_COLOR = '#2563eb';
-        const EDGE_DEFAULT_COLOR = '#94a3b8';
-
-        // Palette condivisa per nodi e archi
-        const SWATCH_PALETTE = [
-            '#2563eb', '#10b981', '#ef4444', '#f59e0b',
-            '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16',
-            '#0ea5e9', '#f97316', '#14b8a6', '#a855f7',
-            '#1e293b', '#64748b', '#cbd5e1', '#ffffff'
-        ];
-
-        function getCsrfToken() {
-            const el = document.querySelector('[name=csrfmiddlewaretoken]');
-            return el ? el.value : '';
-        }
-
-        // Normalise stored NetworkX/Cytoscape data into an elements array for Cytoscape.
-        function buildElements(data) {
-            if (!data || !data.elements) return [];
-            const els = data.elements;
-            if (Array.isArray(els)) return els;
-            return [].concat(els.nodes || [], els.edges || []);
-        }
-
-        let nodeCounter = 0;
-
-        // Decide the initial layout: if the stored nodes already carry positions we must
-        // honour them with the 'preset' layout, otherwise 'cose' would recompute (and lose)
-        // the coordinates the user arranged manually. Only brand-new graphs use 'cose'.
-        function hasSavedPositions(data) {
-            if (!data || !data.elements) return false;
-            const els = data.elements;
-            const nodes = Array.isArray(els)
-                ? els.filter(e => !(e.data && e.data.source))
-                : (els.nodes || []);
-            return nodes.length > 0 && nodes.every(
-                n => n.position && typeof n.position.x === 'number' && typeof n.position.y === 'number'
-            );
-        }
-        const INITIAL_LAYOUT = hasSavedPositions(GRAPH_DATA) ? 'preset' : 'cose';
-
-        const cy = cytoscape({
-            container: document.getElementById('cy'),
-            elements: buildElements(GRAPH_DATA),
-            style: [
-                {
-                    selector: 'node',
-                    style: {
-                        'background-color': ele => ele.data('color') || NODE_DEFAULT_COLOR,
-                        'label': 'data(name)',
-                        'color': '#fff',
-                        'text-valign': 'center',
-                        'text-halign': 'center',
-                        'font-size': '11px',
-                        'width': 60,
-                        'height': 60,
-                        'text-wrap': 'wrap',
-                        'text-max-width': '55px'
-                    }
-                },
-                {
-                    selector: 'node:selected',
-                    style: { 'border-width': 3, 'border-color': '#b45309' }
-                },
-                {
-                    selector: 'edge',
-                    style: {
-                        'width': ele => ele.data('width') || 2,
-                        'line-color': ele => ele.data('color') || EDGE_DEFAULT_COLOR,
-                        'target-arrow-color': ele => ele.data('color') || EDGE_DEFAULT_COLOR,
-                        'source-arrow-color': ele => ele.data('color') || EDGE_DEFAULT_COLOR,
-                        'target-arrow-shape': 'triangle',
-                        'source-arrow-shape': 'none',
-                        'curve-style': 'bezier',
-                        'label': 'data(label)',
-                        'font-size': '10px',
-                        'color': '#475569'
-                    }
-                },
-                { selector: 'edge[direction="backward"]', style: { 'target-arrow-shape': 'none', 'source-arrow-shape': 'triangle' } },
-                { selector: 'edge[direction="both"]',     style: { 'target-arrow-shape': 'triangle', 'source-arrow-shape': 'triangle' } },
-                { selector: 'edge[direction="none"]',      style: { 'target-arrow-shape': 'none', 'source-arrow-shape': 'none' } },
-                {
-                    selector: 'edge:selected',
-                    style: { 'line-color': '#f59e0b', 'target-arrow-color': '#f59e0b', 'source-arrow-color': '#f59e0b' }
-                }
-            ],
-            layout: { name: INITIAL_LAYOUT, animate: false }
-        });
-
-        // Keep the counter ahead of any existing numeric node id.
-        cy.nodes().forEach(n => {
-            const num = parseInt(n.id().replace(/\D/g, ''), 10);
-            if (!isNaN(num) && num >= nodeCounter) nodeCounter = num + 1;
-        });
-
-        function setStatus(msg, isError) {
-            const s = document.getElementById('status');
-            s.textContent = msg;
-            s.style.color = isError ? '#b91c1c' : '#166534';
-        }
-
-        /* ===================== SIDEBAR / INSPECTOR ===================== */
-        const sidebar = document.getElementById('map-sidebar');
-        const editorBody = document.getElementById('editor-body');
-        const sidebarEmpty = document.getElementById('sidebar-empty');
-        const nodeProps = document.getElementById('node-props');
-        const edgeProps = document.getElementById('edge-props');
-        const nodeNameInput = document.getElementById('node-name');
-        const nodeDescriptionInput = document.getElementById('node-description');
-        const edgeLabelInput = document.getElementById('edge-label');
-        const edgeWidthInput = document.getElementById('edge-width');
-        const edgeWidthVal = document.getElementById('edge-width-val');
-        const edgeDirGroup = document.getElementById('edge-dir');
-
-        let selectedEl = null;
-
-        function normHex(c) { return (c || '').toLowerCase(); }
-
-        // Costruisce le griglie di swatch
-        function buildSwatchGrid(grid) {
-            const target = grid.dataset.target;
-            grid.innerHTML = '';
-            SWATCH_PALETTE.forEach(color => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'swatch';
-                btn.style.backgroundColor = color;
-                btn.title = color;
-                btn.dataset.color = color;
-                btn.addEventListener('click', () => applyColor(target, color));
-                grid.appendChild(btn);
-            });
-        }
-
-        function highlightSwatch(target, color) {
-            const grid = document.querySelector(`.swatch-grid[data-target="${target}"]`);
-            if (!grid) return;
-            grid.querySelectorAll('.swatch').forEach(s => {
-                s.classList.toggle('active', normHex(s.dataset.color) === normHex(color));
-            });
-        }
-
-        function applyColor(target, color) {
-            if (!selectedEl) return;
-            if (target === 'node-color' && selectedEl.isNode()) selectedEl.data('color', color);
-            else if (target === 'edge-color' && selectedEl.isEdge()) selectedEl.data('color', color);
-            highlightSwatch(target, color);
-        }
-
-        document.querySelectorAll('.swatch-grid').forEach(buildSwatchGrid);
-
-        function showInspectorFor(el) {
-            selectedEl = el;
-            if (!el) {
-                sidebarEmpty.style.display = 'block';
-                nodeProps.style.display = 'none';
-                edgeProps.style.display = 'none';
-                return;
-            }
-            sidebarEmpty.style.display = 'none';
-            if (el.isNode()) {
-                nodeProps.style.display = 'block';
-                edgeProps.style.display = 'none';
-                nodeNameInput.value = el.data('name') || '';
-                nodeDescriptionInput.value = el.data('description') || '';
-                highlightSwatch('node-color', el.data('color') || NODE_DEFAULT_COLOR);
-            } else {
-                nodeProps.style.display = 'none';
-                edgeProps.style.display = 'block';
-                edgeLabelInput.value = el.data('label') || '';
-                const w = el.data('width') || 2;
-                edgeWidthInput.value = w;
-                edgeWidthVal.textContent = `${w} px`;
-                const dir = el.data('direction') || 'forward';
-                edgeDirGroup.querySelectorAll('button').forEach(b => {
-                    b.classList.toggle('active', b.dataset.dir === dir);
-                });
-                highlightSwatch('edge-color', el.data('color') || EDGE_DEFAULT_COLOR);
-            }
-        }
-
-        // Sincronizza inspector con la selezione di Cytoscape
-        function syncInspector() {
-            const sel = cy.$(':selected');
-            showInspectorFor(sel.length === 1 ? sel[0] : null);
-            // Keep the User Story tab aligned with the current node selection.
-            refreshStoriesTab();
-        }
-        cy.on('select', 'node, edge', syncInspector);
-        cy.on('unselect', 'node, edge', syncInspector);
-
-        // Input handlers inspector
-        nodeNameInput.addEventListener('input', () => {
-            if (selectedEl && selectedEl.isNode()) selectedEl.data('name', nodeNameInput.value);
-        });
-        nodeDescriptionInput.addEventListener('input', () => {
-            if (selectedEl && selectedEl.isNode()) selectedEl.data('description', nodeDescriptionInput.value);
-        });
-        edgeLabelInput.addEventListener('input', () => {
-            if (selectedEl && selectedEl.isEdge()) selectedEl.data('label', edgeLabelInput.value);
-        });
-        edgeWidthInput.addEventListener('input', () => {
-            const w = parseInt(edgeWidthInput.value, 10);
-            edgeWidthVal.textContent = `${w} px`;
-            if (selectedEl && selectedEl.isEdge()) selectedEl.data('width', w);
-        });
-        edgeDirGroup.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (!selectedEl || !selectedEl.isEdge()) return;
-                selectedEl.data('direction', btn.dataset.dir);
-                edgeDirGroup.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
-
-        // Toggle / collapse sidebar
-        function setSidebarOpen(open) {
-            sidebar.classList.toggle('collapsed', !open);
-            editorBody.classList.toggle('sidebar-hidden', !open);
-            setTimeout(() => cy.resize(), 260);
-        }
-        document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
-            setSidebarOpen(sidebar.classList.contains('collapsed'));
-        });
-        document.getElementById('sidebar-reopen').addEventListener('click', () => setSidebarOpen(true));
-
-
-        /* ===================== TAB: Proprietà / User Story (HTMX) ===================== */
-        const tabButtons = document.querySelectorAll('.sidebar-tabs button');
-        const tabPanels = {
-            props: document.getElementById('tab-props'),
-            stories: document.getElementById('tab-stories'),
+        window.MAP_EDITOR_CONFIG = {
+            graphData: {{ graph_data_json|safe }},
+            description: "{{ application_map.description|escapejs }}",
+            saveUrl: "{% url 'testcanvas:map_save' application_map.pk %}",
+            userStoriesUrl: "{% url 'testcanvas:node_user_stories' application_map.pk '__NODE_ID__' %}"
         };
-        const storiesContent = document.getElementById('stories-content');
-        let activeTab = 'props';
-
-        function activateTab(name) {
-            activeTab = name;
-            tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-            Object.entries(tabPanels).forEach(([key, panel]) => {
-                panel.classList.toggle('active', key === name);
-            });
-            if (name === 'stories') refreshStoriesTab();
-        }
-        tabButtons.forEach(btn => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
-
-        // Load the User Stories of the selected node into #stories-content via HTMX.
-        function refreshStoriesTab() {
-            if (activeTab !== 'stories') return;
-
-            const sel = cy.$(':selected');
-            const node = (sel.length === 1 && sel[0].isNode()) ? sel[0] : null;
-
-            if (!node) {
-                storiesContent.innerHTML =
-                    '<div class="sidebar-empty">Seleziona un nodo per vederne le User Story.</div>';
-                return;
-            }
-            const url = USER_STORIES_URL.replace('__NODE_ID__', encodeURIComponent(node.id()));
-            htmx.ajax('GET', url, { target: '#stories-content', swap: 'innerHTML' });
-        }
-
-
-        // --- Add node ---
-        document.getElementById('btn-add-node').addEventListener('click', () => {
-            const name = prompt('Node name:', 'New node');
-            if (name === null) return;
-            const id = 'n' + (nodeCounter++);
-            const pan = cy.pan(), zoom = cy.zoom();
-            cy.add({
-                group: 'nodes',
-                data: { id: id, name: name, description: '', color: NODE_DEFAULT_COLOR },
-                position: {
-                    x: (cy.width() / 2 - pan.x) / zoom,
-                    y: (cy.height() / 2 - pan.y) / zoom
-                }
-            });
-        });
-
-        // --- Add edge between two selected nodes ---
-        document.getElementById('btn-add-edge').addEventListener('click', () => {
-            const selected = cy.nodes(':selected');
-            if (selected.length !== 2) {
-                setStatus('Select exactly 2 nodes to link.', true);
-                return;
-            }
-            const label = prompt('Edge label (optional):', '') || '';
-            cy.add({
-                group: 'edges',
-                data: {
-                    id: 'e' + Date.now(),
-                    source: selected[0].id(),
-                    target: selected[1].id(),
-                    label: label,
-                    color: EDGE_DEFAULT_COLOR,
-                    width: 2,
-                    direction: 'forward'
-                }
-            });
-            setStatus('Edge created.', false);
-        });
-
-        // --- Rename selected node/edge ---
-        document.getElementById('btn-rename').addEventListener('click', () => {
-            const sel = cy.$(':selected');
-            if (sel.length !== 1) {
-                setStatus('Select exactly 1 element to rename.', true);
-                return;
-            }
-            const el = sel[0];
-            const key = el.isNode() ? 'name' : 'label';
-            const current = el.data(key) || '';
-            const value = prompt('New label:', current);
-            if (value === null) return;
-            el.data(key, value);
-            showInspectorFor(el);
-        });
-
-        // --- Delete selected ---
-        document.getElementById('btn-delete').addEventListener('click', () => {
-            const sel = cy.$(':selected');
-            if (sel.length === 0) {
-                setStatus('Nothing selected.', true);
-                return;
-            }
-            sel.remove();
-            showInspectorFor(null);
-        });
-
-        // --- Save to backend ---
-        document.getElementById('btn-save').addEventListener('click', async () => {
-            setStatus('Saving…', false);
-            const json = cy.json();
-            const payload = {
-                name: document.getElementById('map-name').value,
-                elements: json.elements
-            };
-            try {
-                const resp = await fetch(SAVE_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCsrfToken()
-                    },
-                    body: JSON.stringify(payload)
-                });
-                const result = await resp.json();
-                if (result.ok) {
-                    setStatus('Saved ✔', false);
-                } else {
-                    setStatus('Error: ' + result.error, true);
-                }
-            } catch (err) {
-                setStatus('Network error: ' + err, true);
-            }
-        });
     </script>
-</body>
-</html>
-
+    {# Cache-buster (?v=...) forces the browser to reload the script after edits during development. #}
+    <script src="{% static 'js/map_editor.js' %}?v={% now 'U' %}"></script>
+{% endblock %}

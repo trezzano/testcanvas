@@ -1,0 +1,62 @@
+{% extends "testcanvas/bases/base_page.html" %}
+{% block html_lang %}en{% endblock %}
+{% block title %}Acceptance Criteria · {{ flow_node.title }}{% endblock %}
+{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · Flow Node</div>{% endblock %}
+{% block page_heading %}Acceptance Criteria · {{ flow_node.local_graph_id }} — {{ flow_node.title }}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block content %}
+{# Acceptance Criteria belong to a specific User Story, so this page lists each #}
+{# story of the flow node with its criteria and a link to add/manage them. #}
+{% if user_stories %}
+    {% for us in user_stories %}
+        <div class="card">
+            <h2>
+                <span class="code">{{ us.code }}</span> · {{ us.title }}
+                <span class="count-pill">{{ us.criteria.all|length }}</span>
+            </h2>
+            {% if us.criteria.all %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 110px;">Code</th>
+                            <th>Text</th>
+                            <th style="width: 160px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ac in us.criteria.all %}
+                            <tr>
+                                <td class="code">{{ ac.code }}</td>
+                                <td><div class="desc">{{ ac.text }}</div></td>
+                                <td>
+                                    <div class="actions">
+                                        <a class="btn btn-secondary btn-sm"
+                                           href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">Edit</a>
+                                        <form method="post"
+                                              action="{% url 'testcanvas:acceptance_criterion_delete' ac.pk %}"
+                                              onsubmit="return confirm('Delete acceptance criterion {{ ac.code }}?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="muted">No acceptance criteria for this user story yet.</p>
+            {% endif %}
+            <a class="btn btn-primary" href="{% url 'testcanvas:acceptance_criterion_manage' us.pk %}">
+                + Add / manage criteria for {{ us.code }}
+            </a>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="card">
+        <p class="muted">This flow node has no user stories yet, so it cannot hold acceptance criteria.</p>
+        <a class="btn btn-primary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">+ Add a User Story first</a>
+    </div>
+{% endif %}
+{% endblock %}
+

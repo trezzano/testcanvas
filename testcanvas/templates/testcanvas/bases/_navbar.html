@@ -1,0 +1,27 @@
+{% load static %}
+{% comment %}
+    Shared top navigation bar rendered on every authenticated page.
+
+    It contains ONLY elements that are common to the whole application:
+      - the small application logo (left side),
+      - the application name ("Test Canvas"),
+      - the logout button.
+
+    Page-specific actions (e.g. "Back to list", "Rename", etc.) must NOT be
+    placed here; keep them in the individual page headers instead.
+{% endcomment %}
+<nav class="app-navbar">
+    {# Brand: logo + application name, linking back to the flows home page. #}
+    <a class="app-navbar__brand" href="{% url 'testcanvas:map_list' %}">
+
+        <span class="app-navbar__name">Test Canvas</span>
+    </a>
+    <div class="app-navbar__actions">
+        {# Logout is POST-only for CSRF safety; render it as a small inline form. #}
+        <form action="{% url 'testcanvas:logout' %}" method="post" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="logout-btn">Logout</button>
+        </form>
+    </div>
+</nav>
+

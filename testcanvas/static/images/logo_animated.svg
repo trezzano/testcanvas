@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="15" stdDeviation="15" flood-color="#000" flood-opacity="0.15" />
+    </filter>
+
+    <radialGradient id="blueGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#7be0ff" />
+      <stop offset="40%" stop-color="#00a0e9" />
+      <stop offset="100%" stop-color="#005691" />
+    </radialGradient>
+
+    <radialGradient id="greenGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#8effa0" />
+      <stop offset="40%" stop-color="#2ecc71" />
+      <stop offset="100%" stop-color="#1b753e" />
+    </radialGradient>
+
+    <radialGradient id="limeGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#eef962" />
+      <stop offset="40%" stop-color="#b4d423" />
+      <stop offset="100%" stop-color="#698006" />
+    </radialGradient>
+
+    <radialGradient id="orangeGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ffce54" />
+      <stop offset="45%" stop-color="#fc6e51" />
+      <stop offset="100%" stop-color="#da4425" />
+    </radialGradient>
+
+    <radialGradient id="purpleGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#e086fc" />
+      <stop offset="40%" stop-color="#9627ba" />
+      <stop offset="100%" stop-color="#500969" />
+    </radialGradient>
+
+    <radialGradient id="cyanGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#96f0ff" />
+      <stop offset="40%" stop-color="#1fc8e6" />
+      <stop offset="100%" stop-color="#0a7a91" />
+    </radialGradient>
+
+    <linearGradient id="scanRay" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
+      <stop offset="30%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="70%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+
+    <mask id="cardMask">
+      <path d="M 80,45 L 295,45 Q 305,45 315,55 L 355,95 Q 360,100 360,110 L 360,320 A 40,40 0 0,1 320,360 L 80,360 A 40,40 0 0,1 40,320 L 40,85 A 40,40 0 0,1 80,45 Z" fill="#ffffff" />
+    </mask>
+
+    <style>
+      .card {
+        fill: rgba(90, 115, 140, 0.38);
+        stroke: rgba(255, 255, 255, 0.85);
+        stroke-width: 2.5;
+        backdrop-filter: blur(20px);
+      }
+
+      /* Animazione del raggio di luce che attraversa lo sfondo */
+      @keyframes scan {
+        0% { transform: translateX(-150px); }
+        50% { transform: translateX(450px); }
+        100% { transform: translateX(450px); } /* Pausa alla fine del ciclo per naturalezza */
+      }
+      .ray {
+        animation: scan 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      /* Animazione delle sfere: reagiscono temporaneamente al raggio */
+      /* Tempismo calcolato sulla posizione X di ciascuna colonna di sfere */
+      @keyframes react-column-1 {
+        0%, 10% { opacity: 1; filter: drop-shadow(0 0 0px rgba(255,255,255,0)); }
+        18% { opacity: 0.35; filter: drop-shadow(0 0 15px #ffffff) brightness(1.4); }
+        26%, 100% { opacity: 1; filter: drop-shadow(0 0 0px rgba(255,255,255,0)); }
+      }
+
+      @keyframes react-column-2 {
+        0%, 22% { opacity: 1; filter: drop-shadow(0 0 0px rgba(255,255,255,0)); }
+        30% { opacity: 0.35; filter: drop-shadow(0 0 15px #ffffff) brightness(1.4); }
+        38%, 100% { opacity: 1; filter: drop-shadow(0 0 0px rgba(255,255,255,0)); }
+      }
+
+      @keyframes react-column-3 {
+        0%, 34% { opacity: 1; filter: drop-shadow(0 0 0px rgba(255,255,255,0)); }
+        42% { opacity: 0.35; filter: drop-shadow(0 0 15px #ffffff) brightness(1.4); }
+        50%, 100% { opacity: 1; filter: drop-shadow(0 0 0px rgba(255,255,255,0)); }
+      }
+
+      .col-1 { animation: react-column-1 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+      .col-2 { animation: react-column-2 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+      .col-3 { animation: react-column-3 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
+      /* Linee statiche eleganti */
+      .connection-line {
+        stroke: #ff4081;
+        stroke-width: 6;
+        stroke-linecap: round;
+      }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#ffffff"/>
+
+  <g filter="url(#shadow)">
+    <path class="card" d="
+      M 80,45 
+      L 295,45 
+      Q 305,45 315,55 
+      L 355,95 
+      Q 360,100 360,110 
+      L 360,320 
+      A 40,40 0 0,1 320,360 
+      L 80,360 
+      A 40,40 0 0,1 40,320 
+      L 40,85 
+      A 40,40 0 0,1 80,45 Z" />
+  </g>
+
+  <g mask="url(#cardMask)">
+    <rect class="ray" x="0" y="0" width="80" height="400" fill="url(#scanRay)" />
+  </g>
+
+  <path d="M 298,46 L 298,80 A 16,16 0 0,0 314,96 L 358,96 Z" fill="rgba(255,255,255,0.9)" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+
+  <line class="connection-line" x1="110" y1="200" x2="200" y2="200" />
+  <line class="connection-line" x1="200" y1="200" x2="200" y2="290" />
+  <line class="connection-line" x1="200" y1="290" x2="290" y2="200" />
+
+  <!-- Sfere statiche: NON toccate dalle linee di connessione -->
+  <g class="static-spheres">
+    <circle cx="110" cy="110" r="32" fill="url(#blueGrad)" />
+    <ellipse cx="100" cy="100" rx="10" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-30 100 100)"/>
+
+    <circle cx="110" cy="290" r="32" fill="url(#greenGrad)" />
+    <ellipse cx="100" cy="280" rx="10" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-30 100 280)"/>
+
+    <circle cx="200" cy="110" r="32" fill="url(#greenGrad)" />
+    <ellipse cx="190" cy="100" rx="10" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-30 190 100)"/>
+
+    <circle cx="290" cy="110" r="32" fill="url(#limeGrad)" />
+    <ellipse cx="280" cy="100" rx="10" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-30 280 100)"/>
+
+    <circle cx="290" cy="290" r="32" fill="url(#limeGrad)" />
+    <ellipse cx="280" cy="280" rx="10" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-30 280 280)"/>
+  </g>
+
+  <!-- Solo le sfere toccate dalle linee cambiano trasparenza al passaggio del raggio -->
+  <!-- Sequenza per posizione X: x=110 -> col-1, x=200 -> col-2, x=290 -> col-3 -->
+  <g class="col-1">
+    <circle cx="110" cy="200" r="32" fill="url(#orangeGrad)" />
+    <ellipse cx="100" cy="190" rx="10" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-30 100 190)"/>
+  </g>
+
+  <g class="col-2">
+    <circle cx="200" cy="200" r="32" fill="url(#purpleGrad)" />
+    <ellipse cx="190" cy="190" rx="10" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-30 190 190)"/>
+
+    <circle cx="200" cy="290" r="32" fill="url(#orangeGrad)" />
+    <ellipse cx="190" cy="280" rx="10" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-30 190 280)"/>
+  </g>
+
+  <g class="col-3">
+    <circle cx="290" cy="200" r="32" fill="url(#cyanGrad)" />
+    <ellipse cx="280" cy="190" rx="10" ry="5" fill="#ffffff" opacity="0.5" transform="rotate(-30 280 190)"/>
+  </g>
+
+</svg>

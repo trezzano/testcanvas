@@ -1,192 +1,108 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Test Cases · {{ flow_node.title }}</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: system-ui, Arial, sans-serif; margin: 0; background: #f5f6f8; color: #1f2933; }
-        header {
-            display: flex; align-items: center; gap: 1rem;
-            padding: .8rem 1.2rem; background: #0f172a; color: #fff;
-        }
-        header .crumbs { font-size: .78rem; color: #94a3b8; }
-        header .crumbs strong { color: #e2e8f0; }
-        header h1 { font-size: 1.1rem; margin: 0; }
-        header a { color: #9fb3c8; text-decoration: none; margin-left: auto; font-size: .85rem; }
-        header a:hover { color: #fff; }
-
-        .wrap { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
-        .card { background: #fff; border: 1px solid #e0e4e8; border-radius: 10px; padding: 1.4rem; margin-bottom: 1.5rem; }
-        .card h2 { margin: 0 0 1rem; font-size: 1rem; }
-
-        .messages { list-style: none; padding: 0; margin: 0 0 1.5rem; }
-        .messages li { padding: .6rem .9rem; border-radius: 6px; margin-bottom: .5rem; font-size: .9rem; }
-        .messages .success { background: #dcfce7; color: #166534; }
-        .messages .error { background: #fee2e2; color: #991b1b; }
-
-        .field { margin-bottom: 1rem; }
-        .field label { display: block; font-size: .8rem; font-weight: 600; color: #475569; margin-bottom: .35rem; }
-        .field-hint { font-size: .74rem; color: #94a3b8; margin-top: .3rem; }
-        .field-input {
-            width: 100%; padding: .55rem .7rem; border: 1px solid #cbd5e1;
-            border-radius: 6px; font-size: .92rem; font-family: inherit;
-        }
-        .field-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
-        .field .errors { color: #b91c1c; font-size: .8rem; margin-top: .3rem; }
-        .form-row { display: grid; grid-template-columns: 160px 1fr; gap: 1rem; }
-
-        .story-summary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: .9rem 1rem; margin-bottom: 1.5rem; }
-        .story-summary .code { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #2563eb; }
-        .story-summary .title { font-weight: 600; }
-
-        button, .btn {
-            cursor: pointer; border: none; border-radius: 6px; padding: .55rem 1rem;
-            font-size: .9rem; text-decoration: none; display: inline-block; font-family: inherit;
-        }
-        .btn-primary { background: #2563eb; color: #fff; }
-        .btn-secondary { background: #e2e8f0; color: #1f2933; }
-        .btn-danger { background: #ef4444; color: #fff; }
-        .btn-sm { padding: .35rem .7rem; font-size: .82rem; }
-
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: .7rem .5rem; border-bottom: 1px solid #eceff1; vertical-align: top; }
-        th { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: #64748b; }
-        .code { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #2563eb; }
-        .desc { color: #64748b; font-size: .85rem; white-space: pre-wrap; }
-        .actions { display: flex; gap: .4rem; }
-        .muted { color: #7b8794; font-size: .88rem; }
-        .count-pill { background: #eef2ff; color: #4338ca; font-size: .75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
-        .chip { display: inline-block; background: #d1fae5; color: #047857; font-family: 'JetBrains Mono', monospace;
-                font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin: 0 3px 3px 0; }
-        .status-pill { font-size: .72rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
-        .status-TO_EXECUTE { background: #e2e8f0; color: #475569; }
-        .status-PASSED { background: #d1fae5; color: #047857; }
-        .status-FAILED { background: #fee2e2; color: #b91c1c; }
-        .status-BLOCKED { background: #fef3c7; color: #92400e; }
-    </style>
-</head>
-<body>
-    <header>
-        <div>
-            <div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} — {{ flow_node.title }}</div>
-            <h1>Test Cases · {{ flow_node.title }}</h1>
-        </div>
-        <a href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">← Back to traceability</a>
-    </header>
-
-    <div class="wrap">
-        {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                    <li class="{{ message.tags }}">{{ message }}</li>
+{% extends "testcanvas/bases/base_page.html" %}
+{% block html_lang %}en{% endblock %}
+{% block title %}Manage Test Cases · {{ flow_node.title }}{% endblock %}
+{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} — {{ flow_node.title }}</div>{% endblock %}
+{% block page_heading %}Test Cases · {{ flow_node.title }}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>Add a new Test Case</h2>
+    {% if has_criteria %}
+        <form method="post" action="{% url 'testcanvas:test_case_manage' flow_node.pk %}">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="field">
+                    <label for="{{ form.test_code.id_for_label }}">Code</label>
+                    {{ form.test_code }}
+                    {% if form.test_code.errors %}<div class="errors">{{ form.test_code.errors|striptags }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="{{ form.status.id_for_label }}">Status</label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="errors">{{ form.status.errors|striptags }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="field">
+                <label for="{{ form.title.id_for_label }}">Title</label>
+                {{ form.title }}
+                {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="field">
+                <label for="{{ form.criteria.id_for_label }}">Acceptance Criteria</label>
+                {{ form.criteria }}
+                <div class="field-hint">Hold Ctrl (⌘ on Mac) to select multiple criteria.</div>
+                {% if form.criteria.errors %}<div class="errors">{{ form.criteria.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="field">
+                <label for="{{ form.preconditions.id_for_label }}">Preconditions</label>
+                {{ form.preconditions }}
+                {% if form.preconditions.errors %}<div class="errors">{{ form.preconditions.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="field">
+                <label for="{{ form.steps.id_for_label }}">Steps</label>
+                {{ form.steps }}
+                {% if form.steps.errors %}<div class="errors">{{ form.steps.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="field">
+                <label for="{{ form.expected_result.id_for_label }}">Expected result</label>
+                {{ form.expected_result }}
+                {% if form.expected_result.errors %}<div class="errors">{{ form.expected_result.errors|striptags }}</div>{% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary">+ Add Test Case</button>
+        </form>
+    {% else %}
+        <p class="muted">
+            This flow node has no acceptance criteria yet. A test case must verify at least one
+            acceptance criterion, so add criteria first from the
+            <a href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">User Stories</a> section.
+        </p>
+    {% endif %}
+</div>
+<div class="card">
+    <h2>Test Cases <span class="count-pill">{{ test_cases|length }}</span></h2>
+    {% if test_cases %}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 110px;">Code</th>
+                    <th>Title</th>
+                    <th>Verifies</th>
+                    <th style="width: 110px;">Status</th>
+                    <th style="width: 160px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tc in test_cases %}
+                    <tr>
+                        <td class="code">{{ tc.test_code }}</td>
+                        <td>{{ tc.title }}</td>
+                        <td>
+                            {% for ac in tc.criteria.all %}
+                                <span class="chip">{{ ac.code }}</span>
+                            {% empty %}
+                                <span class="muted">—</span>
+                            {% endfor %}
+                        </td>
+                        <td><span class="status-pill status-{{ tc.status }}">{{ tc.get_status_display }}</span></td>
+                        <td>
+                            <div class="actions">
+                                <a class="btn btn-secondary btn-sm"
+                                   href="{% url 'testcanvas:test_case_edit' tc.pk %}">Edit</a>
+                                <form method="post"
+                                      action="{% url 'testcanvas:test_case_delete' flow_node.pk tc.pk %}"
+                                      onsubmit="return confirm('Delete test case {{ tc.test_code }}?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
                 {% endfor %}
-            </ul>
-        {% endif %}
-
-        <div class="card">
-            <h2>Add a new Test Case</h2>
-            {% if has_criteria %}
-                <form method="post" action="{% url 'testcanvas:test_case_manage' flow_node.pk %}">
-                    {% csrf_token %}
-                    <div class="form-row">
-                        <div class="field">
-                            <label for="{{ form.test_code.id_for_label }}">Code</label>
-                            {{ form.test_code }}
-                            {% if form.test_code.errors %}<div class="errors">{{ form.test_code.errors|striptags }}</div>{% endif %}
-                        </div>
-                        <div class="field">
-                            <label for="{{ form.status.id_for_label }}">Status</label>
-                            {{ form.status }}
-                            {% if form.status.errors %}<div class="errors">{{ form.status.errors|striptags }}</div>{% endif %}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label for="{{ form.title.id_for_label }}">Title</label>
-                        {{ form.title }}
-                        {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
-                    </div>
-                    <div class="field">
-                        <label for="{{ form.criteria.id_for_label }}">Acceptance Criteria</label>
-                        {{ form.criteria }}
-                        <div class="field-hint">Hold Ctrl (⌘ on Mac) to select multiple criteria.</div>
-                        {% if form.criteria.errors %}<div class="errors">{{ form.criteria.errors|striptags }}</div>{% endif %}
-                    </div>
-                    <div class="field">
-                        <label for="{{ form.preconditions.id_for_label }}">Preconditions</label>
-                        {{ form.preconditions }}
-                        {% if form.preconditions.errors %}<div class="errors">{{ form.preconditions.errors|striptags }}</div>{% endif %}
-                    </div>
-                    <div class="field">
-                        <label for="{{ form.steps.id_for_label }}">Steps</label>
-                        {{ form.steps }}
-                        {% if form.steps.errors %}<div class="errors">{{ form.steps.errors|striptags }}</div>{% endif %}
-                    </div>
-                    <div class="field">
-                        <label for="{{ form.expected_result.id_for_label }}">Expected result</label>
-                        {{ form.expected_result }}
-                        {% if form.expected_result.errors %}<div class="errors">{{ form.expected_result.errors|striptags }}</div>{% endif %}
-                    </div>
-                    <button type="submit" class="btn-primary">+ Add Test Case</button>
-                </form>
-            {% else %}
-                <p class="muted">
-                    This flow node has no acceptance criteria yet. A test case must verify at least one
-                    acceptance criterion, so add criteria first from the
-                    <a href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">User Stories</a> section.
-                </p>
-            {% endif %}
-        </div>
-
-        <div class="card">
-            <h2>Test Cases <span class="count-pill">{{ test_cases|length }}</span></h2>
-            {% if test_cases %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 110px;">Code</th>
-                            <th>Title</th>
-                            <th>Verifies</th>
-                            <th style="width: 110px;">Status</th>
-                            <th style="width: 160px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tc in test_cases %}
-                            <tr>
-                                <td class="code">{{ tc.test_code }}</td>
-                                <td>{{ tc.title }}</td>
-                                <td>
-                                    {% for ac in tc.criteria.all %}
-                                        <span class="chip">{{ ac.code }}</span>
-                                    {% empty %}
-                                        <span class="muted">—</span>
-                                    {% endfor %}
-                                </td>
-                                <td><span class="status-pill status-{{ tc.status }}">{{ tc.get_status_display }}</span></td>
-                                <td>
-                                    <div class="actions">
-                                        <a class="btn btn-secondary btn-sm"
-                                           href="{% url 'testcanvas:test_case_edit' tc.pk %}">Edit</a>
-                                        <form method="post"
-                                              action="{% url 'testcanvas:test_case_delete' flow_node.pk tc.pk %}"
-                                              onsubmit="return confirm('Delete test case {{ tc.test_code }}?');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn-danger btn-sm">Delete</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="muted">No test cases yet. Add the first one above.</p>
-            {% endif %}
-        </div>
-    </div>
-</body>
-</html>
-
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">No test cases yet. Add the first one above.</p>
+    {% endif %}
+</div>
+{% endblock %}

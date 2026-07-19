@@ -217,3 +217,13 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 /testcanvas/migrations/
+/requirements_dev.txt
+/json_import_test/
+/docs/
+/mcp_server/
+/.github/
+/.github/
+/testcanvas/llm_prompts/
+/docs/
+/.github/
+/.github/instructions/

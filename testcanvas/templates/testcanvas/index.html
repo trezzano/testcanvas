@@ -1,0 +1,60 @@
+{% extends "testcanvas/bases/base.html" %}
+{% load static %}
+{% block html_lang %}en{% endblock %}
+{% block title %}TestCanvas · Sign in{% endblock %}
+{# Page-specific styles live in a scoped CSS file so the shared theme stays clean. #}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/login.css' %}">
+{% endblock %}
+{% block body %}
+<main class="login">
+    {# Static gradient background (defined in login.css); no animations. #}
+    <section class="login__card">
+        <img class="login__logo"
+             src="{% static 'images/white_small_logo_trasparent.png' %}"
+             alt="TestCanvas logo">
+        <h1 class="login__brand">Test Canvas</h1>
+        <p class="login__tagline">TRACEABILITY · COVERAGE · ASSURANCE</p>
+        {# Non-field errors (e.g. wrong username/password) reported by Django. #}
+        {% if form.non_field_errors %}
+        <div class="login__errors alert alert-danger" role="alert">
+            {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <form class="login__form" method="post" action="{% url 'testcanvas:index' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+                <input type="text"
+                       name="{{ form.username.html_name }}"
+                       id="{{ form.username.id_for_label }}"
+                       class="form-control{% if form.username.errors %} is-invalid{% endif %}"
+                       value="{{ form.username.value|default:'' }}"
+                       autocomplete="username"
+                       autofocus
+                       required>
+                {% for error in form.username.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="mb-4">
+                <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
+                <input type="password"
+                       name="{{ form.password.html_name }}"
+                       id="{{ form.password.id_for_label }}"
+                       class="form-control{% if form.password.errors %} is-invalid{% endif %}"
+                       autocomplete="current-password"
+                       required>
+                {% for error in form.password.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Sign in</button>
+            </div>
+        </form>
+    </section>
+</main>
+{% endblock %}

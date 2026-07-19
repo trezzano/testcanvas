@@ -1,4 +1,3 @@
-import networkx as nx
 from django.db import models
 
 # Schema concettuale fondamentale :
@@ -7,36 +6,27 @@ from django.db import models
 class ApplicationMap(models.Model):
     """
     Main container for the application flow graph. 
-    Uses NetworkX for graph logic and serializes natively into Cytoscape.js format.
+    Uses serializes natively into Cytoscape.js format.
     """
     name = models.CharField(max_length=150, help_text="Global flow name (e.g., 'Checkout Flow')")
     created_at = models.DateTimeField(auto_now_add=True)
+    description = models.TextField(blank=True)
 
     # JSON field where NetworkX saves the entire structure (nodes, edges, and visual styles)
+    # in cytoscape format
     graph_data = models.JSONField(
         default=dict,
         blank=True,
-        help_text="Structure natively exported by NetworkX in Cytoscape format"
+        help_text="Structure in Cytoscape format"
     )
 
     class Meta:
         verbose_name = "Application Map"
-        verbose_name_plural = "Application Maps"
+        verbose_name_plural = "TestCanvas App"
 
     def __str__(self):
         return self.name
 
-    def get_graph(self) -> nx.DiGraph:
-        """Reconstructs and returns the NetworkX Directed Graph object."""
-        if not self.graph_data:
-            return nx.DiGraph()
-        # Converts the Cytoscape JSON format back into a NetworkX directed graph
-        return nx.cytoscape_graph(self.graph_data)
-
-    def save_graph(self, G: nx.DiGraph):
-        """Takes a NetworkX graph, converts it to Cytoscape format, and saves it to the database."""
-        self.graph_data = nx.cytoscape_data(G)
-        self.save()
 
     def save(self, *args, **kwargs):
         """Persist the map, then keep the relational FlowNode rows mirroring graph_data."""

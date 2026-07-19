@@ -43,7 +43,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'testcanvas.apps.TestcanvasConfig'
+    'testcanvas.apps.TestcanvasConfig',
+    # custom for this project
+    'rest_framework',
+    'mcp_server'
 ]
 
 MIDDLEWARE = [
@@ -128,3 +131,29 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Authentication redirects
+# The landing page (testcanvas:index) doubles as the login screen.
+LOGIN_URL = 'testcanvas:index'
+LOGIN_REDIRECT_URL = 'testcanvas:map_list'
+LOGOUT_REDIRECT_URL = 'testcanvas:index'
+
+
+# Django REST Framework settings
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
+    ]
+}
+
+# MCP server settings
+# Definisci l'endpoint per farlo coincidere con http://ip:xxx/mcp
+DJANGO_MCP_ENDPOINT = "mcp" # Raggiungibile su /mcp
+
+# Forza l'endpoint MCP a richiedere l'autenticazione tramite il tuo token
+DJANGO_MCP_AUTHENTICATION_CLASSES = [
+    'testcanvas.auth.StaticTokenAuthentication',
+]

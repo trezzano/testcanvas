@@ -1,0 +1,33 @@
+{% extends "testcanvas/bases/base.html" %}
+{% comment %}
+    Standard page layout: page header (page-specific only) + centered content
+    area with flash messages. Used by list / manage / edit pages.
+
+    The global logout / branding lives in the shared navbar (see base.html), so
+    this header must contain ONLY page-specific elements.
+    Blocks to override:
+      - crumbs        : small breadcrumb text in the header
+      - page_heading  : the <h1> text in the header
+      - header_link   : the top-right "back" link (page-specific)
+      - wrap_class    : extra class on .wrap (e.g. wrap-narrow / wrap-wide)
+      - content       : the page body inside .wrap
+{% endcomment %}
+{% block body %}
+<header class="app-header">
+    <div>
+        {% block crumbs %}{% endblock %}
+        <h1>{% block page_heading %}{% endblock %}</h1>
+    </div>
+    {% block header_link %}{% endblock %}
+</header>
+<div class="wrap {% block wrap_class %}{% endblock %}">
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+</div>
+{% endblock %}
