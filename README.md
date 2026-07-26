@@ -32,17 +32,23 @@ This core framework is specifically designed to be highly customizable and serve
 - **Architecture:** ISTQB-Compliant Data Modeling
 
 --- 
+## 📄 License
 
-## Licence
+[PROJECT_NAME] is **source-available**, not traditional open source. In short:
 
-Our software is distributed under a custom **Source-Available License**.
+- ✅ **You can use it freely** — for personal projects, internal tools, or inside commercial products.
+- ✅ **You can modify it** however you want, and you don't have to share your changes back.
+- ❌ **You can't offer it as a competing hosted/managed service** — e.g. you can't take this project and resell it as your own SaaS in direct competition with us.
+- ❌ **You can't remove the "Powered by [PROJECT_NAME]" credit** from any public deployment — unless you buy a whitelabel license (see below).
 
-We want you to build great things with our technology without legal hurdles, which is why our license is designed with a **"frictionless adoption"** approach:
+### Why attribution matters
 
-* **Commercial Use Allowed:** You can freely use, modify, and integrate this software into your commercial applications and SaaS platforms.
-* **No Copyleft (Keep Your Code Private):** Unlike traditional open-source licenses (like AGPL), you are **NOT** forced to share or publish your custom modifications or proprietary code. You can do full white-labeling.
-* **What We Ask in Return (Marketing & Truthfulness):** Since we provide this powerful core for free, we only ask for two things:
-1. **Public Reference:** You grant us the right to include your company name/logo on our website as a user of our technology.
-2. **Non-Denial:** You cannot claim you built this core from scratch. If explicitly asked by your clients or third parties about your underlying stack, you must truthfully state it is powered by our software.
+This project is free to use, but it's not free to build and maintain. In exchange for the freedom we give you, we ask for one small thing: **visible credit**. A "Powered by Test Canvas" with link somewhere public (footer, docs, about page) is enough — it's how people discover the project and how we keep building it.
 
-*For full legal terms and conditions, please review the complete LICENCE.md file in the root directory of this repository.*
+Don't want to show the badge? No problem — contact us for a [whitelabel license](#) and remove it.
+
+### Paid plugins & consulting
+
+The core project is free under the terms above. Advanced plugins and implementation/consulting services are offered separately under a commercial license 
+
+Full legal terms read the license file in the root directory.
