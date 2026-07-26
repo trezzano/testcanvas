@@ -18,13 +18,13 @@
         </div>
     </header>
     <div class="toolbar">
-        <button class="btn btn-secondary" id="btn-toggle-sidebar">☰ Proprietà</button>
-        <button class="btn btn-secondary" id="btn-description" data-bs-toggle="modal" data-bs-target="#description-modal">📝 Description</button>
+        <button class="btn btn-secondary" id="btn-toggle-sidebar">☰ Properties</button>
+        <button class="btn btn-secondary" id="btn-description" data-bs-toggle="modal" data-bs-target="#description-modal">Description</button>
         <button class="btn btn-secondary" id="btn-add-node">+ Node</button>
         <button class="btn btn-secondary" id="btn-add-edge">+ Edge (link 2 selected)</button>
         <button class="btn btn-secondary" id="btn-rename">Rename selected</button>
         <button class="btn btn-danger" id="btn-delete">Delete selected</button>
-        <button class="btn btn-primary" id="btn-save">💾 Save</button>
+        <button class="btn btn-primary" id="btn-save">Save</button>
         <span class="toolbar-sep"></span>
         <!-- Graph visualization controls grouped together -->
         <div class="btn-group" role="group" aria-label="Graph visualization">
@@ -38,68 +38,101 @@
     <div class="editor-body" id="editor-body">
         <aside class="map-sidebar" id="map-sidebar">
             <div class="sidebar-tabs">
-                <button type="button" id="tab-btn-props" class="active" data-tab="props">Proprietà</button>
+                <button type="button" id="tab-btn-props" class="active" data-tab="props">Properties</button>
                 <button type="button" id="tab-btn-stories" data-tab="stories">User Story</button>
             </div>
             <div class="tab-panel active" id="tab-props">
-                <h2>Proprietà selezione</h2>
+                <h2>Selection properties</h2>
                 <div class="sidebar-empty" id="sidebar-empty">
-                    Seleziona un nodo o un arco per modificarne l'aspetto.
+                    Select a node or an edge to edit its appearance.
                 </div>
                 <div class="sidebar-section" id="node-props" style="display:none;">
+                    {# Node id shown in read-only mode. #}
                     <div class="field">
-                        <label>Nome nodo</label>
-                        <input type="text" id="node-name" placeholder="Nome nodo...">
+                        <label>Node ID</label>
+                        <input type="text" id="node-id" class="node-id-input" readonly>
+                    </div>
+                    {# Compact, globally unique node identifier (stable LLM reference), read-only. #}
+                    <div class="field">
+                        <label>Node UUID</label>
+                        <div class="input-group">
+                            <input type="text" id="node-uid" class="node-id-input form-control" readonly>
+                            {# One-click copy of the node_uid to the clipboard. #}
+                            <button type="button" id="btn-copy-uid" class="btn btn-secondary"
+                                    title="Copy the node UUID">📋</button>
+                        </div>
                     </div>
                     <div class="field">
-                        <label>Descrizione nodo</label>
-                        <textarea id="node-description" placeholder="Descrizione nodo..."></textarea>
+                        <label>Node name</label>
+                        <input type="text" id="node-name" placeholder="Node name...">
                     </div>
                     <div class="field">
-                        <label>Colore nodo</label>
-                        <div class="swatch-grid" data-target="node-color"></div>
+                        <label>Node description</label>
+                        <textarea id="node-description" placeholder="Node description..."></textarea>
                     </div>
                     <div class="field">
-                        <label>Forma nodo</label>
-                        <div class="shape-group" id="node-shape">
-                            <button type="button" data-shape="start"     class="shape-start"     title="Start (rettangolo verde)">Start</button>
-                            <button type="button" data-shape="end"       class="shape-end"       title="End (rettangolo arancione)">End</button>
-                            <button type="button" data-shape="condition" class="shape-condition" title="Condition (rombo giallo)">Condition</button>
-                            <button type="button" data-shape="squared"   class="shape-squared"   title="Squared (quadrato)">Squared</button>
+                        <label>Node type</label>
+                        <div class="nodetype-group" id="node-type">
+                            <button type="button" data-type="PURE" class="active" title="Pure node with its own User Stories">Pure node</button>
+                            <button type="button" data-type="SUBFLOW" title="Reference to another flow">Sub-flow</button>
+                        </div>
+                    </div>
+                    <div class="field" id="node-subflow-field" style="display:none;">
+                        <label>Referenced sub-flow</label>
+                        <select id="node-subflow"></select>
+                        <a id="node-subflow-open" class="btn btn-primary subflow-open-link"
+                           href="#" target="_blank" rel="noopener" style="display:none;">
+                            🔗 Open the sub-flow
+                        </a>
+                    </div>
+                    {# Shape and colour are only meaningful for PURE nodes; hidden for SUBFLOW. #}
+                    <div id="node-style-fields">
+                        <div class="field">
+                            <label>Node color</label>
+                            <div class="swatch-grid" data-target="node-color"></div>
+                        </div>
+                        <div class="field">
+                            <label>Node shape</label>
+                            <div class="shape-group" id="node-shape">
+                                <button type="button" data-shape="start"     class="shape-start"     title="Start (green rectangle)">Start</button>
+                                <button type="button" data-shape="end"       class="shape-end"       title="End (orange rectangle)">End</button>
+                                <button type="button" data-shape="condition" class="shape-condition" title="Condition (yellow diamond)">Condition</button>
+                                <button type="button" data-shape="squared"   class="shape-squared"   title="Squared (square)">Squared</button>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="sidebar-section" id="edge-props" style="display:none;">
                     <div class="field">
-                        <label>Etichetta arco</label>
-                        <input type="text" id="edge-label" placeholder="Etichetta...">
+                        <label>Edge label</label>
+                        <input type="text" id="edge-label" placeholder="Label...">
                     </div>
                     <div class="field">
-                        <label>Direzione frecce</label>
+                        <label>Arrow direction</label>
                         <div class="dir-group" id="edge-dir">
-                            <button type="button" data-dir="forward"  title="Sorgente → Destinazione">→</button>
-                            <button type="button" data-dir="backward" title="Destinazione → Sorgente">←</button>
-                            <button type="button" data-dir="both"     title="Bidirezionale">↔</button>
-                            <button type="button" data-dir="none"     title="Nessuna freccia">—</button>
+                            <button type="button" data-dir="forward"  title="Source → Target">→</button>
+                            <button type="button" data-dir="backward" title="Target → Source">←</button>
+                            <button type="button" data-dir="both"     title="Bidirectional">↔</button>
+                            <button type="button" data-dir="none"     title="No arrow">—</button>
                         </div>
                     </div>
                     <div class="field">
-                        <label>Spessore arco <span class="val" id="edge-width-val">2 px</span></label>
+                        <label>Edge width <span class="val" id="edge-width-val">2 px</span></label>
                         <input type="range" id="edge-width" min="1" max="10" step="1" value="2">
                     </div>
                     <div class="field">
-                        <label>Colore arco</label>
+                        <label>Edge color</label>
                         <div class="swatch-grid" data-target="edge-color"></div>
                     </div>
                 </div>
             </div>
             <div class="tab-panel" id="tab-stories">
                 <div id="stories-content">
-                    <div class="sidebar-empty">Seleziona un nodo per vederne le User Story.</div>
+                    <div class="sidebar-empty">Select a node to see its User Stories.</div>
                 </div>
             </div>
         </aside>
-        <button class="sidebar-toggle-tab" id="sidebar-reopen" title="Mostra proprietà">☰</button>
+        <button class="sidebar-toggle-tab" id="sidebar-reopen" title="Show properties">☰</button>
         <div id="cy"></div>
     </div>
 
@@ -127,14 +160,17 @@
 {% endblock %}
 {% block extra_js %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    {# htmx is loaded once globally in base.html; do not re-include it here. #}
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
     <script>
         window.MAP_EDITOR_CONFIG = {
             graphData: {{ graph_data_json|safe }},
             description: "{{ application_map.description|escapejs }}",
             saveUrl: "{% url 'testcanvas:map_save' application_map.pk %}",
-            userStoriesUrl: "{% url 'testcanvas:node_user_stories' application_map.pk '__NODE_ID__' %}"
+            userStoriesUrl: "{% url 'testcanvas:node_user_stories' application_map.pk '__NODE_ID__' %}",
+            subflows: {{ subflows_json|safe }},
+            nodeUids: {{ node_uids_json|safe }},
+            mapEditorUrl: "{% url 'testcanvas:map_editor' 0 %}"
         };
     </script>
     {# Cache-buster (?v=...) forces the browser to reload the script after edits during development. #}

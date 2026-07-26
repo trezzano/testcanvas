@@ -1,0 +1,61 @@
+{% extends "testcanvas/bases/base_page.html" %}
+{% block html_lang %}en{% endblock %}
+{% block title %}Application Maps Collections{% endblock %}
+{% block page_heading %}Application Maps Collections{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url 'testcanvas:map_list' %}">← Back to flows</a>{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="m-0">Collections <span class="count-pill">{{ collections|length }}</span></h2>
+    <a class="btn btn-primary" href="{% url 'testcanvas:collection_create' %}">+ New collection</a>
+</div>
+
+{% if collections %}
+    {# Responsive Bootstrap grid of collection cards. #}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for c in collections %}
+            <div class="col">
+                {# The card border color mirrors the collection's configured color. #}
+                <div class="card h-100" style="border-color: {{ c.background_color }}; border-width: 2px;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            {# Small swatch previewing the collection color. #}
+                            <span class="color-swatch" style="background-color: {{ c.background_color }};"
+                                  title="{{ c.background_color }}"></span>
+                            <h3 class="card-title h5 m-0">{{ c.title }}</h3>
+                        </div>
+                        {% if c.description %}
+                            <div class="card-text desc mb-3">{{ c.description|safe }}</div>
+                        {% endif %}
+                        <h4 class="text-uppercase text-muted small fw-bold mb-2">Maps</h4>
+                        {% if c.maps.all %}
+                            <ul class="collection-maps mb-0">
+                                {% for m in c.maps.all %}
+                                    <li><a href="{% url 'testcanvas:map_editor' m.pk %}">{{ m.name }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <span class="muted">No maps</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="actions">
+                            <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:collection_edit' c.pk %}">Edit</a>
+                            <form method="post" action="{% url 'testcanvas:collection_delete' c.pk %}"
+                                  onsubmit="return confirm('Delete collection {{ c.title }}? Its maps will be kept but ungrouped.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card">
+        <p class="muted m-0">No collections yet. Create the first one above.</p>
+    </div>
+{% endif %}
+{% endblock %}
+

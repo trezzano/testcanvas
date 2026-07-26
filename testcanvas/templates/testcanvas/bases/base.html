@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="{% block html_lang %}it{% endblock %}">
+<html lang="{% block html_lang %}en{% endblock %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,6 +34,8 @@
 
     <!-- Bootstrap bundle (Popper included) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- HTMX: progressive enhancement for partial page updates -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

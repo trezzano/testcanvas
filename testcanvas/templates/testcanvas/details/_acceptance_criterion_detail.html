@@ -1,0 +1,43 @@
+{% comment %}
+    Acceptance Criterion detail card (HTMX partial).
+
+    Loaded into the shared detail sidebar by both traceability views. Read-only:
+    shows the criterion text, its nature and coverage, and links to the edit
+    form. ``covered`` is precomputed in the view.
+{% endcomment %}
+<div class="detail-card">
+    <div class="detail-head">
+        <span class="detail-badge {% if covered %}badge-ac-covered{% else %}badge-ac-uncovered{% endif %}">Acceptance Criterion</span>
+    </div>
+
+    <div class="detail-code">{{ criterion.code }}</div>
+
+    {% if criterion.node_uid %}
+        <div class="detail-uid"><span class="detail-uid-label">UID</span><code>{{ criterion.node_uid }}</code></div>
+    {% endif %}
+
+    <div class="detail-field"><span class="detail-label">Criterion</span><span>{{ criterion.text }}</span></div>
+    <div class="detail-field">
+        <span class="detail-label">Type</span>
+        <span>{% if criterion.is_functional %}Functional{% else %}Non-functional{% endif %}</span>
+    </div>
+    <div class="detail-field">
+        <span class="detail-label">User Story</span>
+        <span>{{ criterion.user_story.code }} — {{ criterion.user_story.title }}</span>
+    </div>
+    <div class="detail-field">
+        <span class="detail-label">Coverage</span>
+        <span>
+            {% if covered %}
+                <span class="badge ok">covered</span> {{ criterion.test_cases.count }} test case(s)
+            {% else %}
+                <span class="badge no">uncovered</span>
+            {% endif %}
+        </span>
+    </div>
+
+    <div class="detail-actions">
+        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:acceptance_criterion_edit' criterion.pk %}">✎ Edit Acceptance Criterion</a>
+    </div>
+</div>
+

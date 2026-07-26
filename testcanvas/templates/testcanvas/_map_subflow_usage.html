@@ -1,0 +1,34 @@
+{% comment %}
+    HTMX partial: sidebar content listing every flow node that uses
+    ``application_map`` as a sub-flow. Loaded into the map_list sidebar via an
+    hx-get request from the "Info subflow use" button.
+{% endcomment %}
+<div class="subflow-usage-panel">
+    <div class="subflow-usage-head">
+        <h3>Sub-flow usage</h3>
+        {# Close button clears the drawer without a server round-trip. #}
+        <button type="button"
+                class="subflow-usage-close"
+                aria-label="Close"
+                onclick="document.getElementById('subflow-usage-sidebar').innerHTML = '';">&times;</button>
+    </div>
+    <p class="muted">
+        <strong>{{ application_map.name }}</strong> is used as a sub-flow by
+        <strong>{{ referencing_nodes|length }}</strong> node(s).
+    </p>
+    {% if referencing_nodes %}
+        <ul class="subflow-usage-list">
+            {% for node in referencing_nodes %}
+                <li>
+                    <a href="{% url 'testcanvas:map_editor' node.application_map.pk %}">
+                        {{ node.application_map.name }}
+                    </a>
+                    <span class="muted"><span class="code">{{ node.local_graph_id }}</span> — {{ node.title }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted">This flow is not used as a sub-flow anywhere.</p>
+    {% endif %}
+</div>
+

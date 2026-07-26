@@ -1,180 +1,259 @@
 /* ==========================================================================
-   TestCanvas · Traceability graph logic (US -> AC -> TC)
-   Reads runtime config from `window.TRACEABILITY_CONFIG` injected by the template:
-       { graphData, editUrls: { us, ac, tc, acManage } }
-   Backend schema:
-     {
-       "user_stories":        [{ id, code, name, description, acceptance_criteria:[AC_id,...] }],
-       "acceptance_criteria": [{ id, code, description }],
-       "test_cases":          [{ id, code, name, status, verifies:[AC_id,...] }]
-     }
+   TestCanvas · Traceability graph (US -> AC -> TC)
+
+   The view (flow_node_traceability) does all the data shaping and hands us a
+   ready-to-use Cytoscape `elements` array via `window.TRACEABILITY_CONFIG`:
+
+       { elements: [ { data: { id, label, type, covered, code, detail_url } }, ... ] }
+
+   Node `type` is one of "us" | "ac" | "tc". Edges carry a `kind` of
+   "decompose" (US -> AC) or "verify" (AC -> TC). This script only draws the
+   graph and wires a few interactions: hover focus + tooltip and a tap that
+   opens the shared, server-rendered detail modal (loaded on demand via HTMX
+   from each node's `detail_url`). No parsing, no coverage math, no DOM building.
    ========================================================================== */
 (function () {
     'use strict';
 
     const CONFIG = window.TRACEABILITY_CONFIG || {};
-    const GRAPH_DATA = CONFIG.graphData || {};
-    const EDIT_URLS = CONFIG.editUrls || {};
+    const ELEMENTS = CONFIG.elements || [];
 
-    function editUrlFor(node) {
-        const type = node.data('type');
-        if (type !== 'us' && type !== 'ac' && type !== 'tc') return null;
-        // Node ids look like "US_<pk>" / "AC_<pk>" / "TC_<pk>".
-        const pk = String(node.data('id')).split('_')[1];
-        if (!pk) return null;
-        return EDIT_URLS[type].replace('/0/', '/' + pk + '/');
-    }
+    // Nothing to draw: the template already shows the empty state.
+    if (!ELEMENTS.length) return;
 
-    function buildParsed(data) {
-        const nodes = { us: {}, ac: {}, tc: {} };
-        const edges = [];
+    // Graph orientation: 'horizontal' reads as US|AC|TC columns (left->right),
+    // 'vertical' stacks the same bands top->bottom (US on top, TC at bottom).
+    // Switching orientation is a genuine UI interaction on the Cytoscape widget,
+    // so it lives in JS; we remember the choice per session so it survives page
+    // navigations just like the viewport does.
+    const ORIENTATION_KEY = 'traceability-orientation';
+    let orientation = sessionStorage.getItem(ORIENTATION_KEY) || 'horizontal';
 
-        (data.user_stories || []).forEach(us => {
-            nodes.us[us.id] = { id: us.id, code: us.code || '', label: us.name || '', description: us.description || '' };
-            (us.acceptance_criteria || []).forEach(acId => {
-                if (!nodes.ac[acId]) nodes.ac[acId] = { id: acId, code: '', description: '' };
-                edges.push({ source: us.id, target: acId, kind: 'decompose' });
-            });
-        });
+    // Build the elements with a preset position for the active orientation.
+    const positionedElements = withPositions(orientation);
 
-        (data.acceptance_criteria || []).forEach(ac => {
-            nodes.ac[ac.id] = { id: ac.id, code: ac.code || '', description: ac.description || '' };
-        });
-
-        (data.test_cases || []).forEach(tc => {
-            nodes.tc[tc.id] = { id: tc.id, code: tc.code || '', label: tc.name || '', status: tc.status || '' };
-            (tc.verifies || []).forEach(acId => {
-                if (!nodes.ac[acId]) nodes.ac[acId] = { id: acId, code: '', description: '' };
-                edges.push({ source: tc.id, target: acId, kind: 'verify' });
-            });
-        });
-
-        return { nodes, edges };
-    }
-
-    function buildElements(parsed) {
-        const els = [];
-        const coverage = {};
-        Object.values(parsed.nodes.ac).forEach(a => coverage[a.id] = 0);
-        parsed.edges.forEach(e => { if (e.kind === 'verify') coverage[e.target] = (coverage[e.target] || 0) + 1; });
-
-        // Three-column layout anchored to the real lane centers US | AC | TC.
-        // The lanes are three equal flex columns (1/3 each), so their centers fall
-        // at 1/6, 3/6 and 5/6 of the width. Nodes are placed in screen coordinates
-        // with fit disabled, so alignment holds even when a column is empty.
-        const cyBox = document.getElementById('cy');
-        const CW = cyBox.clientWidth || 1200;
-        const CH = cyBox.clientHeight || 600;
-        const COL_X = { us: CW * (1 / 6), ac: CW * (3 / 6), tc: CW * (5 / 6) };
-        const ROW_GAP = 110;
-
-        function placeColumn(nodesArray, type) {
-            const positions = {};
-            const n = nodesArray.length;
-            nodesArray.forEach((node, i) => {
-                positions[node.id] = { x: COL_X[type], y: CH / 2 + (i - (n - 1) / 2) * ROW_GAP };
-            });
-            return positions;
-        }
-
-        const usNodes = Object.values(parsed.nodes.us);
-        const acNodes = Object.values(parsed.nodes.ac).sort((a, b) => a.id.localeCompare(b.id));
-        const tcNodes = Object.values(parsed.nodes.tc).sort((a, b) => a.id.localeCompare(b.id));
-        const posUS = placeColumn(usNodes, 'us');
-        const posAC = placeColumn(acNodes, 'ac');
-        const posTC = placeColumn(tcNodes, 'tc');
-
-        usNodes.forEach(n =>
-            els.push({ data: { id: n.id, label: (n.code || n.id) + (n.label ? '\n' + n.label : ''), type: 'us', code: n.code, full: n.description }, position: posUS[n.id] })
-        );
-        acNodes.forEach(n => {
-            const covered = (coverage[n.id] || 0) > 0;
-            els.push({ data: { id: n.id, label: n.code || n.id, type: 'ac', covered, covCount: coverage[n.id] || 0, code: n.code, full: n.description }, position: posAC[n.id] });
-        });
-        tcNodes.forEach(n =>
-            els.push({ data: { id: n.id, label: n.code || n.id, type: 'tc', code: n.code, status: n.status, full: n.label }, position: posTC[n.id] })
-        );
-        parsed.edges.forEach((e, i) =>
-            els.push({ data: { id: 'e' + i, source: e.source, target: e.target, kind: e.kind } })
-        );
-        return { els, coverage, parsed };
-    }
-
-    const parsed = buildParsed(GRAPH_DATA);
-    const { els, coverage } = buildElements(parsed);
-
-    // NOTE: Stats counters and the lane "Modifica" / "Add" button states
-    // (enabled/disabled and their target URLs) are rendered server-side by the
-    // Django template. This script only draws the graph and its interactions.
-
-    // --- Coverage list ---
-    const covList = document.getElementById('coverage-list');
-    Object.keys(parsed.nodes.ac).sort().forEach(id => {
-        const c = coverage[id] || 0;
-        const ac = parsed.nodes.ac[id];
-        const row = document.createElement('div');
-        row.className = 'cov-row';
-        row.innerHTML = `<span>${ac.code || id}</span>
-            <span class="badge ${c > 0 ? 'ok' : 'no'}">${c > 0 ? c + ' TC' : 'scoperto'}</span>`;
-        covList.appendChild(row);
+    const cy = cytoscape({
+        container: document.getElementById('cy'),
+        elements: positionedElements,
+        style: [
+            { selector: 'node', style: {
+                'font-family': 'JetBrains Mono, monospace', 'font-size': 10, 'color': '#1e293b',
+                'text-wrap': 'wrap', 'text-max-width': '100px', 'text-valign': 'center', 'text-halign': 'center',
+                'label': 'data(label)', 'border-width': 2,
+            }},
+            { selector: 'node[type="us"]', style: {
+                'shape': 'round-rectangle', 'background-color': '#ede9fe', 'border-color': '#7c3aed',
+                'color': '#3b0764', 'width': 150, 'height': 50, 'font-weight': 700, 'font-size': 11,
+            }},
+            { selector: 'node[type="ac"][?covered]', style: {
+                'shape': 'ellipse', 'background-color': '#d1fae5', 'border-color': '#059669',
+                'color': '#064e3b', 'width': 78, 'height': 78,
+            }},
+            { selector: 'node[type="ac"][!covered]', style: {
+                'shape': 'ellipse', 'background-color': '#fee2e2', 'border-color': '#ef4444',
+                'color': '#7f1d1d', 'width': 78, 'height': 78,
+            }},
+            { selector: 'node[type="tc"]', style: {
+                'shape': 'round-rectangle', 'background-color': '#e0f2fe', 'border-color': '#0284c7',
+                'border-style': 'dashed', 'color': '#0c4a6e', 'width': 110, 'height': 42,
+            }},
+            { selector: 'edge[kind="decompose"]', style: {
+                'width': 2, 'line-color': '#c4b5fd', 'target-arrow-color': '#c4b5fd',
+                'target-arrow-shape': 'triangle', 'curve-style': 'bezier',
+            }},
+            { selector: 'edge[kind="verify"]', style: {
+                // Edge data is AC -> TC, but a Test Case "verifies" the
+                // criterion, so the arrow points back at the AC (the source).
+                'width': 1.8, 'line-color': '#6ee7b7', 'source-arrow-color': '#6ee7b7',
+                'source-arrow-shape': 'triangle', 'target-arrow-shape': 'none',
+                'line-style': 'dashed', 'curve-style': 'bezier', 'opacity': 0.9,
+            }},
+            { selector: '.faded', style: { 'opacity': 0.45 } },
+            { selector: '.highlighted', style: { 'opacity': 1 } },
+        ],
+        // Preset layout: we assign each node an explicit position (see
+        // `withColumnPositions`) so the graph reads as US | AC | TC columns.
+        // We do NOT auto-fit here: a saved viewport (if any) is restored below,
+        // otherwise we fit the whole graph manually on the first visit.
+        layout: { name: 'preset', fit: false, padding: 30 },
+        minZoom: 0.2, maxZoom: 2.5,
+        userZoomingEnabled: true,    // free zoom in/out (wheel, pinch, buttons)
+        userPanningEnabled: true,    // free panning to navigate large graphs
+        boxSelectionEnabled: false,
+        autoungrabify: true,         // view-only graph: nodes can't be dragged
     });
 
-    document.getElementById('empty-state').style.display = els.length ? 'none' : 'flex';
 
-    let cy = null;
-    if (els.length) {
-        cy = cytoscape({
-            container: document.getElementById('cy'),
-            elements: els,
-            style: [
-                { selector: 'node', style: {
-                    'font-family': 'JetBrains Mono, monospace', 'font-size': 10, 'color': '#1e293b',
-                    'text-wrap': 'wrap', 'text-max-width': '100px', 'text-valign': 'center', 'text-halign': 'center',
-                    'label': 'data(label)', 'border-width': 2,
-                }},
-                { selector: 'node[type="us"]', style: {
-                    'shape': 'round-rectangle', 'background-color': '#ede9fe', 'border-color': '#7c3aed',
-                    'color': '#3b0764', 'width': 150, 'height': 50, 'font-weight': 700, 'font-size': 11,
-                }},
-                { selector: 'node[type="ac"][?covered]', style: {
-                    'shape': 'ellipse', 'background-color': '#d1fae5', 'border-color': '#059669',
-                    'color': '#064e3b', 'width': 78, 'height': 78,
-                }},
-                { selector: 'node[type="ac"][!covered]', style: {
-                    'shape': 'ellipse', 'background-color': '#fee2e2', 'border-color': '#ef4444',
-                    'color': '#7f1d1d', 'width': 78, 'height': 78,
-                }},
-                { selector: 'node[type="tc"]', style: {
-                    'shape': 'round-rectangle', 'background-color': '#e0f2fe', 'border-color': '#0284c7',
-                    'border-style': 'dashed', 'color': '#0c4a6e', 'width': 110, 'height': 42,
-                }},
-                { selector: 'edge[kind="decompose"]', style: {
-                    'width': 2, 'line-color': '#c4b5fd', 'target-arrow-color': '#c4b5fd',
-                    'target-arrow-shape': 'triangle', 'curve-style': 'bezier',
-                }},
-                { selector: 'edge[kind="verify"]', style: {
-                    'width': 1.8, 'line-color': '#6ee7b7', 'target-arrow-color': '#6ee7b7',
-                    'target-arrow-shape': 'triangle', 'line-style': 'dashed', 'curve-style': 'bezier', 'opacity': 0.9,
-                }},
-                { selector: '.faded', style: { 'opacity': 0.45 } },
-                { selector: '.highlighted', style: { 'opacity': 1 } },
-            ],
-            layout: { name: 'preset', fit: false, padding: 0 },
-            zoom: 1,
-            pan: { x: 0, y: 0 },
-            minZoom: 0.3, maxZoom: 2.5, wheelSensitivity: 0.25,
-            // View-only graph: prevent users from dragging/repositioning nodes.
-            autoungrabify: true,
-            autolock: true,
+    // Restore the previous zoom/pan if the user already navigated this graph,
+    // otherwise fit the whole graph into view on the first visit.
+    persistViewport(cy);
+
+    wireInteractions(cy);
+    wireOrientationToggle(cy);
+
+    /**
+     * Keep the graph viewport (zoom + pan) stable across full page reloads.
+     *
+     * The page is rebuilt from scratch every time the user edits a node and
+     * comes back, which would otherwise reset zoom and position. We store the
+     * viewport in ``sessionStorage`` (keyed by Flow Node id) and restore it on
+     * load; when there is nothing saved we fit the whole graph instead.
+     *
+     * Args:
+     *     cy: The Cytoscape instance to observe and control.
+     */
+    function persistViewport(cy) {
+        // Key the saved state per Flow Node so each one keeps its own viewport.
+        const key = 'traceability-viewport:' + (CONFIG.node_id || location.pathname);
+
+        function saveViewport() {
+            sessionStorage.setItem(key, JSON.stringify({ zoom: cy.zoom(), pan: cy.pan() }));
+        }
+
+        function restoreViewport() {
+            const raw = sessionStorage.getItem(key);
+            if (!raw) return false;            // nothing saved -> caller will fit
+            try {
+                const v = JSON.parse(raw);
+                cy.zoom(v.zoom);
+                cy.pan(v.pan);
+                return true;
+            } catch (e) {
+                return false;                  // corrupted state -> fall back to fit
+            }
+        }
+
+        // First visit (or unreadable state): center + zoom the whole graph.
+        if (!restoreViewport()) cy.fit(undefined, 30);
+
+        // Persist on every zoom/pan, debounced to avoid excessive writes.
+        let saveTimer = null;
+        cy.on('zoom pan', () => {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveViewport, 150);
         });
-
-        // Belt-and-suspenders: explicitly lock every node so it cannot be
-        // dragged or repositioned, regardless of how it was created.
-        cy.nodes().ungrabify().lock();
-
-        wireInteractions(cy);
     }
 
+
+    /**
+     * Compute a preset position for every node for the given orientation.
+     *
+     * Nodes are grouped into three bands by ``type`` (us | ac | tc). In
+     * ``horizontal`` mode the bands are vertical columns placed at 1/6, 3/6 and
+     * 5/6 of the container width (reads US -> AC -> TC left to right); in
+     * ``vertical`` mode they are horizontal rows placed at the same fractions of
+     * the height (reads US -> AC -> TC top to bottom). Siblings inside a band are
+     * evenly spaced and centered.
+     *
+     * Args:
+     *     orientation: Either ``'horizontal'`` or ``'vertical'``.
+     *
+     * Returns:
+     *     An object mapping each node id to its ``{ x, y }`` position.
+     */
+    function computePositions(orientation) {
+        const box = document.getElementById('cy');
+        const width = box.clientWidth || 1200;
+        const height = box.clientHeight || 600;
+        const siblingGap = 110;   // spacing between nodes sharing the same band
+
+        // Group node ids by type, keeping their original order.
+        const bands = { us: [], ac: [], tc: [] };
+        ELEMENTS.forEach(el => {
+            const type = el.data && el.data.type;
+            if (type && bands[type]) bands[type].push(el.data.id);
+        });
+
+        const vertical = orientation === 'vertical';
+        // Band anchor along the "reading" axis (X when horizontal, Y when vertical).
+        const bandPos = vertical
+            ? { us: height * (1 / 6), ac: height * (3 / 6), tc: height * (5 / 6) }
+            : { us: width * (1 / 6), ac: width * (3 / 6), tc: width * (5 / 6) };
+
+        const positions = {};
+        Object.keys(bands).forEach(type => {
+            const ids = bands[type];
+            const n = ids.length;
+            ids.forEach((id, i) => {
+                const offset = (i - (n - 1) / 2) * siblingGap;
+                positions[id] = vertical
+                    ? { x: width / 2 + offset, y: bandPos[type] }
+                    : { x: bandPos[type], y: height / 2 + offset };
+            });
+        });
+        return positions;
+    }
+
+    /**
+     * Return a copy of the elements with a preset ``position`` on every node for
+     * the given orientation. Edges are passed through untouched.
+     *
+     * Args:
+     *     orientation: Either ``'horizontal'`` or ``'vertical'``.
+     */
+    function withPositions(orientation) {
+        const positions = computePositions(orientation);
+        return ELEMENTS.map(el => {
+            const id = el.data && el.data.id;
+            if (id && positions[id]) return Object.assign({}, el, { position: positions[id] });
+            return el;   // edges (no position needed)
+        });
+    }
+
+    /**
+     * Reposition the existing graph to a new orientation and refit the view.
+     *
+     * The nodes stay view-only (``autoungrabify``) but are no longer locked, so
+     * a preset layout can move them to their new band positions. The result is
+     * animated and reframed, and the choice is saved per session so it persists
+     * across page navigations.
+     *
+     * Args:
+     *     cy: The Cytoscape instance to reposition.
+     *     newOrientation: Either ``'horizontal'`` or ``'vertical'``.
+     */
+    function applyOrientation(cy, newOrientation) {
+        orientation = newOrientation;
+        sessionStorage.setItem(ORIENTATION_KEY, orientation);
+
+        const positions = computePositions(orientation);
+        // Preset layout with an explicit position provider: it moves every node
+        // to its new band and refits the whole graph into view.
+        cy.layout({
+            name: 'preset',
+            positions: node => positions[node.id()],
+            fit: true,
+            padding: 30,
+            animate: true,
+            animationDuration: 300,
+        }).run();
+
+        updateToggleUI(orientation);
+    }
+
+    /** Wire the orientation toggle buttons and reflect the active choice. */
+    function wireOrientationToggle(cy) {
+        const buttons = document.querySelectorAll('.layout-btn');
+        if (!buttons.length) return;
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => applyOrientation(cy, btn.dataset.orientation));
+        });
+        updateToggleUI(orientation);
+    }
+
+    /** Highlight the button matching the active orientation. */
+    function updateToggleUI(active) {
+        document.querySelectorAll('.layout-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.orientation === active);
+        });
+    }
+
+    /**
+     * Wire the minimal graph interactions: hover focus + tooltip and a
+     * tap-to-open detail modal. The detail card itself is rendered by the
+     * server (shared HTMX partial) and only loaded on demand, so this script
+     * builds no DOM and holds no business logic.
+     */
     function wireInteractions(cy) {
         let selectedNode = null;
         const graphWrap = document.querySelector('.graph-wrap');
@@ -191,7 +270,7 @@
 
         function showTooltip(node, evt) {
             tooltipId.textContent = node.data('code') || node.data('id');
-            tooltipDesc.textContent = node.data('full') || 'Nessuna descrizione disponibile.';
+            tooltipDesc.textContent = 'Click for details';
             const rect = graphWrap.getBoundingClientRect();
             const oe = evt.originalEvent;
             const px = (oe ? oe.clientX : rect.left + evt.renderedPosition.x) - rect.left + 16;
@@ -204,45 +283,26 @@
         cy.on('mouseover', 'node', evt => { if (!selectedNode) { focusRelations(evt.target); showTooltip(evt.target, evt); } });
         cy.on('mousemove', 'node', evt => { if (tooltip.style.display === 'block') showTooltip(evt.target, evt); });
         cy.on('mouseout', 'node', () => { hideTooltip(); if (!selectedNode) clearFocus(); });
-        cy.on('tap', 'node', evt => { selectedNode = evt.target; focusRelations(selectedNode); hideTooltip(); showCard(selectedNode); });
-        cy.on('tap', evt => { if (evt.target === cy) { selectedNode = null; clearFocus(); hideTooltip(); hideCard(); } });
-
-        document.getElementById('nd-close').onclick = () => { selectedNode = null; clearFocus(); hideCard(); };
+        cy.on('tap', 'node', evt => { selectedNode = evt.target; focusRelations(selectedNode); hideTooltip(); openDetail(selectedNode); });
+        cy.on('tap', evt => { if (evt.target === cy) { selectedNode = null; clearFocus(); hideTooltip(); } });
     }
 
-    function hideCard() { document.getElementById('node-detail').style.display = 'none'; }
-
-    function showCard(node) {
-        const type = node.data('type');
-        const typeLabel = { us: 'User Story', ac: 'Acceptance Criteria', tc: 'Test Case' }[type];
-        const badge = document.getElementById('nd-badge');
-        badge.textContent = typeLabel;
-        badge.className = 'type-' + (type === 'ac' ? (node.data('covered') ? 'ac-covered' : 'ac-uncovered') : type);
-
-        document.getElementById('nd-id').textContent = node.data('id');
-        document.getElementById('nd-code').textContent = node.data('code') || '';
-        document.getElementById('nd-desc').textContent = node.data('full') || 'Nessuna descrizione disponibile.';
-
-        let meta = '';
-        if (type === 'ac') meta = node.data('covered') ? `Coperto da ${node.data('covCount')} test case` : 'Nessun test case associato';
-        else if (type === 'tc' && node.data('status')) meta = 'Stato: ' + node.data('status');
-        document.getElementById('nd-meta').textContent = meta;
-
-        const editLink = document.getElementById('nd-edit');
-        const editUrl = editUrlFor(node);
-        if (editUrl) {
-            const editLabels = { us: 'User Story', ac: 'Acceptance Criterion', tc: 'Test Case' };
-            editLink.href = editUrl;
-            editLink.textContent = '✎ Edit ' + (editLabels[type] || '');
-            editLink.style.display = 'block';
-            // Cytoscape's canvas can swallow the anchor click, so navigate explicitly.
-            editLink.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.location.href = editUrl; };
-        } else {
-            editLink.style.display = 'none';
-            editLink.onclick = null;
-        }
-
-        document.getElementById('node-detail').style.display = 'block';
+    /**
+     * Load the tapped node's detail card into the shared detail sidebar.
+     *
+     * The node carries a ``detail_url`` pointing at the server-rendered HTMX
+     * partial (US / AC / TC). We fetch it into the sidebar body; detail_sidebar.js
+     * slides the panel in automatically once the swap lands — no card is built
+     * here and no modal is involved.
+     *
+     * Args:
+     *     node: The tapped Cytoscape node.
+     */
+    function openDetail(node) {
+        const url = node.data('detail_url');
+        if (!url || !window.htmx) return;
+        // The sidebar controller opens the panel on htmx:afterSwap of the body.
+        htmx.ajax('GET', url, { target: '#detail-sidebar-body', swap: 'innerHTML' });
     }
 })();
 

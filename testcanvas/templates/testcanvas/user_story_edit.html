@@ -3,7 +3,7 @@
 {% block title %}Edit User Story · {{ user_story.code }}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }}</div>{% endblock %}
 {% block page_heading %}Edit User Story · {{ user_story.code }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endblock %}
 {% block wrap_class %}wrap-narrow{% endblock %}
 {% block content %}
 <div class="card">
@@ -21,9 +21,34 @@
             {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
         </div>
         <div class="field">
+            <label for="{{ form.priority.id_for_label }}">Priority</label>
+            {{ form.priority }}
+            {% if form.priority.errors %}<div class="errors">{{ form.priority.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
             <label for="{{ form.description.id_for_label }}">Description</label>
             {{ form.description }}
             {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.as_a.id_for_label }}">As a...</label>
+            {{ form.as_a }}
+            {% if form.as_a.errors %}<div class="errors">{{ form.as_a.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.i_want_to.id_for_label }}">I want to...</label>
+            {{ form.i_want_to }}
+            {% if form.i_want_to.errors %}<div class="errors">{{ form.i_want_to.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.so_that.id_for_label }}">So that...</label>
+            {{ form.so_that }}
+            {% if form.so_that.errors %}<div class="errors">{{ form.so_that.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.additional_notes.id_for_label }}">Additional notes</label>
+            {{ form.additional_notes }}
+            {% if form.additional_notes.errors %}<div class="errors">{{ form.additional_notes.errors|striptags }}</div>{% endif %}
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save changes</button>

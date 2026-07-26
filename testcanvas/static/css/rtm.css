@@ -1,0 +1,105 @@
+/* Requirements Traceability Matrix (RTM) — table view of the traceability data.
+   Only the table-specific rules live here; the header, stats bar and badges are
+   reused from traceability.css (loaded before this file). */
+
+/* Scrollable container so wide matrices (many Test Cases) stay usable. */
+.rtm-wrap {
+    flex: 1;
+    overflow: auto;
+    padding: 1rem 1.1rem 2rem;
+}
+
+/* Empty state, centred and calm. */
+.rtm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .8rem;
+    padding: 3rem 1rem;
+    color: var(--tc-muted-2, #6b7280);
+}
+
+/* --- The matrix table ---------------------------------------------------- */
+.rtm-table {
+    border-collapse: collapse;
+    font-size: 13px;
+    background: #fff;
+}
+
+.rtm-table th,
+.rtm-table td {
+    border: 1px solid #e5e7eb;
+    padding: 6px 10px;
+    vertical-align: middle;
+}
+
+/* Sticky top-left corner and header row so labels stay visible while scrolling. */
+.rtm-corner {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 3;
+    background: #f9fafb;
+    text-align: left;
+    min-width: 220px;
+    font-weight: 600;
+}
+.rtm-col {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f9fafb;
+    text-align: center;
+    font-family: var(--tc-font-mono, monospace);
+    white-space: nowrap;
+}
+.rtm-col a { text-decoration: none; color: #0369a1; }
+
+/* Clickable labels that open the shared detail modal. */
+.rtm-open { cursor: pointer; text-decoration: none; }
+.rtm-open:hover { text-decoration: underline; }
+
+/* User Story banner row grouping its Acceptance Criteria. */
+.rtm-group th {
+    background: #ede9fe;
+    color: #5b21b6;
+    text-align: left;
+    font-weight: 700;
+    position: sticky;
+    left: 0;
+}
+
+/* Acceptance Criterion row header (sticky first column). */
+.rtm-row-head {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: #fff;
+    text-align: left;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-weight: 600;
+}
+.rtm-row-head a {
+    font-family: var(--tc-font-mono, monospace);
+    text-decoration: none;
+    color: #047857;
+}
+
+/* Coverage cells: a green tick where a Test Case verifies the criterion. */
+.rtm-cell {
+    text-align: center;
+    color: #d1d5db;
+    font-weight: 700;
+}
+.rtm-cell.is-covered {
+    background: #d1fae5;
+    color: #059669;
+}
+
+/* Highlight rows for criteria without any Test Case (audit at a glance). */
+.rtm-uncovered .rtm-row-head { background: #fff7ed; }
+
+

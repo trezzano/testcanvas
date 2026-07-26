@@ -228,3 +228,4 @@ __marimo__/
 /.github/
 /.github/instructions/
 /testcanvas/mcp.py
+/testcanvas_mcp/

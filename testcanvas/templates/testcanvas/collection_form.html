@@ -1,0 +1,49 @@
+{% extends "testcanvas/bases/base_page.html" %}
+{% load static %}
+{% block html_lang %}en{% endblock %}
+{% block title %}{% if is_edit %}Edit collection · {{ collection.title }}{% else %}New collection{% endif %}{% endblock %}
+{% block page_heading %}{% if is_edit %}Edit collection{% else %}New collection{% endif %}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url 'testcanvas:collection_list' %}">← Back to collections</a>{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
+    <link rel="stylesheet" href="{% static 'css/collection_form.css' %}?v={% now 'U' %}">
+{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>{% if is_edit %}Edit “{{ collection.title }}”{% else %}Create a new collection{% endif %}</h2>
+    <form method="post" id="collection-form"
+          action="{% if is_edit %}{% url 'testcanvas:collection_edit' collection.pk %}{% else %}{% url 'testcanvas:collection_create' %}{% endif %}">
+        {% csrf_token %}
+
+        <div class="field">
+            <label for="{{ form.title.id_for_label }}">Title</label>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <div class="field">
+            <label>Description</label>
+            {# Visible Quill editor; it writes its HTML into the hidden textarea below on submit. #}
+            <div id="collection-description-editor"></div>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <div class="field">
+            <label for="{{ form.background_color.id_for_label }}">{{ form.background_color.label }}</label>
+            {{ form.background_color }}
+            {% if form.background_color.errors %}<div class="errors">{{ form.background_color.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn btn-primary">{% if is_edit %}💾 Save changes{% else %}+ Create collection{% endif %}</button>
+            <a class="btn btn-secondary" href="{% url 'testcanvas:collection_list' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+    <script src="{% static 'js/collection_form.js' %}?v={% now 'U' %}"></script>
+{% endblock %}
+

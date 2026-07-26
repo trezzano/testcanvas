@@ -34,6 +34,15 @@ if _extra_hosts:
     ALLOWED_HOSTS += [h.strip() for h in _extra_hosts.split(',') if h.strip()]
 
 
+# MCP observability: maximum number of McpInteractionLog rows to keep.
+# Configurable via the MCP_LOG_MAX_ENTRIES environment variable (defaults to
+# 1000). Older rows are pruned only when the table grows past this ceiling.
+try:
+    MCP_LOG_MAX_ENTRIES = int(os.environ.get('MCP_LOG_MAX_ENTRIES', '1000'))
+except ValueError:
+    MCP_LOG_MAX_ENTRIES = 1000
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -44,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'testcanvas.apps.TestcanvasConfig',
+    'testcanvas_mcp.apps.TestcanvasMcpConfig',
     # custom for this project
     'rest_framework',
     'mcp_server'
@@ -72,6 +82,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # Exposes the preferred traceability view (graph vs matrix) so
+                # every "Back to traceability" link points to the same place.
+                'testcanvas.context_processors.traceability_view',
             ],
         },
     },
@@ -155,5 +168,5 @@ DJANGO_MCP_ENDPOINT = "mcp" # Raggiungibile su /mcp
 
 # Forza l'endpoint MCP a richiedere l'autenticazione tramite il tuo token
 DJANGO_MCP_AUTHENTICATION_CLASSES = [
-    'testcanvas.auth.StaticTokenAuthentication',
+    'testcanvas_mcp.auth.StaticTokenAuthentication',
 ]

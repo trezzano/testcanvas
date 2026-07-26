@@ -1,0 +1,31 @@
+/*
+ * Styles for the ApplicationMapsCollection create/edit form.
+ * Loaded after the shared testcanvas theme and Quill's snow theme.
+ */
+
+/* Give the Quill editor a comfortable, consistent height. */
+#collection-description-editor {
+    min-height: 180px;
+    background: #fff;
+}
+
+/* Native color input: make it a reasonably sized square swatch. */
+.field-color {
+    width: 64px;
+    height: 40px;
+    padding: 2px;
+    cursor: pointer;
+}
+
+/* Vertical spacing between form fields. */
+#collection-form .field {
+    margin-bottom: 1rem;
+}
+
+/* Action row (submit + cancel) spacing. */
+#collection-form .actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+

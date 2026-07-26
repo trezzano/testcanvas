@@ -3,7 +3,7 @@
 {% block title %}Manage Test Cases · {{ flow_node.title }}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} — {{ flow_node.title }}</div>{% endblock %}
 {% block page_heading %}Test Cases · {{ flow_node.title }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endblock %}
 {% block wrap_class %}wrap-wide{% endblock %}
 {% block content %}
 <div class="card">

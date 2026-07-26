@@ -1,10 +1,10 @@
 {% extends "testcanvas/bases/base.html" %}
 {% load static %}
-{% block html_lang %}it{% endblock %}
+{% block html_lang %}en{% endblock %}
 {% block title %}Traceability · {{ flow_node.title }}{% endblock %}
 {% block body_class %}traceability-page{% endblock %}
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/traceability.css' %}">
+    <link rel="stylesheet" href="{% static 'css/traceability.css' %}?v=20260722c">
 {% endblock %}
 {% block body %}
     <header class="app-header">
@@ -12,120 +12,113 @@
             <div class="crumbs"><strong>{{ application_map.name }}</strong> · Flow Node</div>
             <h1>{{ flow_node.local_graph_id }} — {{ flow_node.title }}</h1>
         </div>
-        <a class="header-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← Torna all'editor</a>
+        <div class="header-actions">
+            {# Switch to the table (RTM) view of the same data. #}
+            <a class="header-link" href="{% url 'testcanvas:flow_node_traceability_matrix' flow_node.pk %}">▦ Matrix view</a>
+            <a class="header-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← Back to editor</a>
+        </div>
     </header>
     <div class="stats">
         <div class="stat"><div class="n" id="stat-us">{{ us_count }}</div><div class="l">User Story</div></div>
-        <div class="stat"><div class="n" id="stat-ac">{{ ac_count }}</div><div class="l">Criteri</div></div>
+        <div class="stat"><div class="n" id="stat-ac">{{ ac_count }}</div><div class="l">Criteria</div></div>
         <div class="stat"><div class="n" id="stat-tc">{{ tc_count }}</div><div class="l">Test Case</div></div>
-        <div class="stat ok"><div class="n" id="stat-covered">{{ covered_count }}</div><div class="l">Coperti</div></div>
-        <div class="stat warn"><div class="n" id="stat-uncovered">{{ uncovered_count }}</div><div class="l">Scoperti</div></div>
+        <div class="stat ok"><div class="n" id="stat-covered">{{ covered_count }}</div><div class="l">Covered</div></div>
+        <div class="stat warn"><div class="n" id="stat-uncovered">{{ uncovered_count }}</div><div class="l">Uncovered</div></div>
+
+        {# Edit shortcuts live top-right next to the numbers. Their enabled state is decided server-side: AC needs a User Story, TC needs a Criterion. #}
+        <div class="stat-actions">
+            <a class="stat-edit us" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="Manage User Stories">
+                <i>✎</i> User Stories
+            </a>
+            {% if us_count == 0 %}
+                <span class="stat-edit ac disabled" title="Add a User Story first to create Acceptance Criteria">
+                    <i>✎</i> Acceptance Criteria
+                </span>
+            {% else %}
+                <a class="stat-edit ac" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="Manage Acceptance Criteria">
+                    <i>✎</i> Acceptance Criteria
+                </a>
+            {% endif %}
+            {% if ac_count == 0 %}
+                <span class="stat-edit tc disabled" title="Add an Acceptance Criterion first to create Test Cases">
+                    <i>✎</i> Test Cases
+                </span>
+            {% else %}
+                <a class="stat-edit tc" href="{% url 'testcanvas:test_case_manage' flow_node.pk %}" title="Manage Test Cases">
+                    <i>✎</i> Test Cases
+                </a>
+            {% endif %}
+        </div>
     </div>
     <div class="main">
         <aside class="trace-sidebar">
             <div class="section">
-                <p class="section-title">Legenda</p>
+                <p class="section-title">Layout</p>
+                {# Orientation toggle: switches the graph between US|AC|TC #}
+                {# columns (horizontal) and stacked bands (vertical). The graph #}
+                {# is repositioned client-side; no page reload is needed. #}
+                <div class="layout-toggle" role="group" aria-label="Graph orientation">
+                    <button type="button" class="layout-btn" data-orientation="horizontal">↔ Horizontal</button>
+                    <button type="button" class="layout-btn" data-orientation="vertical">↕ Vertical</button>
+                </div>
+            </div>
+            <div class="section">
+                <p class="section-title">Legend</p>
                 <div class="legend-row"><span class="swatch" style="background:#ede9fe;border:2px solid #7c3aed;"></span> User Story</div>
-                <div class="legend-row"><span class="swatch" style="background:#d1fae5;border:2px solid #059669;border-radius:50%;"></span> Acceptance Criteria — coperto</div>
-                <div class="legend-row"><span class="swatch" style="background:#fee2e2;border:2px solid #ef4444;border-radius:50%;"></span> Acceptance Criteria — scoperto</div>
+                <div class="legend-row"><span class="swatch" style="background:#d1fae5;border:2px solid #059669;border-radius:50%;"></span> Acceptance Criteria — covered</div>
+                <div class="legend-row"><span class="swatch" style="background:#fee2e2;border:2px solid #ef4444;border-radius:50%;"></span> Acceptance Criteria — uncovered</div>
                 <div class="legend-row"><span class="swatch" style="background:#e0f2fe;border:2px dashed #0284c7;"></span> Test Case</div>
             </div>
             <div class="section">
-                <p class="section-title">Copertura AC</p>
-                <div id="coverage-list"></div>
+                <p class="section-title">AC coverage</p>
+                {# Coverage list is rendered server-side: one row per Acceptance #}
+                {# Criterion with a badge telling whether it is covered by a TC. #}
+                <div id="coverage-list">
+                    {% for row in coverage_rows %}
+                        <div class="cov-row">
+                            <span>{{ row.code }}</span>
+                            {% if row.covered %}
+                                <span class="badge ok">{{ row.count }} TC</span>
+                            {% else %}
+                                <span class="badge no">uncovered</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
         </aside>
         <div class="graph-wrap">
-            <div class="lanes">
-                <div class="lane lane-us">
-                    <div class="lane-head">
-                        <span class="lane-title">User Stories</span>
-                        {# User Stories can always be managed for a flow node. #}
-                        <a id="edit-us" class="lane-edit" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="Manage User Stories">
-                            <i>✎</i> Modifica
-                        </a>
-                    </div>
-                </div>
-                <div class="lane lane-ac">
-                    <div class="lane-head">
-                        <span class="lane-title">Acceptance Criteria</span>
-                        {% comment %}
-                        Acceptance Criteria always belong to a User Story, so they
-                        are managed on a node-level overview page. The button is
-                        disabled until at least one User Story exists.
-                        {% endcomment %}
-                        {% if us_count == 0 %}
-                            <span id="edit-ac" class="lane-edit disabled" title="Aggiungi prima una User Story per creare gli Acceptance Criteria">
-                                <i>✎</i> Modifica
-                            </span>
-                        {% else %}
-                            <a id="edit-ac" class="lane-edit" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="Gestisci gli Acceptance Criteria">
-                                <i>✎</i> Modifica
-                            </a>
-                        {% endif %}
-                    </div>
-                    {% if us_count > 0 and ac_count == 0 %}
-                        <a id="cta-ac" class="lane-cta show" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}">
-                            <i>＋</i> Add Acceptance Criteria
-                        </a>
-                    {% endif %}
-                </div>
-                <div class="lane lane-tc">
-                    <div class="lane-head">
-                        <span class="lane-title">Test Cases</span>
-                        {# Test Cases need at least one Acceptance Criterion to verify. #}
-                        {% if ac_count == 0 %}
-                            <span id="edit-tc" class="lane-edit disabled" title="Aggiungi prima un Acceptance Criterion per creare i Test Case">
-                                <i>✎</i> Modifica
-                            </span>
-                        {% else %}
-                            <a id="edit-tc" class="lane-edit" href="{% url 'testcanvas:test_case_manage' flow_node.pk %}" title="Gestisci i Test Cases">
-                                <i>✎</i> Modifica
-                            </a>
-                        {% endif %}
-                    </div>
-                    {% if ac_count > 0 and tc_count == 0 %}
-                        <a id="cta-tc" class="lane-cta show" href="{% url 'testcanvas:test_case_manage' flow_node.pk %}">
-                            <i>＋</i> Add Test Cases
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
             <div id="cy"></div>
-            <div id="empty-state">
-                <div>Nessuna relazione da mostrare per questo Flow Node.</div>
-                <a class="empty-cta" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
-                    <i style="font-style:normal;">＋</i> Aggiungi una User Story
-                </a>
-            </div>
-            <div id="tooltip"><div class="t-id"></div><div class="t-desc"></div></div>
-            <div id="node-detail">
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;">
-                    <span id="nd-badge"></span>
-                    <button id="nd-close" aria-label="Chiudi">&times;</button>
+            {# Empty state is decided server-side: no elements means nothing to draw. #}
+            {% if not elements_json or elements_json == '[]' %}
+                <div id="empty-state" style="display:flex;">
+                    <div>No relationship to show for this Flow Node.</div>
+                    <a class="empty-cta" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
+                        <i style="font-style:normal;">＋</i> Add a User Story
+                    </a>
                 </div>
-                <div id="nd-id"></div>
-                <div id="nd-code"></div>
-                <div id="nd-desc"></div>
-                <div id="nd-meta"></div>
-                <a id="nd-edit" href="#">✎ Edit</a>
-            </div>
+            {% endif %}
+            <div id="tooltip"><div class="t-id"></div><div class="t-desc"></div></div>
         </div>
     </div>
+
+    {# Shared detail sidebar: HTMX loads the tapped node's US/AC/TC card into it. #}
+    {% include "testcanvas/details/_detail_sidebar.html" %}
 {% endblock %}
 {% block extra_js %}
     <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
-    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
     <script>
+        // Ready-to-use Cytoscape elements (nodes + edges) built by the view.
+        // Each node already carries its label, type, coverage flag and edit URL,
+        // so the JS only has to draw the graph — no data reshaping needed.
         window.TRACEABILITY_CONFIG = {
-            graphData: {{ graph_data_json|safe }},
-            editUrls: {
-                us: "{% url 'testcanvas:user_story_edit' flow_node.pk 0 %}",
-                ac: "{% url 'testcanvas:acceptance_criterion_edit' 0 %}",
-                tc: "{% url 'testcanvas:test_case_edit' 0 %}"
-            }
+            elements: {{ elements_json|safe }},
+            // Flow Node id: used to key the saved viewport (zoom + pan) so each
+            // node keeps its own graph position across page navigations.
+            node_id: {{ flow_node.pk }}
         };
     </script>
-    <script src="{% static 'js/traceability.js' %}"></script>
+    {# Shared controller for the detail sidebar (open/close + HTMX auto-open). #}
+    <script src="{% static 'js/detail_sidebar.js' %}?v=20260723a"></script>
+    <script src="{% static 'js/traceability.js' %}?v=20260723a"></script>
 {% endblock %}

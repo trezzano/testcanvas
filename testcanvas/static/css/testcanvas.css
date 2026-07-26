@@ -313,17 +313,27 @@ a, button, input, .card, .btn {
     color: #fff;
     border-color: #9b2c2c;
 }
+.btn-info {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+.btn-info:hover {
+    background: #1d4ed8;
+    color: #fff;
+    border-color: #1e40af;
+}
 .btn-sm {
     padding: .35rem 0.85rem;
     font-size: .8rem;
     border-radius: 4px;
 }
 
-button.btn-primary, button.btn-secondary, button.btn-danger {
+/* Buttons rendered as <button> share the exact sizing of .btn / .btn-sm
+   (defined above), so anchors and buttons line up at the same height. Only the
+   interaction-specific bits are set here. */
+button.btn-primary, button.btn-secondary, button.btn-danger, button.btn-info {
     cursor: pointer;
-    border-radius: 4px;
-    padding: .55rem 1.25rem;
-    font-size: .88rem;
     font-family: inherit;
 }
 
@@ -530,3 +540,147 @@ tr:hover td {
     font-size: .85rem;
     margin-top: .4rem;
 }
+
+/* Map list: main content + HTMX-loaded sub-flow usage drawer */
+.map-list-layout {
+    display: block;
+}
+.map-list-main {
+    min-width: 0;
+}
+/* Right-side sliding drawer, fixed to the viewport edge. Empty until HTMX
+   fills it, in which case it slides in from the right. */
+.map-list-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 300;
+    width: 380px;
+    max-width: 90vw;
+    height: 100vh;
+    padding: 1.5rem;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-left: 1px solid var(--tc-border);
+    box-shadow: -12px 0 40px rgba(15, 23, 42, 0.12);
+    animation: subflow-drawer-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* Sidebar is empty until HTMX fills it; hide the empty drawer entirely. */
+.map-list-sidebar:empty {
+    display: none;
+}
+/* Slide + fade the drawer in from the right edge. */
+@keyframes subflow-drawer-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+.subflow-usage-panel {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+}
+.subflow-usage-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 1rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid var(--tc-border);
+}
+.subflow-usage-head h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+/* Circular, subtle close button for the drawer. */
+.subflow-usage-close {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    line-height: 1;
+    border-radius: 50%;
+    border: 1px solid var(--tc-border);
+    background: #fff;
+    color: var(--tc-muted);
+    cursor: pointer;
+}
+.subflow-usage-close:hover {
+    color: var(--tc-primary);
+    border-color: var(--tc-primary);
+    background: var(--tc-primary-soft);
+}
+.subflow-usage-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+}
+/* Each usage becomes a soft card that links to the containing flow. */
+.subflow-usage-list li {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    padding: .75rem .9rem;
+    background: var(--tc-surface);
+    border: 1px solid var(--tc-border);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.subflow-usage-list li:hover {
+    border-color: var(--tc-primary);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+    transform: translateY(-1px);
+}
+.subflow-usage-list li a {
+    font-weight: 700;
+    color: var(--tc-ink-2);
+    text-decoration: none;
+}
+.subflow-usage-list li a:hover {
+    color: var(--tc-primary);
+}
+
+/* --------------------------------------------------------------------------
+   ApplicationMapsCollection list
+   -------------------------------------------------------------------------- */
+/* Small color preview used in the collections table. */
+.color-swatch {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--tc-border);
+    vertical-align: middle;
+}
+/* Compact list of the maps grouped by a collection. */
+.collection-maps {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+.collection-maps li a {
+    color: var(--tc-ink-2);
+    text-decoration: none;
+    font-weight: 600;
+}
+.collection-maps li a:hover {
+    color: var(--tc-primary);
+}
+

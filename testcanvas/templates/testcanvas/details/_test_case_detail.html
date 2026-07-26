@@ -1,0 +1,37 @@
+{% comment %}
+    Test Case detail card (HTMX partial).
+
+    Loaded into the shared detail sidebar by both traceability views. Read-only:
+    shows the full test case (steps, expected result, verified criteria) and
+    links to the edit form.
+{% endcomment %}
+<div class="detail-card">
+    <div class="detail-head">
+        <span class="detail-badge badge-tc">Test Case</span>
+    </div>
+
+    <div class="detail-code">{{ test_case.test_code }}</div>
+    <h3 class="detail-title">{{ test_case.title }}</h3>
+
+    {% if test_case.node_uid %}
+        <div class="detail-uid"><span class="detail-uid-label">UID</span><code>{{ test_case.node_uid }}</code></div>
+    {% endif %}
+
+    <div class="detail-field"><span class="detail-label">Status</span><span>{{ test_case.get_status_display }}</span></div>
+    {% if test_case.preconditions %}
+        <div class="detail-field"><span class="detail-label">Preconditions</span><span>{{ test_case.preconditions }}</span></div>
+    {% endif %}
+    <div class="detail-field"><span class="detail-label">Steps</span><span>{{ test_case.steps }}</span></div>
+    <div class="detail-field"><span class="detail-label">Expected result</span><span>{{ test_case.expected_result }}</span></div>
+    <div class="detail-field">
+        <span class="detail-label">Verifies</span>
+        <span>
+            {% for ac in test_case.criteria.all %}{{ ac.code }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+        </span>
+    </div>
+
+    <div class="detail-actions">
+        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:test_case_edit' test_case.pk %}">✎ Edit Test Case</a>
+    </div>
+</div>
+

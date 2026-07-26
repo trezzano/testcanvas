@@ -82,6 +82,13 @@ body.editor-page { margin: 0; }
 .map-sidebar .field textarea { resize: vertical; min-height: 70px; }
 .map-sidebar .field input[type="range"] { width: 100%; }
 
+/* Read-only unique node id: visually distinct (greyed, monospace, not editable). */
+.map-sidebar .field input.node-id-input {
+    background: #f1f5f9; color: #475569;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    cursor: not-allowed;
+}
+
 /* Link inside stories tab (traceability shortcut) */
 .stories-trace-link {
     display: inline-block; text-decoration: none; margin-bottom: .75rem;
@@ -106,8 +113,7 @@ body.editor-page { margin: 0; }
 .dir-group button.active { background: var(--tc-primary); color: #fff; border-color: var(--tc-primary); }
 
 /* ---- Node shape buttons ---- */
-.shape-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
-.shape-group button {
+.shape-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }.shape-group button {
     background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
     padding: .45rem 0; font-size: .82rem; font-weight: 600; border-radius: 6px; cursor: pointer;
 }
@@ -116,6 +122,26 @@ body.editor-page { margin: 0; }
 .shape-group button.shape-end.active       { background: #f59e0b; border-color: #f59e0b; }
 .shape-group button.shape-condition.active { background: #facc15; border-color: #facc15; color: #1e293b; }
 .shape-group button.shape-squared.active   { background: var(--tc-primary); border-color: var(--tc-primary); }
+
+/* ---- Node type buttons (pure vs. sub-flow) ---- */
+.nodetype-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+.nodetype-group button {
+    background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
+    padding: .45rem 0; font-size: .82rem; font-weight: 600; border-radius: 6px; cursor: pointer;
+}
+.nodetype-group button.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+
+/* Sub-flow reference dropdown */
+#node-subflow {
+    width: 100%; box-sizing: border-box; padding: .45rem .55rem;
+    border: 1px solid #cbd5e1; border-radius: 6px; font-size: .9rem; font-family: inherit;
+    background: #fff;
+}
+/* Link that opens the referenced sub-flow map in a new tab */
+.subflow-open-link {
+    display: inline-block; text-decoration: none; margin-top: .55rem;
+    padding: .4rem .7rem; border-radius: 6px; font-size: .82rem;
+}
 
 /* ---- Re-open tab when sidebar is collapsed ---- */
 .sidebar-toggle-tab {

@@ -3,7 +3,7 @@
 {% block title %}Acceptance Criteria · {{ flow_node.title }}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · Flow Node</div>{% endblock %}
 {% block page_heading %}Acceptance Criteria · {{ flow_node.local_graph_id }} — {{ flow_node.title }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endblock %}
 {% block content %}
 {# Acceptance Criteria belong to a specific User Story, so this page lists each #}
 {# story of the flow node with its criteria and a link to add/manage them. #}

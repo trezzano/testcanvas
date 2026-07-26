@@ -3,7 +3,7 @@
 {% block title %}Edit Test Case · {{ test_case.test_code }}{% endblock %}
 {% block crumbs %}<div class="crumbs">{% if application_map %}<strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }}{% else %}Test Case{% endif %}</div>{% endblock %}
 {% block page_heading %}Edit Test Case · {{ test_case.test_code }}{% endblock %}
-{% block header_link %}{% if flow_node %}<a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">← Back to traceability</a>{% endif %}{% endblock %}
+{% block header_link %}{% if flow_node %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endif %}{% endblock %}
 {% block wrap_class %}wrap-narrow{% endblock %}
 {% block content %}
 <div class="card">
@@ -51,7 +51,7 @@
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save changes</button>
             {% if flow_node %}
-                <a class="btn btn-secondary" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">Cancel</a>
+                <a class="btn btn-secondary" href="{% url traceability_url_name flow_node.pk %}">Cancel</a>
             {% endif %}
         </div>
     </form>

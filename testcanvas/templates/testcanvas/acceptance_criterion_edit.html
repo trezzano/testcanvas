@@ -3,7 +3,7 @@
 {% block title %}Edit Acceptance Criterion · {{ criterion.code }}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} · {{ user_story.code }}</div>{% endblock %}
 {% block page_heading %}Edit Acceptance Criterion · {{ criterion.code }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endblock %}
 {% block wrap_class %}wrap-narrow{% endblock %}
 {% block content %}
 <div class="card">
@@ -19,6 +19,11 @@
             <label for="{{ form.text.id_for_label }}">Text</label>
             {{ form.text }}
             {% if form.text.errors %}<div class="errors">{{ form.text.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.is_functional.id_for_label }}">Criterion type</label>
+            {{ form.is_functional }}
+            {% if form.is_functional.errors %}<div class="errors">{{ form.is_functional.errors|striptags }}</div>{% endif %}
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save changes</button>

@@ -2,47 +2,82 @@
 {% block html_lang %}en{% endblock %}
 {% block title %}TestCanvas App{% endblock %}
 {% block page_heading %}Application flows{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url 'testcanvas:collection_list' %}">🗂 Manage collections</a>{% endblock %}
 {% block content %}
-    <div class="card">
-        <h2>Create a new flow</h2>
-        <form class="create-form" method="post" action="{% url 'testcanvas:map_create' %}">
-            {% csrf_token %}
-            <input type="text" name="name" placeholder="Flow name (e.g. Checkout Flow)" required>
-            <button type="submit" class="btn btn-primary">Create</button>
-        </form>
-    </div>
-    <div class="card">
-        <h2>Existing flows</h2>
-        {% if maps %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Created</th>
-                        <th style="width: 220px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for m in maps %}
+<div class="map-list-layout">
+    <div class="map-list-main">
+        <div class="card">
+            <h2>Create a new flow</h2>
+            <form class="create-form" method="post" action="{% url 'testcanvas:map_create' %}">
+                {% csrf_token %}
+                <input type="text" name="name" placeholder="Flow name (e.g. Checkout Flow)" required>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </form>
+        </div>
+        <div class="card">
+            <h2>Traceability view</h2>
+            {# Single control point: pick how every "Back to traceability" link and
+               node entry point opens. The choice is stored in the Django session. #}
+            <p class="muted">Choose how traceability opens across the app.</p>
+            <form method="post" action="{% url 'testcanvas:set_traceability_view' %}" class="btn-group" role="group" aria-label="Traceability view">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" name="mode" value="graph"
+                        class="btn btn-sm {% if traceability_mode == 'graph' %}btn-primary{% else %}btn-secondary{% endif %}">
+                    ◨ Graph
+                </button>
+                <button type="submit" name="mode" value="matrix"
+                        class="btn btn-sm {% if traceability_mode == 'matrix' %}btn-primary{% else %}btn-secondary{% endif %}">
+                    ▦ Matrix (RTM)
+                </button>
+            </form>
+        </div>
+        <div class="card">
+            <h2>Existing flows</h2>
+            {% if maps %}
+                <table>
+                    <thead>
                         <tr>
-                            <td>{{ m.name }}</td>
-                            <td class="muted">{{ m.created_at|date:"Y-m-d H:i" }}</td>
-                            <td>
-                                <div class="actions">
-                                    <a class="btn btn-secondary" href="{% url 'testcanvas:map_editor' m.pk %}">Open editor</a>
-                                    <form method="post" action="{% url 'testcanvas:map_delete' m.pk %}"
-                                          onsubmit="return confirm('Delete this flow?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger">Delete</button>
-                                    </form>
-                                </div>
-                            </td>
+                            <th>Name</th>
+                            <th>Created</th>
+                            <th style="width: 220px;">Actions</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p class="muted">No flows yet. Create your first one above.</p>
-        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for m in maps %}
+                            <tr>
+                                <td>{{ m.name }}</td>
+                                <td class="muted">{{ m.created_at|date:"Y-m-d H:i" }}</td>
+                                <td>
+                                    {# Bootstrap button group keeps every action the same height. #}
+                                    <div class="btn-group" role="group" aria-label="Flow actions">
+                                        <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:map_editor' m.pk %}">Open editor</a>
+                                        {% if m.referencing_nodes.all %}
+                                            {# HTMX: load the usage list into the sidebar without a full reload. #}
+                                            <button type="button" class="btn btn-info btn-sm"
+                                                    hx-get="{% url 'testcanvas:map_subflow_usage' m.pk %}"
+                                                    hx-target="#subflow-usage-sidebar"
+                                                    hx-swap="innerHTML">Info subflow use</button>
+                                        {% endif %}
+                                        <form method="post" action="{% url 'testcanvas:map_delete' m.pk %}"
+                                              class="btn-group m-0"
+                                              onsubmit="return confirm('Delete this flow?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="muted">No flows yet. Create your first one above.</p>
+            {% endif %}
+        </div>
     </div>
+    {# Sidebar filled by HTMX when "Info subflow use" is pressed. #}
+    <aside id="subflow-usage-sidebar" class="map-list-sidebar"></aside>
+</div>
 {% endblock %}
