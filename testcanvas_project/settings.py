@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from django.utils.translation import gettext_lazy as _
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -53,7 +54,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'testcanvas.apps.TestcanvasConfig',
-    'testcanvas_mcp.apps.TestcanvasMcpConfig',
     # custom for this project
     'rest_framework',
     'mcp_server'
@@ -62,6 +62,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -123,10 +124,23 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+# Italian is the default/fallback language used when the visitor's browser does
+# not request any of the languages we support.
+LANGUAGE_CODE = 'it'
+
+# Languages offered by the application (order drives the switcher). The source
+# strings (msgid) are written in English; Italian is provided via the catalog
+# in locale/it/LC_MESSAGES.
+LANGUAGES = [
+    ('it', _('Italian')),
+    ('en', _('English')),
+]
+
+# Where Django looks for (and writes) the project-wide message catalogs.
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
 
 TIME_ZONE = 'UTC'
 
@@ -168,5 +182,5 @@ DJANGO_MCP_ENDPOINT = "mcp" # Raggiungibile su /mcp
 
 # Forza l'endpoint MCP a richiedere l'autenticazione tramite il tuo token
 DJANGO_MCP_AUTHENTICATION_CLASSES = [
-    'testcanvas_mcp.auth.StaticTokenAuthentication',
+
 ]

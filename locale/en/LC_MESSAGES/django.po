@@ -1,0 +1,1414 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-03 08:29+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: testcanvas/forms.py:26
+msgid "e.g. Checkout Area"
+msgstr ""
+
+#: testcanvas/forms.py:41
+msgid "Background color"
+msgstr ""
+
+#: testcanvas/forms.py:69
+msgid "e.g. US-01"
+msgstr ""
+
+#: testcanvas/forms.py:73
+msgid "Short user story title"
+msgstr ""
+
+#: testcanvas/forms.py:81
+msgid "Summary or extra context for the story"
+msgstr ""
+
+#: testcanvas/forms.py:85
+msgid "e.g. Guest Customer"
+msgstr ""
+
+#: testcanvas/forms.py:89
+msgid "The core action or feature required"
+msgstr ""
+
+#: testcanvas/forms.py:93
+msgid "The business value or user benefit"
+msgstr ""
+
+#: testcanvas/forms.py:98
+msgid "Technical constraints, business rules, extra context"
+msgstr ""
+
+#: testcanvas/forms.py:112
+msgid "e.g. AC-01.1"
+msgstr ""
+
+#: testcanvas/forms.py:117
+msgid "Given <context> when <action> then <outcome>"
+msgstr ""
+
+#: testcanvas/forms.py:121
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:51
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:23
+msgid "Functional"
+msgstr ""
+
+#: testcanvas/forms.py:121
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:51
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:23
+msgid "Non-functional"
+msgstr ""
+
+#: testcanvas/forms.py:126
+#: testcanvas/templates/testcanvas/acceptance_criterion_edit.html:24
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:27
+msgid "Criterion type"
+msgstr ""
+
+#: testcanvas/forms.py:147
+msgid "e.g. TC-001"
+msgstr ""
+
+#: testcanvas/forms.py:151
+msgid "Short test case title"
+msgstr ""
+
+#: testcanvas/forms.py:160
+msgid "State required before running the test"
+msgstr ""
+
+#: testcanvas/forms.py:165
+msgid "One action per line"
+msgstr ""
+
+#: testcanvas/forms.py:170
+msgid "Expected outcome"
+msgstr ""
+
+#: testcanvas/models.py:65
+msgid "Enter a valid hex color, e.g. #ffffff."
+msgstr ""
+
+#: testcanvas/models.py:70
+msgid "Collection title (e.g., 'Checkout Area')."
+msgstr ""
+
+#: testcanvas/models.py:76
+msgid "Rich-text (HTML) description of the collection."
+msgstr ""
+
+#: testcanvas/models.py:82
+msgid "Background color as a hex value (e.g., #ffffff)."
+msgstr ""
+
+#: testcanvas/models.py:87
+msgid "Application Maps Collection"
+msgstr ""
+
+#: testcanvas/models.py:88
+#: testcanvas/templates/testcanvas/collection_list.html:3
+#: testcanvas/templates/testcanvas/collection_list.html:4
+msgid "Application Maps Collections"
+msgstr ""
+
+#: testcanvas/models.py:100
+msgid "Global flow name (e.g., 'Checkout Flow')"
+msgstr ""
+
+#: testcanvas/models.py:110
+msgid ""
+"Compact, globally unique flow identifier (Base62 UUID4) usable as a stable "
+"LLM reference."
+msgstr ""
+
+#: testcanvas/models.py:121
+msgid "Optional collection this map belongs to."
+msgstr ""
+
+#: testcanvas/models.py:129
+msgid "Structure in Cytoscape format"
+msgstr ""
+
+#: testcanvas/models.py:133
+msgid "Application Map"
+msgstr ""
+
+#: testcanvas/models.py:134 testcanvas/templates/testcanvas/map_list.html:3
+msgid "TestCanvas App"
+msgstr ""
+
+#: testcanvas/models.py:207
+msgid "Pure Node"
+msgstr ""
+
+#: testcanvas/models.py:208
+msgid "Sub-flow Reference"
+msgstr ""
+
+#: testcanvas/models.py:212
+msgid "ID matching the node.data.id inside the NetworkX graph"
+msgstr ""
+
+#: testcanvas/models.py:223 testcanvas/models.py:363 testcanvas/models.py:449
+#: testcanvas/models.py:487
+msgid ""
+"Compact, globally unique node identifier (Base62 UUID4) usable as a stable "
+"LLM reference."
+msgstr ""
+
+#: testcanvas/models.py:234
+msgid ""
+"PURE: node owns its UserStory tree. SUBFLOW: node references another "
+"ApplicationMap as a sub-flow."
+msgstr ""
+
+#: testcanvas/models.py:247
+msgid "Target ApplicationMap when node_type is SUBFLOW."
+msgstr ""
+
+#: testcanvas/models.py:252 testcanvas/models.py:370
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:4
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:12
+#: testcanvas/templates/testcanvas/user_story_manage.html:4
+msgid "Flow Node"
+msgstr ""
+
+#: testcanvas/models.py:253
+msgid "Flow Nodes"
+msgstr ""
+
+#: testcanvas/models.py:277
+msgid "A SUBFLOW node must reference a sub-flow map."
+msgstr ""
+
+#: testcanvas/models.py:281
+msgid "A PURE node must not reference a sub-flow map."
+msgstr ""
+
+#: testcanvas/models.py:288
+msgid "A node cannot reference its own map."
+msgstr ""
+
+#: testcanvas/models.py:296
+msgid ""
+"The referenced map already contains sub-flow nodes; only single-level "
+"nesting is allowed."
+msgstr ""
+
+#: testcanvas/models.py:305
+msgid "This reference would create a cycle between maps."
+msgstr ""
+
+#: testcanvas/models.py:311
+msgid "A SUBFLOW node cannot own User Stories; leaves live in the sub-flow."
+msgstr ""
+
+#: testcanvas/models.py:351
+msgid "High"
+msgstr ""
+
+#: testcanvas/models.py:352
+msgid "Medium"
+msgstr ""
+
+#: testcanvas/models.py:353
+msgid "Low"
+msgstr ""
+
+#: testcanvas/models.py:375
+msgid "Unique identifier ensuring ISTQB vertical traceability. E.g., US-01"
+msgstr ""
+
+#: testcanvas/models.py:376
+#: testcanvas/templates/testcanvas/acceptance_criterion_edit.html:14
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:17
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:40
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:21
+#: testcanvas/templates/testcanvas/test_case_edit.html:15
+#: testcanvas/templates/testcanvas/test_case_manage.html:16
+#: testcanvas/templates/testcanvas/test_case_manage.html:69
+#: testcanvas/templates/testcanvas/user_story_edit.html:14
+#: testcanvas/templates/testcanvas/user_story_manage.html:14
+#: testcanvas/templates/testcanvas/user_story_manage.html:65
+msgid "Code"
+msgstr ""
+
+#: testcanvas/models.py:380
+#: testcanvas/templates/testcanvas/collection_form.html:19
+#: testcanvas/templates/testcanvas/test_case_edit.html:26
+#: testcanvas/templates/testcanvas/test_case_manage.html:27
+#: testcanvas/templates/testcanvas/test_case_manage.html:70
+#: testcanvas/templates/testcanvas/user_story_edit.html:19
+#: testcanvas/templates/testcanvas/user_story_manage.html:19
+msgid "Title"
+msgstr ""
+
+#: testcanvas/models.py:387
+msgid "The actor/role persona (e.g., Guest Customer)"
+msgstr ""
+
+#: testcanvas/models.py:388
+#: testcanvas/templates/testcanvas/user_story_edit.html:34
+#: testcanvas/templates/testcanvas/user_story_manage.html:36
+msgid "As a..."
+msgstr ""
+
+#: testcanvas/models.py:393
+msgid "The core action or feature required from the system"
+msgstr ""
+
+#: testcanvas/models.py:394
+#: testcanvas/templates/testcanvas/user_story_edit.html:39
+#: testcanvas/templates/testcanvas/user_story_manage.html:41
+msgid "I want to..."
+msgstr ""
+
+#: testcanvas/models.py:399
+msgid "The underlying business value or user benefit"
+msgstr ""
+
+#: testcanvas/models.py:400
+#: testcanvas/templates/testcanvas/user_story_edit.html:44
+#: testcanvas/templates/testcanvas/user_story_manage.html:46
+msgid "So that..."
+msgstr ""
+
+#: testcanvas/models.py:406
+msgid "Technical constraints, business rules, or extra context"
+msgstr ""
+
+#: testcanvas/models.py:407
+msgid "Additional Notes"
+msgstr ""
+
+#: testcanvas/models.py:414
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:34
+#: testcanvas/templates/testcanvas/user_story_edit.html:24
+#: testcanvas/templates/testcanvas/user_story_manage.html:24
+msgid "Priority"
+msgstr ""
+
+#: testcanvas/models.py:418
+#: testcanvas/templates/testcanvas/_user_stories.html:4
+#: testcanvas/templates/testcanvas/_user_stories.html:10
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:26
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:11
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:22
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:67
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:25
+#: testcanvas/templates/testcanvas/map_editor.html:63
+msgid "User Story"
+msgstr ""
+
+#: testcanvas/models.py:419
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:31
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:34
+#: testcanvas/templates/testcanvas/user_story_manage.html:5
+#: testcanvas/templates/testcanvas/user_story_manage.html:60
+msgid "User Stories"
+msgstr ""
+
+#: testcanvas/models.py:429
+#, python-format
+msgid "As a %(as_a)s, I want to %(i_want_to)s so that %(so_that)s."
+msgstr ""
+
+#: testcanvas/models.py:440
+msgid "E.g., AC-01.1"
+msgstr ""
+
+#: testcanvas/models.py:458
+msgid "True if the criterion is functional, False if non-functional."
+msgstr ""
+
+#: testcanvas/models.py:462
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:11
+msgid "Acceptance Criterion"
+msgstr ""
+
+#: testcanvas/models.py:463
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:5
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:35
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:3
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:5
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:35
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:39
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:38
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:42
+#: testcanvas/templates/testcanvas/test_case_edit.html:31
+#: testcanvas/templates/testcanvas/test_case_manage.html:32
+msgid "Acceptance Criteria"
+msgstr ""
+
+#: testcanvas/models.py:473
+msgid "One or more acceptance criteria validated by this test case"
+msgstr ""
+
+#: testcanvas/models.py:475
+msgid "E.g., TC-001"
+msgstr ""
+
+#: testcanvas/models.py:478
+msgid "Sequence of textual actions separated by newlines"
+msgstr ""
+
+#: testcanvas/models.py:494
+msgid "To Execute"
+msgstr ""
+
+#: testcanvas/models.py:495
+msgid "Passed"
+msgstr ""
+
+#: testcanvas/models.py:496
+msgid "Failed"
+msgstr ""
+
+#: testcanvas/models.py:497
+msgid "Blocked"
+msgstr ""
+
+#: testcanvas/models.py:502
+#: testcanvas/templates/testcanvas/details/_test_case_detail.html:11
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:24
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:70
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:27
+#: testcanvas/templates/testcanvas/test_case_edit.html:4
+msgid "Test Case"
+msgstr ""
+
+#: testcanvas/models.py:503
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:44
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:48
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:47
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:51
+#: testcanvas/templates/testcanvas/test_case_manage.html:5
+#: testcanvas/templates/testcanvas/test_case_manage.html:64
+msgid "Test Cases"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/_map_subflow_usage.html:9
+msgid "Sub-flow usage"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/_map_subflow_usage.html:13
+#: testcanvas/templates/testcanvas/map_editor.html:180
+msgid "Close"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/_map_subflow_usage.html:17
+#, python-format
+msgid ""
+"<strong>%(name)s</strong> is used as a sub-flow by <strong>%(counter)s</"
+"strong> node."
+msgid_plural ""
+"<strong>%(name)s</strong> is used as a sub-flow by <strong>%(counter)s</"
+"strong> nodes."
+msgstr[0] ""
+msgstr[1] ""
+
+#: testcanvas/templates/testcanvas/_map_subflow_usage.html:31
+msgid "This flow is not used as a sub-flow anywhere."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/_user_stories.html:6
+msgid ""
+"This is a <strong>sub-flow</strong> node: User Stories are managed\n"
+"            in the referenced map, not on this node."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/_user_stories.html:14
+msgid "Traceability matrix (US → AC → TC)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/_user_stories.html:26
+msgid ""
+"No User Story for this node yet.\n"
+"                Use <strong>Traceability matrix</strong> above to add the "
+"first one."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/_user_stories.html:34
+msgid ""
+"This node has not been saved yet.\n"
+"        Press <strong>💾 Save</strong> first, then reopen this tab to add "
+"User Stories."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_edit.html:3
+#: testcanvas/templates/testcanvas/acceptance_criterion_edit.html:5
+#, python-format
+msgid "Edit Acceptance Criterion · %(code)s"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_edit.html:6
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:6
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:6
+#: testcanvas/templates/testcanvas/test_case_edit.html:6
+#: testcanvas/templates/testcanvas/test_case_manage.html:6
+#: testcanvas/templates/testcanvas/user_story_edit.html:6
+#: testcanvas/templates/testcanvas/user_story_manage.html:6
+msgid "Back to traceability"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_edit.html:10
+#: testcanvas/templates/testcanvas/test_case_edit.html:10
+#: testcanvas/templates/testcanvas/user_story_edit.html:10
+msgid "Edit details"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_edit.html:19
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:22
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:41
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:22
+msgid "Text"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_edit.html:29
+#: testcanvas/templates/testcanvas/collection_form.html:39
+#: testcanvas/templates/testcanvas/test_case_edit.html:52
+#: testcanvas/templates/testcanvas/user_story_edit.html:54
+msgid "Save changes"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_edit.html:30
+#: testcanvas/templates/testcanvas/collection_form.html:40
+#: testcanvas/templates/testcanvas/test_case_edit.html:54
+#: testcanvas/templates/testcanvas/user_story_edit.html:55
+msgid "Cancel"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:3
+#, python-format
+msgid "Manage Acceptance Criteria · %(code)s"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:13
+msgid "Add a new Acceptance Criterion"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:31
+msgid "Add Acceptance Criterion"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:42
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:22
+msgid "Type"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:43
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:23
+#: testcanvas/templates/testcanvas/map_list.html:43
+#: testcanvas/templates/testcanvas/test_case_manage.html:73
+#: testcanvas/templates/testcanvas/user_story_manage.html:67
+msgid "Actions"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:55
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:34
+#: testcanvas/templates/testcanvas/collection_list.html:43
+#: testcanvas/templates/testcanvas/test_case_manage.html:92
+#: testcanvas/templates/testcanvas/user_story_manage.html:82
+msgid "Edit"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:58
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:37
+#, python-format
+msgid "Delete acceptance criterion %(code)s?"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:60
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:39
+#: testcanvas/templates/testcanvas/collection_list.html:47
+#: testcanvas/templates/testcanvas/map_list.html:66
+#: testcanvas/templates/testcanvas/test_case_manage.html:97
+#: testcanvas/templates/testcanvas/user_story_manage.html:89
+msgid "Delete"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_manage.html:69
+msgid "No acceptance criteria yet. Add the first one above."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:48
+msgid "No acceptance criteria for this user story yet."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:51
+#, python-format
+msgid "Add / manage criteria for %(code)s"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:57
+msgid ""
+"This flow node has no user stories yet, so it cannot hold acceptance "
+"criteria."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/acceptance_criterion_overview.html:58
+msgid "Add a User Story first"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/bases/_navbar.html:30
+msgid "Language"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/bases/_navbar.html:41
+msgid "Logout"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_form.html:4
+#, python-format
+msgid "Edit collection · %(title)s"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_form.html:4
+#: testcanvas/templates/testcanvas/collection_form.html:5
+#: testcanvas/templates/testcanvas/collection_list.html:10
+msgid "New collection"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_form.html:5
+msgid "Edit collection"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_form.html:6
+msgid "Back to collections"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_form.html:13
+#, python-format
+msgid "Edit “%(title)s”"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_form.html:13
+msgid "Create a new collection"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_form.html:25
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:36
+#: testcanvas/templates/testcanvas/map_editor.html:47
+#: testcanvas/templates/testcanvas/user_story_edit.html:29
+#: testcanvas/templates/testcanvas/user_story_manage.html:30
+msgid "Description"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_form.html:39
+msgid "Create collection"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_list.html:5
+msgid "Back to flows"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_list.html:9
+msgid "Collections"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_list.html:30
+msgid "Maps"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_list.html:38
+msgid "No maps"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_list.html:45
+#, python-format
+msgid "Delete collection %(title)s? Its maps will be kept but ungrouped."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/collection_list.html:57
+msgid "No collections yet. Create the first one above."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:17
+#: testcanvas/templates/testcanvas/details/_test_case_detail.html:18
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:18
+msgid "UID"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:20
+msgid "Criterion"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:30
+msgid "Coverage"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:33
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:103
+msgid "covered"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:33
+#, python-format
+msgid "%(counter)s test case"
+msgid_plural "%(counter)s test cases"
+msgstr[0] ""
+msgstr[1] ""
+
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:35
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:83
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:105
+msgid "uncovered"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_acceptance_criterion_detail.html:41
+msgid "Edit Acceptance Criterion"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_detail_sidebar.html:16
+#: testcanvas/templates/testcanvas/details/_detail_sidebar.html:24
+msgid "Details"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_detail_sidebar.html:17
+msgid "Close details"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_detail_sidebar.html:24
+msgid "Show details"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_test_case_detail.html:21
+#: testcanvas/templates/testcanvas/test_case_edit.html:20
+#: testcanvas/templates/testcanvas/test_case_manage.html:21
+#: testcanvas/templates/testcanvas/test_case_manage.html:72
+msgid "Status"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_test_case_detail.html:23
+#: testcanvas/templates/testcanvas/test_case_edit.html:37
+#: testcanvas/templates/testcanvas/test_case_manage.html:38
+msgid "Preconditions"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_test_case_detail.html:25
+#: testcanvas/templates/testcanvas/test_case_edit.html:42
+#: testcanvas/templates/testcanvas/test_case_manage.html:43
+msgid "Steps"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_test_case_detail.html:26
+#: testcanvas/templates/testcanvas/test_case_edit.html:47
+#: testcanvas/templates/testcanvas/test_case_manage.html:48
+msgid "Expected result"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_test_case_detail.html:28
+#: testcanvas/templates/testcanvas/test_case_manage.html:71
+msgid "Verifies"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_test_case_detail.html:35
+msgid "Edit Test Case"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:22
+msgid "Statement"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:26
+msgid "As a"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:29
+msgid "I want to"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:32
+msgid "So that"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:39
+msgid "Notes"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:43
+msgid "Edit User Story"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/details/_user_story_detail.html:44
+msgid "Manage AC"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:4
+msgid "Traceability"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:17
+msgid "Matrix view"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:18
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:20
+msgid "Back to editor"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:23
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:26
+#: testcanvas/templates/testcanvas/user_story_manage.html:84
+msgid "Criteria"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:25
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:28
+msgid "Covered"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:26
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:29
+msgid "Uncovered"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:30
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:33
+msgid "Manage User Stories"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:34
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:37
+msgid "Add a User Story first to create Acceptance Criteria"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:38
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:41
+msgid "Manage Acceptance Criteria"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:43
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:46
+msgid "Add an Acceptance Criterion first to create Test Cases"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:47
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:50
+msgid "Manage Test Cases"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:56
+msgid "Layout"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:60
+msgid "Graph orientation"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:61
+msgid "Horizontal"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:62
+msgid "Vertical"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:66
+msgid "Legend"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:68
+msgid "Acceptance Criteria — covered"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:69
+msgid "Acceptance Criteria — uncovered"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:73
+msgid "AC coverage"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:81
+#, python-format
+msgid "%(count)s TC"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:95
+msgid "No relationship to show for this Flow Node."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability.html:97
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:62
+msgid "Add a User Story"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:4
+msgid "Traceability matrix"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:14
+msgid "Requirements Traceability Matrix"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:19
+msgid "Graph view"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:61
+msgid "No Acceptance Criteria to show for this Flow Node."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:69
+msgid "Acceptance Criterion \\ Test Case"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/flow_node_traceability_matrix.html:79
+msgid "No Test Cases yet"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/index.html:4
+msgid "TestCanvas · Sign in"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/index.html:15
+msgid "TestCanvas logo"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/index.html:17
+msgid "TRACEABILITY · COVERAGE · ASSURANCE"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/index.html:29
+msgid "Username"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/index.html:43
+msgid "Password"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/index.html:55
+msgid "Sign in"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:4
+#, python-format
+msgid "Editor · %(name)s"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:16
+msgid "Click to rename the flow"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:16
+msgid "Flow name…"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:19
+msgid "Flow UID"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:21
+msgid "Copy Flow UID"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:26
+msgid "Collection"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:27
+msgid "Associate this flow with a collection"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:28
+msgid "No collection"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:40
+msgid "Back to list"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:44
+#: testcanvas/templates/testcanvas/map_editor.html:62
+msgid "Properties"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:46
+#: testcanvas/templates/testcanvas/map_editor.html:161
+msgid "Operations"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:48
+msgid "Save"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:51
+msgid "Graph visualization"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:52
+msgid "Auto-orient the graph top → down (start on top, end at the bottom)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:52
+msgid "Auto Top-Down"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:53
+msgid ""
+"Auto-orient the graph left → right (start on the left, end on the right)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:53
+msgid "Auto Left-Right"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:54
+msgid "Fit the whole graph to the screen"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:54
+msgid "Fit to screen"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:57
+msgid "Tip: click a node then Shift+click another, then \"+ Edge\"."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:66
+msgid "Selection properties"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:68
+msgid "Select a node or an edge to edit its appearance."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:73
+msgid "Node ID"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:78
+msgid "Node UUID"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:83
+msgid "Copy the node UUID"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:87
+msgid "Node name"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:88
+msgid "Node name..."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:91
+msgid "Node description"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:92
+msgid "Node description..."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:95
+msgid "Node type"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:97
+msgid "Pure node with its own User Stories"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:97
+msgid "Pure node"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:98
+msgid "Reference to another flow"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:98
+msgid "Sub-flow"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:102
+msgid "Referenced sub-flow"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:106
+msgid "Open the sub-flow"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:112
+msgid "Node color"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:116
+msgid "Node shape"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:118
+msgid "Start (green rectangle)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:118
+msgid "Start"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:119
+msgid "End (orange rectangle)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:119
+msgid "End"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:120
+msgid "Condition (yellow diamond)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:120
+msgid "Condition"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:121
+msgid "Squared (square)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:121
+msgid "Squared"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:128
+msgid "Edge label"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:129
+msgid "Label..."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:132
+msgid "Arrow direction"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:134
+msgid "Source → Target"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:135
+msgid "Target → Source"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:136
+msgid "Bidirectional"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:137
+msgid "No arrow"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:141
+msgid "Edge width"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:145
+msgid "Edge color"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:152
+msgid "Select a node to see its User Stories."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:156
+msgid "Show properties"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:163
+msgid "Node"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:164
+msgid "Edge (link 2 selected)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:165
+msgid "Delete selected"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:170
+msgid "Show operations"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:179
+msgid "Flow description"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:184
+msgid ""
+"Edit the rich-text description of this flow. Changes are stored when you "
+"press <strong>💾 Save</strong>."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_editor.html:189
+msgid "Done"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:4
+msgid "Application flows"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:6
+msgid "Manage collections"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:11
+msgid "Create a new flow"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:14
+msgid "Flow name (e.g. Checkout Flow)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:15
+msgid "Create"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:19
+#: testcanvas/templates/testcanvas/map_list.html:22
+msgid "Traceability view"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:21
+msgid "Choose how traceability opens across the app."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:27
+msgid "Graph"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:31
+msgid "Matrix (RTM)"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:36
+msgid "Existing flows"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:41
+msgid "Name"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:42
+msgid "Created"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:53
+msgid "Flow actions"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:54
+msgid "Open editor"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:60
+msgid "Info subflow use"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:64
+msgid "Delete this flow?"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/map_list.html:75
+msgid "No flows yet. Create your first one above."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/test_case_edit.html:3
+#: testcanvas/templates/testcanvas/test_case_edit.html:5
+#, python-format
+msgid "Edit Test Case · %(code)s"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/test_case_edit.html:33
+#: testcanvas/templates/testcanvas/test_case_manage.html:34
+msgid "Hold Ctrl (⌘ on Mac) to select multiple criteria."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/test_case_manage.html:3
+#, python-format
+msgid "Manage Test Cases · %(title)s"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/test_case_manage.html:10
+msgid "Add a new Test Case"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/test_case_manage.html:52
+msgid "Add Test Case"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/test_case_manage.html:57
+#, python-format
+msgid ""
+"This flow node has no acceptance criteria yet. A test case must verify at "
+"least one\n"
+"            acceptance criterion, so add criteria first from the\n"
+"            <a href=\"%(user_stories_url)s\">User Stories</a> section."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/test_case_manage.html:95
+#, python-format
+msgid "Delete test case %(code)s?"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/test_case_manage.html:106
+msgid "No test cases yet. Add the first one above."
+msgstr ""
+
+#: testcanvas/templates/testcanvas/user_story_edit.html:3
+#: testcanvas/templates/testcanvas/user_story_edit.html:5
+#, python-format
+msgid "Edit User Story · %(code)s"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/user_story_edit.html:49
+#: testcanvas/templates/testcanvas/user_story_manage.html:52
+msgid "Additional notes"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/user_story_manage.html:3
+#, python-format
+msgid "Manage User Stories · %(title)s"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/user_story_manage.html:9
+msgid "Add a new User Story"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/user_story_manage.html:56
+msgid "Add User Story"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/user_story_manage.html:66
+msgid "Title / Description"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/user_story_manage.html:87
+#, python-format
+msgid "Delete user story %(code)s?"
+msgstr ""
+
+#: testcanvas/templates/testcanvas/user_story_manage.html:98
+msgid "No user stories yet. Add the first one above."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:44
+#, python-format
+msgid "Welcome back, %(username)s!"
+msgstr ""
+
+#: testcanvas/views/standard_views.py:62
+msgid "You have been logged out."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:83
+#, python-format
+msgid "User Story '%(code)s' created."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:109
+#, python-format
+msgid "User Story '%(code)s' updated."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:129
+#, python-format
+msgid "User Story '%(code)s' deleted."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:152
+#, python-format
+msgid "Acceptance Criterion '%(code)s' created."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:182
+#, python-format
+msgid "Acceptance Criterion '%(code)s' updated."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:206
+#, python-format
+msgid "Acceptance Criterion '%(code)s' deleted."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:265
+#, python-format
+msgid "Test Case '%(code)s' created."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:298
+#, python-format
+msgid "Test Case '%(code)s' deleted."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:324
+#, python-format
+msgid "Test Case '%(code)s' updated."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:618
+msgid "Traceability view set to matrix."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:620
+msgid "Traceability view set to graph."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:677
+msgid "The flow name cannot be empty."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:681
+#, python-format
+msgid "Flow '%(name)s' created."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:916
+#, python-format
+msgid ""
+"Flow '%(name)s' cannot be deleted: it is used as a sub-flow by: %(usages)s. "
+"Remove these sub-flow references first."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:923
+#, python-format
+msgid "Flow '%(name)s' deleted."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:971
+#, python-format
+msgid "Collection '%(title)s' created."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:1000
+#, python-format
+msgid "Collection '%(title)s' updated."
+msgstr ""
+
+#: testcanvas/views/standard_views.py:1030
+#, python-format
+msgid "Collection '%(title)s' deleted."
+msgstr ""
+
+#: testcanvas_project/settings.py:147
+msgid "Italian"
+msgstr ""
+
+#: testcanvas_project/settings.py:148
+msgid "English"
+msgstr ""

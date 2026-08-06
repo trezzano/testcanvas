@@ -35,9 +35,10 @@
     };
 
     // Translate a stored node `shape` key into the concrete Cytoscape shape name.
+    // Falls back to 'round-rectangle' so new/untagged nodes render as rectangles by default.
     function cyShapeFor(shapeKey) {
         const preset = SHAPE_PRESETS[shapeKey];
-        return preset ? preset.cyShape : 'ellipse';
+        return preset ? preset.cyShape : 'round-rectangle';
     }
 
     // Palette shared by nodes and edges.
@@ -429,6 +430,35 @@
         });
     }
 
+    // --- Copy flow UID to clipboard ---
+    const copyFlowUidButton = document.getElementById('btn-copy-flow-uid');
+    const mapFlowUidEl = document.getElementById('map-flow-uid');
+    if (copyFlowUidButton && mapFlowUidEl) {
+        copyFlowUidButton.addEventListener('click', async () => {
+            const value = mapFlowUidEl.textContent.trim();
+            if (!value) return;
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(value);
+                } else {
+                    // Fallback: select the text inside the <code> element.
+                    const range = document.createRange();
+                    range.selectNodeContents(mapFlowUidEl);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    document.execCommand('copy');
+                    sel.removeAllRanges();
+                }
+                const orig = copyFlowUidButton.textContent;
+                copyFlowUidButton.textContent = '✔';
+                setTimeout(() => { copyFlowUidButton.textContent = orig; }, 1500);
+            } catch (err) {
+                setStatus('Could not copy the Flow UID: ' + err, true);
+            }
+        });
+    }
+
     function showInspectorFor(el) {
         selectedEl = el;
         if (!el) {
@@ -521,6 +551,24 @@
     });
     document.getElementById('sidebar-reopen').addEventListener('click', () => setSidebarOpen(true));
 
+    /* ---- Right sidebar (operations) toggle ---- */
+    // The Operations button and its reopen tab control ONLY the right sidebar,
+    // exactly like btn-toggle-sidebar controls the left one.
+    const opsSidebar = document.getElementById('ops-sidebar');
+    function setOpsSidebarOpen(open) {
+        if (!opsSidebar) return;
+        opsSidebar.classList.toggle('collapsed', !open);
+        editorBody.classList.toggle('ops-hidden', !open);
+        setTimeout(() => cy.resize(), 260);
+    }
+    const btnToggleOps = document.getElementById('btn-toggle-ops');
+    if (btnToggleOps) {
+        btnToggleOps.addEventListener('click', () =>
+            setOpsSidebarOpen(opsSidebar.classList.contains('collapsed')));
+    }
+    const opsReopen = document.getElementById('ops-sidebar-reopen');
+    if (opsReopen) opsReopen.addEventListener('click', () => setOpsSidebarOpen(true));
+
     /* ===================== RICH-TEXT DESCRIPTION (Quill) ===================== */
     // Initialise Quill immediately so the editor is fully wired before the modal opens,
     // then keep `mapDescription` in sync so the Save handler can ship it.
@@ -608,7 +656,7 @@
         const pan = cy.pan(), zoom = cy.zoom();
         cy.add({
             group: 'nodes',
-            data: { id: id, name: name, description: '', color: NODE_DEFAULT_COLOR },
+            data: { id: id, name: name, description: '', color: NODE_DEFAULT_COLOR, shape: 'squared' },
             position: {
                 x: (cy.width() / 2 - pan.x) / zoom,
                 y: (cy.height() / 2 - pan.y) / zoom
@@ -639,21 +687,6 @@
         setStatus('Edge created.', false);
     });
 
-    // --- Rename selected node/edge ---
-    document.getElementById('btn-rename').addEventListener('click', () => {
-        const sel = cy.$(':selected');
-        if (sel.length !== 1) {
-            setStatus('Select exactly 1 element to rename.', true);
-            return;
-        }
-        const el = sel[0];
-        const key = el.isNode() ? 'name' : 'label';
-        const current = el.data(key) || '';
-        const value = prompt('New label:', current);
-        if (value === null) return;
-        el.data(key, value);
-        showInspectorFor(el);
-    });
 
     // --- Delete selected ---
     document.getElementById('btn-delete').addEventListener('click', () => {
@@ -671,8 +704,11 @@
         setStatus('Saving…', false);
         const json = cy.json();
         const payload = {
-            name: document.getElementById('map-name').value,
+            name: (document.getElementById('map-name').value || '').trim(),
             description: mapDescription,
+            // Chosen collection (empty string = detach the map). Server-side the
+            // value is validated and unknown ids fall back to "no collection".
+            collection: (document.getElementById('map-collection').value || ''),
             elements: json.elements
         };
         try {

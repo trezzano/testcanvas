@@ -1,75 +1,76 @@
 {% extends "testcanvas/bases/base_page.html" %}
-{% block html_lang %}en{% endblock %}
-{% block title %}Manage Test Cases · {{ flow_node.title }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktranslate with title=flow_node.title %}Manage Test Cases · {{ title }}{% endblocktranslate %}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} — {{ flow_node.title }}</div>{% endblock %}
-{% block page_heading %}Test Cases · {{ flow_node.title }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block page_heading %}{% translate "Test Cases" %} · {{ flow_node.title }}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block wrap_class %}wrap-wide{% endblock %}
 {% block content %}
 <div class="card">
-    <h2>Add a new Test Case</h2>
+    <h2>{% translate "Add a new Test Case" %}</h2>
     {% if has_criteria %}
         <form method="post" action="{% url 'testcanvas:test_case_manage' flow_node.pk %}">
             {% csrf_token %}
             <div class="form-row">
                 <div class="field">
-                    <label for="{{ form.test_code.id_for_label }}">Code</label>
+                    <label for="{{ form.test_code.id_for_label }}">{% translate "Code" %}</label>
                     {{ form.test_code }}
                     {% if form.test_code.errors %}<div class="errors">{{ form.test_code.errors|striptags }}</div>{% endif %}
                 </div>
                 <div class="field">
-                    <label for="{{ form.status.id_for_label }}">Status</label>
+                    <label for="{{ form.status.id_for_label }}">{% translate "Status" %}</label>
                     {{ form.status }}
                     {% if form.status.errors %}<div class="errors">{{ form.status.errors|striptags }}</div>{% endif %}
                 </div>
             </div>
             <div class="field">
-                <label for="{{ form.title.id_for_label }}">Title</label>
+                <label for="{{ form.title.id_for_label }}">{% translate "Title" %}</label>
                 {{ form.title }}
                 {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
             </div>
             <div class="field">
-                <label for="{{ form.criteria.id_for_label }}">Acceptance Criteria</label>
+                <label for="{{ form.criteria.id_for_label }}">{% translate "Acceptance Criteria" %}</label>
                 {{ form.criteria }}
-                <div class="field-hint">Hold Ctrl (⌘ on Mac) to select multiple criteria.</div>
+                <div class="field-hint">{% translate "Hold Ctrl (⌘ on Mac) to select multiple criteria." %}</div>
                 {% if form.criteria.errors %}<div class="errors">{{ form.criteria.errors|striptags }}</div>{% endif %}
             </div>
             <div class="field">
-                <label for="{{ form.preconditions.id_for_label }}">Preconditions</label>
+                <label for="{{ form.preconditions.id_for_label }}">{% translate "Preconditions" %}</label>
                 {{ form.preconditions }}
                 {% if form.preconditions.errors %}<div class="errors">{{ form.preconditions.errors|striptags }}</div>{% endif %}
             </div>
             <div class="field">
-                <label for="{{ form.steps.id_for_label }}">Steps</label>
+                <label for="{{ form.steps.id_for_label }}">{% translate "Steps" %}</label>
                 {{ form.steps }}
                 {% if form.steps.errors %}<div class="errors">{{ form.steps.errors|striptags }}</div>{% endif %}
             </div>
             <div class="field">
-                <label for="{{ form.expected_result.id_for_label }}">Expected result</label>
+                <label for="{{ form.expected_result.id_for_label }}">{% translate "Expected result" %}</label>
                 {{ form.expected_result }}
                 {% if form.expected_result.errors %}<div class="errors">{{ form.expected_result.errors|striptags }}</div>{% endif %}
             </div>
-            <button type="submit" class="btn btn-primary">+ Add Test Case</button>
+            <button type="submit" class="btn btn-primary">+ {% translate "Add Test Case" %}</button>
         </form>
     {% else %}
         <p class="muted">
-            This flow node has no acceptance criteria yet. A test case must verify at least one
+            {% url 'testcanvas:user_story_manage' flow_node.pk as user_stories_url %}
+            {% blocktranslate %}This flow node has no acceptance criteria yet. A test case must verify at least one
             acceptance criterion, so add criteria first from the
-            <a href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">User Stories</a> section.
+            <a href="{{ user_stories_url }}">User Stories</a> section.{% endblocktranslate %}
         </p>
     {% endif %}
 </div>
 <div class="card">
-    <h2>Test Cases <span class="count-pill">{{ test_cases|length }}</span></h2>
+    <h2>{% translate "Test Cases" %} <span class="count-pill">{{ test_cases|length }}</span></h2>
     {% if test_cases %}
         <table>
             <thead>
                 <tr>
-                    <th style="width: 110px;">Code</th>
-                    <th>Title</th>
-                    <th>Verifies</th>
-                    <th style="width: 110px;">Status</th>
-                    <th style="width: 160px;">Actions</th>
+                    <th style="width: 110px;">{% translate "Code" %}</th>
+                    <th>{% translate "Title" %}</th>
+                    <th>{% translate "Verifies" %}</th>
+                    <th style="width: 110px;">{% translate "Status" %}</th>
+                    <th style="width: 160px;">{% translate "Actions" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -88,12 +89,12 @@
                         <td>
                             <div class="actions">
                                 <a class="btn btn-secondary btn-sm"
-                                   href="{% url 'testcanvas:test_case_edit' tc.pk %}">Edit</a>
+                                   href="{% url 'testcanvas:test_case_edit' tc.pk %}">{% translate "Edit" %}</a>
                                 <form method="post"
                                       action="{% url 'testcanvas:test_case_delete' flow_node.pk tc.pk %}"
-                                      onsubmit="return confirm('Delete test case {{ tc.test_code }}?');">
+                                      onsubmit="return confirm('{% blocktranslate with code=tc.test_code %}Delete test case {{ code }}?{% endblocktranslate %}');">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
                                 </form>
                             </div>
                         </td>
@@ -102,7 +103,7 @@
             </tbody>
         </table>
     {% else %}
-        <p class="muted">No test cases yet. Add the first one above.</p>
+        <p class="muted">{% translate "No test cases yet. Add the first one above." %}</p>
     {% endif %}
 </div>
 {% endblock %}

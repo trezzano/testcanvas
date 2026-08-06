@@ -1,13 +1,13 @@
 {% extends "testcanvas/bases/base_page.html" %}
-{% block html_lang %}en{% endblock %}
-{% block title %}Application Maps Collections{% endblock %}
-{% block page_heading %}Application Maps Collections{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url 'testcanvas:map_list' %}">← Back to flows</a>{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Application Maps Collections" %}{% endblock %}
+{% block page_heading %}{% translate "Application Maps Collections" %}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url 'testcanvas:map_list' %}">← {% translate "Back to flows" %}</a>{% endblock %}
 {% block wrap_class %}wrap-wide{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="m-0">Collections <span class="count-pill">{{ collections|length }}</span></h2>
-    <a class="btn btn-primary" href="{% url 'testcanvas:collection_create' %}">+ New collection</a>
+    <h2 class="m-0">{% translate "Collections" %} <span class="count-pill">{{ collections|length }}</span></h2>
+    <a class="btn btn-primary" href="{% url 'testcanvas:collection_create' %}">+ {% translate "New collection" %}</a>
 </div>
 
 {% if collections %}
@@ -27,7 +27,7 @@
                         {% if c.description %}
                             <div class="card-text desc mb-3">{{ c.description|safe }}</div>
                         {% endif %}
-                        <h4 class="text-uppercase text-muted small fw-bold mb-2">Maps</h4>
+                        <h4 class="text-uppercase text-muted small fw-bold mb-2">{% translate "Maps" %}</h4>
                         {% if c.maps.all %}
                             <ul class="collection-maps mb-0">
                                 {% for m in c.maps.all %}
@@ -35,16 +35,16 @@
                                 {% endfor %}
                             </ul>
                         {% else %}
-                            <span class="muted">No maps</span>
+                            <span class="muted">{% translate "No maps" %}</span>
                         {% endif %}
                     </div>
                     <div class="card-footer bg-transparent">
                         <div class="actions">
-                            <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:collection_edit' c.pk %}">Edit</a>
+                            <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:collection_edit' c.pk %}">{% translate "Edit" %}</a>
                             <form method="post" action="{% url 'testcanvas:collection_delete' c.pk %}"
-                                  onsubmit="return confirm('Delete collection {{ c.title }}? Its maps will be kept but ungrouped.');">
+                                  onsubmit="return confirm('{% blocktranslate with title=c.title %}Delete collection {{ title }}? Its maps will be kept but ungrouped.{% endblocktranslate %}');">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
                             </form>
                         </div>
                     </div>
@@ -54,7 +54,7 @@
     </div>
 {% else %}
     <div class="card">
-        <p class="muted m-0">No collections yet. Create the first one above.</p>
+        <p class="muted m-0">{% translate "No collections yet. Create the first one above." %}</p>
     </div>
 {% endif %}
 {% endblock %}

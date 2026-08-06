@@ -1,46 +1,46 @@
 {% extends "testcanvas/bases/base_page.html" %}
-{% block html_lang %}en{% endblock %}
-{% block title %}Manage Acceptance Criteria · {{ user_story.code }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktranslate with code=user_story.code %}Manage Acceptance Criteria · {{ code }}{% endblocktranslate %}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} — {{ flow_node.title }}</div>{% endblock %}
-{% block page_heading %}Acceptance Criteria · {{ user_story.code }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block page_heading %}{% translate "Acceptance Criteria" %} · {{ user_story.code }}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block content %}
 <div class="story-summary">
     <div><span class="code">{{ user_story.code }}</span> · <span class="title">{{ user_story.title }}</span></div>
     {% if user_story.description %}<div class="desc">{{ user_story.description }}</div>{% endif %}
 </div>
 <div class="card">
-    <h2>Add a new Acceptance Criterion</h2>
+    <h2>{% translate "Add a new Acceptance Criterion" %}</h2>
     <form method="post" action="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">
         {% csrf_token %}
         <div class="field">
-            <label for="{{ form.code.id_for_label }}">Code</label>
+            <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
             {{ form.code }}
             {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
         </div>
         <div class="field">
-            <label for="{{ form.text.id_for_label }}">Text</label>
+            <label for="{{ form.text.id_for_label }}">{% translate "Text" %}</label>
             {{ form.text }}
             {% if form.text.errors %}<div class="errors">{{ form.text.errors|striptags }}</div>{% endif %}
         </div>
         <div class="field">
-            <label for="{{ form.is_functional.id_for_label }}">Criterion type</label>
+            <label for="{{ form.is_functional.id_for_label }}">{% translate "Criterion type" %}</label>
             {{ form.is_functional }}
             {% if form.is_functional.errors %}<div class="errors">{{ form.is_functional.errors|striptags }}</div>{% endif %}
         </div>
-        <button type="submit" class="btn btn-primary">+ Add Acceptance Criterion</button>
+        <button type="submit" class="btn btn-primary">+ {% translate "Add Acceptance Criterion" %}</button>
     </form>
 </div>
 <div class="card">
-    <h2>Acceptance Criteria <span class="count-pill">{{ criteria|length }}</span></h2>
+    <h2>{% translate "Acceptance Criteria" %} <span class="count-pill">{{ criteria|length }}</span></h2>
     {% if criteria %}
         <table>
             <thead>
                 <tr>
-                    <th style="width: 110px;">Code</th>
-                    <th>Text</th>
-                    <th style="width: 130px;">Type</th>
-                    <th style="width: 160px;">Actions</th>
+                    <th style="width: 110px;">{% translate "Code" %}</th>
+                    <th>{% translate "Text" %}</th>
+                    <th style="width: 130px;">{% translate "Type" %}</th>
+                    <th style="width: 160px;">{% translate "Actions" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -48,16 +48,16 @@
                     <tr>
                         <td class="code">{{ ac.code }}</td>
                         <td><div class="desc">{{ ac.text }}</div></td>
-                        <td>{% if ac.is_functional %}Functional{% else %}Non-functional{% endif %}</td>
+                        <td>{% if ac.is_functional %}{% translate "Functional" %}{% else %}{% translate "Non-functional" %}{% endif %}</td>
                         <td>
                             <div class="actions">
                                 <a class="btn btn-secondary btn-sm"
-                                   href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">Edit</a>
+                                   href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% translate "Edit" %}</a>
                                 <form method="post"
                                       action="{% url 'testcanvas:acceptance_criterion_delete' ac.pk %}"
-                                      onsubmit="return confirm('Delete acceptance criterion {{ ac.code }}?');">
+                                      onsubmit="return confirm('{% blocktranslate with code=ac.code %}Delete acceptance criterion {{ code }}?{% endblocktranslate %}');">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
                                 </form>
                             </div>
                         </td>
@@ -66,7 +66,7 @@
             </tbody>
         </table>
     {% else %}
-        <p class="muted">No acceptance criteria yet. Add the first one above.</p>
+        <p class="muted">{% translate "No acceptance criteria yet. Add the first one above." %}</p>
     {% endif %}
 </div>
 {% endblock %}

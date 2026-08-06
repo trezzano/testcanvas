@@ -1,9 +1,9 @@
 {% extends "testcanvas/bases/base_page.html" %}
-{% block html_lang %}en{% endblock %}
-{% block title %}Acceptance Criteria · {{ flow_node.title }}{% endblock %}
-{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · Flow Node</div>{% endblock %}
-{% block page_heading %}Acceptance Criteria · {{ flow_node.local_graph_id }} — {{ flow_node.title }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Acceptance Criteria" %} · {{ flow_node.title }}{% endblock %}
+{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {% translate "Flow Node" %}</div>{% endblock %}
+{% block page_heading %}{% translate "Acceptance Criteria" %} · {{ flow_node.local_graph_id }} — {{ flow_node.title }}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block content %}
 {# Acceptance Criteria belong to a specific User Story, so this page lists each #}
 {# story of the flow node with its criteria and a link to add/manage them. #}
@@ -18,9 +18,9 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 110px;">Code</th>
-                            <th>Text</th>
-                            <th style="width: 160px;">Actions</th>
+                            <th style="width: 110px;">{% translate "Code" %}</th>
+                            <th>{% translate "Text" %}</th>
+                            <th style="width: 160px;">{% translate "Actions" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -31,12 +31,12 @@
                                 <td>
                                     <div class="actions">
                                         <a class="btn btn-secondary btn-sm"
-                                           href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">Edit</a>
+                                           href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% translate "Edit" %}</a>
                                         <form method="post"
                                               action="{% url 'testcanvas:acceptance_criterion_delete' ac.pk %}"
-                                              onsubmit="return confirm('Delete acceptance criterion {{ ac.code }}?');">
+                                              onsubmit="return confirm('{% blocktranslate with code=ac.code %}Delete acceptance criterion {{ code }}?{% endblocktranslate %}');">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                            <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
                                         </form>
                                     </div>
                                 </td>
@@ -45,17 +45,17 @@
                     </tbody>
                 </table>
             {% else %}
-                <p class="muted">No acceptance criteria for this user story yet.</p>
+                <p class="muted">{% translate "No acceptance criteria for this user story yet." %}</p>
             {% endif %}
             <a class="btn btn-primary" href="{% url 'testcanvas:acceptance_criterion_manage' us.pk %}">
-                + Add / manage criteria for {{ us.code }}
+                + {% blocktranslate with code=us.code %}Add / manage criteria for {{ code }}{% endblocktranslate %}
             </a>
         </div>
     {% endfor %}
 {% else %}
     <div class="card">
-        <p class="muted">This flow node has no user stories yet, so it cannot hold acceptance criteria.</p>
-        <a class="btn btn-primary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">+ Add a User Story first</a>
+        <p class="muted">{% translate "This flow node has no user stories yet, so it cannot hold acceptance criteria." %}</p>
+        <a class="btn btn-primary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">+ {% translate "Add a User Story first" %}</a>
     </div>
 {% endif %}
 {% endblock %}

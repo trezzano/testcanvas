@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from .models import (
     AcceptanceCriterion,
@@ -22,7 +23,7 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
         widgets = {
             "title": forms.TextInput(attrs={
                 "class": "field-input",
-                "placeholder": "e.g. Checkout Area",
+                "placeholder": _("e.g. Checkout Area"),
             }),
             # Hidden textarea backing the Quill editor; the visible editor lives
             # in the template and writes its HTML here before submit.
@@ -37,7 +38,7 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
             }),
         }
         labels = {
-            "background_color": "Background color",
+            "background_color": _("Background color"),
         }
 
 
@@ -65,11 +66,11 @@ class UserStoryForm(forms.ModelForm):
         widgets = {
             "code": forms.TextInput(attrs={
                 "class": "field-input",
-                "placeholder": "e.g. US-01",
+                "placeholder": _("e.g. US-01"),
             }),
             "title": forms.TextInput(attrs={
                 "class": "field-input",
-                "placeholder": "Short user story title",
+                "placeholder": _("Short user story title"),
             }),
             "priority": forms.Select(attrs={
                 "class": "field-input",
@@ -77,24 +78,24 @@ class UserStoryForm(forms.ModelForm):
             "description": forms.Textarea(attrs={
                 "class": "field-input",
                 "rows": 3,
-                "placeholder": "Summary or extra context for the story",
+                "placeholder": _("Summary or extra context for the story"),
             }),
             "as_a": forms.TextInput(attrs={
                 "class": "field-input",
-                "placeholder": "e.g. Guest Customer",
+                "placeholder": _("e.g. Guest Customer"),
             }),
             "i_want_to": forms.TextInput(attrs={
                 "class": "field-input",
-                "placeholder": "The core action or feature required",
+                "placeholder": _("The core action or feature required"),
             }),
             "so_that": forms.TextInput(attrs={
                 "class": "field-input",
-                "placeholder": "The business value or user benefit",
+                "placeholder": _("The business value or user benefit"),
             }),
             "additional_notes": forms.Textarea(attrs={
                 "class": "field-input",
                 "rows": 3,
-                "placeholder": "Technical constraints, business rules, extra context",
+                "placeholder": _("Technical constraints, business rules, extra context"),
             }),
         }
 
@@ -108,21 +109,21 @@ class AcceptanceCriterionForm(forms.ModelForm):
         widgets = {
             "code": forms.TextInput(attrs={
                 "class": "field-input",
-                "placeholder": "e.g. AC-01.1",
+                "placeholder": _("e.g. AC-01.1"),
             }),
             "text": forms.Textarea(attrs={
                 "class": "field-input",
                 "rows": 4,
-                "placeholder": "Given <context> when <action> then <outcome>",
+                "placeholder": _("Given <context> when <action> then <outcome>"),
             }),
             # Dropdown to pick whether the criterion is functional or not.
             "is_functional": forms.Select(
-                choices=((True, "Functional"), (False, "Non-functional")),
+                choices=((True, _("Functional")), (False, _("Non-functional"))),
                 attrs={"class": "field-input"},
             ),
         }
         labels = {
-            "is_functional": "Criterion type",
+            "is_functional": _("Criterion type"),
         }
 
 
@@ -143,11 +144,11 @@ class TestCaseForm(forms.ModelForm):
         widgets = {
             "test_code": forms.TextInput(attrs={
                 "class": "field-input",
-                "placeholder": "e.g. TC-001",
+                "placeholder": _("e.g. TC-001"),
             }),
             "title": forms.TextInput(attrs={
                 "class": "field-input",
-                "placeholder": "Short test case title",
+                "placeholder": _("Short test case title"),
             }),
             "criteria": forms.SelectMultiple(attrs={
                 "class": "field-input",
@@ -156,17 +157,17 @@ class TestCaseForm(forms.ModelForm):
             "preconditions": forms.Textarea(attrs={
                 "class": "field-input",
                 "rows": 3,
-                "placeholder": "State required before running the test",
+                "placeholder": _("State required before running the test"),
             }),
             "steps": forms.Textarea(attrs={
                 "class": "field-input",
                 "rows": 5,
-                "placeholder": "One action per line",
+                "placeholder": _("One action per line"),
             }),
             "expected_result": forms.Textarea(attrs={
                 "class": "field-input",
                 "rows": 3,
-                "placeholder": "Expected outcome",
+                "placeholder": _("Expected outcome"),
             }),
             "status": forms.Select(attrs={
                 "class": "field-input",

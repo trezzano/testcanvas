@@ -10,6 +10,7 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from testcanvas.models import AcceptanceCriterion, ApplicationMap, ApplicationMapsCollection, FlowNode, TestCase, UserStory
@@ -40,7 +41,7 @@ def index(request):
         if form.is_valid():
             # ``get_user`` returns the user validated by the form's clean step.
             auth_login(request, form.get_user())
-            messages.success(request, f"Welcome back, {form.get_user().username}!")
+            messages.success(request, _("Welcome back, %(username)s!") % {"username": form.get_user().username})
             return redirect('testcanvas:map_list')
     else:
         form = AuthenticationForm(request)
@@ -58,7 +59,7 @@ def logout_view(request):
         A redirect to the login page.
     """
     auth_logout(request)
-    messages.info(request, "You have been logged out.")
+    messages.info(request, _("You have been logged out."))
     return redirect('testcanvas:index')
 
 @login_required
@@ -79,7 +80,7 @@ def user_story_manage(request, node_id):
             user_story = form.save(commit=False)
             user_story.flow_node = flow_node
             user_story.save()
-            messages.success(request, f"User Story '{user_story.code}' created.")
+            messages.success(request, _("User Story '%(code)s' created.") % {"code": user_story.code})
             return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
     else:
         form = UserStoryForm()
@@ -105,7 +106,7 @@ def user_story_edit(request, node_id, pk):
         form = UserStoryForm(request.POST, instance=user_story)
         if form.is_valid():
             form.save()
-            messages.success(request, f"User Story '{user_story.code}' updated.")
+            messages.success(request, _("User Story '%(code)s' updated.") % {"code": user_story.code})
             return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
     else:
         form = UserStoryForm(instance=user_story)
@@ -125,7 +126,7 @@ def user_story_delete(request, node_id, pk):
     user_story = get_object_or_404(UserStory, pk=pk, flow_node=flow_node)
     code = user_story.code
     user_story.delete()
-    messages.success(request, f"User Story '{code}' deleted.")
+    messages.success(request, _("User Story '%(code)s' deleted.") % {"code": code})
     return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
 
 @login_required
@@ -148,7 +149,7 @@ def acceptance_criterion_manage(request, user_story_id):
             criterion = form.save(commit=False)
             criterion.user_story = user_story
             criterion.save()
-            messages.success(request, f"Acceptance Criterion '{criterion.code}' created.")
+            messages.success(request, _("Acceptance Criterion '%(code)s' created.") % {"code": criterion.code})
             return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
     else:
         form = AcceptanceCriterionForm()
@@ -178,7 +179,7 @@ def acceptance_criterion_edit(request, pk):
         form = AcceptanceCriterionForm(request.POST, instance=criterion)
         if form.is_valid():
             form.save()
-            messages.success(request, f"Acceptance Criterion '{criterion.code}' updated.")
+            messages.success(request, _("Acceptance Criterion '%(code)s' updated.") % {"code": criterion.code})
             return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
     else:
         form = AcceptanceCriterionForm(instance=criterion)
@@ -202,7 +203,7 @@ def acceptance_criterion_delete(request, pk):
     user_story = criterion.user_story
     code = criterion.code
     criterion.delete()
-    messages.success(request, f"Acceptance Criterion '{code}' deleted.")
+    messages.success(request, _("Acceptance Criterion '%(code)s' deleted.") % {"code": code})
     return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
 
 @login_required
@@ -261,7 +262,7 @@ def test_case_manage(request, node_id):
         form.fields['criteria'].queryset = node_criteria
         if form.is_valid():
             test_case = form.save()
-            messages.success(request, f"Test Case '{test_case.test_code}' created.")
+            messages.success(request, _("Test Case '%(code)s' created.") % {"code": test_case.test_code})
             return redirect('testcanvas:test_case_manage', node_id=flow_node.pk)
     else:
         form = TestCaseForm()
@@ -294,7 +295,7 @@ def test_case_delete(request, node_id, pk):
     )
     code = test_case.test_code
     test_case.delete()
-    messages.success(request, f"Test Case '{code}' deleted.")
+    messages.success(request, _("Test Case '%(code)s' deleted.") % {"code": code})
     return redirect('testcanvas:test_case_manage', node_id=flow_node.pk)
 
 @login_required
@@ -320,7 +321,7 @@ def test_case_edit(request, pk):
             ).select_related('user_story')
         if form.is_valid():
             form.save()
-            messages.success(request, f"Test Case '{test_case.test_code}' updated.")
+            messages.success(request, _("Test Case '%(code)s' updated.") % {"code": test_case.test_code})
             return redirect('testcanvas:test_case_edit', pk=test_case.pk)
     else:
         form = TestCaseForm(instance=test_case)
@@ -446,7 +447,6 @@ def flow_node_traceability(request, node_id):
     }
     return render(request, 'testcanvas/flow_node_traceability.html', context)
 
-
 @login_required
 def flow_node_traceability_matrix(request, node_id):
     """Render the ISTQB Requirements Traceability Matrix (RTM) for a FlowNode.
@@ -520,7 +520,6 @@ def flow_node_traceability_matrix(request, node_id):
     }
     return render(request, 'testcanvas/flow_node_traceability_matrix.html', context)
 
-
 @login_required
 def user_story_detail(request, pk):
     """Render a User Story detail card as an HTMX partial.
@@ -542,7 +541,6 @@ def user_story_detail(request, pk):
     return render(request, 'testcanvas/details/_user_story_detail.html', {
         'user_story': user_story,
     })
-
 
 @login_required
 def acceptance_criterion_detail(request, pk):
@@ -570,7 +568,6 @@ def acceptance_criterion_detail(request, pk):
         'covered': criterion.test_cases.exists(),
     })
 
-
 @login_required
 def test_case_detail(request, pk):
     """Render a Test Case detail card as an HTMX partial.
@@ -592,7 +589,6 @@ def test_case_detail(request, pk):
         'test_case': test_case,
     })
 
-
 @require_POST
 @login_required
 def set_traceability_view(request):
@@ -613,10 +609,10 @@ def set_traceability_view(request):
     mode = request.POST.get('mode')
     if mode in TRACEABILITY_URL_NAMES:
         request.session[TRACEABILITY_SESSION_KEY] = mode
-        messages.success(
-            request,
-            f"Traceability view set to {'matrix' if mode == 'matrix' else 'graph'}.",
-        )
+        if mode == 'matrix':
+            messages.success(request, _("Traceability view set to matrix."))
+        else:
+            messages.success(request, _("Traceability view set to graph."))
 
     # Redirect back where the toggle was pressed; fall back to the flow list.
     return redirect(request.POST.get('next') or 'testcanvas:map_list')
@@ -635,7 +631,6 @@ def map_list(request):
         .prefetch_related('referencing_nodes')
     )
     return render(request, 'testcanvas/map_list.html', {'maps': maps})
-
 
 @login_required
 def map_subflow_usage(request, pk):
@@ -673,11 +668,30 @@ def map_create(request):
     """Create a new (empty) ApplicationMap and jump straight into the editor."""
     name = (request.POST.get('name') or '').strip()
     if not name:
-        messages.error(request, "The flow name cannot be empty.")
+        messages.error(request, _("The flow name cannot be empty."))
         return redirect('testcanvas:map_list')
 
     application_map = ApplicationMap.objects.create(name=name)
-    messages.success(request, f"Flow '{name}' created.")
+    messages.success(request, _("Flow '%(name)s' created.") % {"name": name})
+    return redirect('testcanvas:map_editor', pk=application_map.pk)
+
+@login_required
+def map_editor_by_uid(request, flow_uid):
+    """Resolve a compact flow UID to the canonical PK-based editor URL.
+
+    This endpoint is an ingress route for external callers that only know the
+    stable ``flow_uid``. After lookup, it redirects to the existing
+    ``map_editor`` route so all internal navigation and JS configuration keep
+    using the current PK-based URLs without any further changes.
+
+    Args:
+        request: The incoming HTTP request.
+        flow_uid: Compact, globally unique flow identifier.
+
+    Returns:
+        An HTTP redirect to the canonical ``map_editor`` URL.
+    """
+    application_map = get_object_or_404(ApplicationMap, flow_uid=flow_uid)
     return redirect('testcanvas:map_editor', pk=application_map.pk)
 
 @login_required
@@ -704,11 +718,17 @@ def map_editor(request, pk):
         for fn in application_map.relational_nodes.all()
     }
 
+    # Collections the map can be attached to. Passed as real objects so the
+    # header <select> is rendered server-side (the current one pre-selected),
+    # letting the user (re)group this map on the next Save.
+    collections = ApplicationMapsCollection.objects.all()
+
     context = {
         'application_map': application_map,
         'graph_data_json': json.dumps(graph_data),
         'subflows_json': json.dumps(subflows),
         'node_uids_json': json.dumps(node_uids),
+        'collections': collections,
     }
     return render(request, 'testcanvas/map_editor.html', context)
 
@@ -788,6 +808,18 @@ def map_save(request, pk):
     if 'description' in payload:
         application_map.description = payload.get('description') or ''
 
+    # (Re)group the map under a collection chosen in the editor header. An empty
+    # value detaches the map (SET_NULL); an unknown/invalid id fails silently to
+    # None ("— No collection —") so a stale option can never break the save.
+    if 'collection' in payload:
+        collection_id = payload.get('collection') or None
+        if collection_id is None:
+            application_map.collection = None
+        else:
+            application_map.collection = (
+                ApplicationMapsCollection.objects.filter(pk=collection_id).first()
+            )
+
     # Save the graph and mirror the per-node type / sub-flow reference onto the
     # relational FlowNode rows. Wrapped in a transaction so a validation error
     # (e.g. a cycle or illegal nesting) rolls back the whole save.
@@ -803,7 +835,6 @@ def map_save(request, pk):
         'graph_data': application_map.graph_data,
         'name': application_map.name,
     })
-
 
 def _apply_node_types(application_map, norm_nodes):
     """Mirror ``node_type``/``sub_flow`` from graph nodes onto the FlowNode rows.
@@ -893,15 +924,16 @@ def map_delete(request, pk):
         )
         messages.error(
             request,
-            f"Flow '{name}' cannot be deleted: it is used as a sub-flow by: "
-            f"{usages}. Remove these sub-flow references first.",
+            _(
+                "Flow '%(name)s' cannot be deleted: it is used as a sub-flow by: "
+                "%(usages)s. Remove these sub-flow references first."
+            ) % {"name": name, "usages": usages},
         )
         return redirect('testcanvas:map_list')
 
     application_map.delete()
-    messages.success(request, f"Flow '{name}' deleted.")
+    messages.success(request, _("Flow '%(name)s' deleted.") % {"name": name})
     return redirect('testcanvas:map_list')
-
 
 # --------------------------------------------------------------------------- #
 # ApplicationMapsCollection management (logical grouping layer)
@@ -929,7 +961,6 @@ def collection_list(request):
         'collections': collections,
     })
 
-
 @login_required
 def collection_create(request):
     """Create a new ApplicationMapsCollection.
@@ -947,7 +978,7 @@ def collection_create(request):
         form = ApplicationMapsCollectionForm(request.POST)
         if form.is_valid():
             collection = form.save()
-            messages.success(request, f"Collection '{collection.title}' created.")
+            messages.success(request, _("Collection '%(title)s' created.") % {"title": collection.title})
             return redirect('testcanvas:collection_list')
     else:
         form = ApplicationMapsCollectionForm()
@@ -956,7 +987,6 @@ def collection_create(request):
         'form': form,
         'is_edit': False,
     })
-
 
 @login_required
 def collection_edit(request, pk):
@@ -976,7 +1006,7 @@ def collection_edit(request, pk):
         form = ApplicationMapsCollectionForm(request.POST, instance=collection)
         if form.is_valid():
             form.save()
-            messages.success(request, f"Collection '{collection.title}' updated.")
+            messages.success(request, _("Collection '%(title)s' updated.") % {"title": collection.title})
             return redirect('testcanvas:collection_list')
     else:
         form = ApplicationMapsCollectionForm(instance=collection)
@@ -986,7 +1016,6 @@ def collection_edit(request, pk):
         'collection': collection,
         'is_edit': True,
     })
-
 
 @require_POST
 @login_required
@@ -1006,7 +1035,7 @@ def collection_delete(request, pk):
     collection = get_object_or_404(ApplicationMapsCollection, pk=pk)
     title = collection.title
     collection.delete()
-    messages.success(request, f"Collection '{title}' deleted.")
+    messages.success(request, _("Collection '%(title)s' deleted.") % {"title": title})
     return redirect('testcanvas:collection_list')
 
 

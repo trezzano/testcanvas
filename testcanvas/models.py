@@ -2,6 +2,7 @@ import uuid
 
 from django.core.validators import RegexValidator
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 # Schema concettuale fondamentale :
 # UserStory  1 ──< N  AcceptanceCriterion  N ──< >── N  TestCase
@@ -61,30 +62,30 @@ class ApplicationMapsCollection(models.Model):
     # Validator ensuring the color is a 3- or 6-digit hex value (e.g. #fff, #ffffff).
     _HEX_COLOR_VALIDATOR = RegexValidator(
         regex=r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
-        message="Enter a valid hex color, e.g. #ffffff.",
+        message=_("Enter a valid hex color, e.g. #ffffff."),
     )
 
     title = models.CharField(
         max_length=150,
-        help_text="Collection title (e.g., 'Checkout Area').",
+        help_text=_("Collection title (e.g., 'Checkout Area')."),
     )
     # Rich-text HTML description, edited in the front-end and stored verbatim,
     # exactly like ApplicationMap.description.
     description = models.TextField(
         blank=True,
-        help_text="Rich-text (HTML) description of the collection.",
+        help_text=_("Rich-text (HTML) description of the collection."),
     )
     background_color = models.CharField(
         max_length=7,
         default="#ffffff",
         validators=[_HEX_COLOR_VALIDATOR],
-        help_text="Background color as a hex value (e.g., #ffffff).",
+        help_text=_("Background color as a hex value (e.g., #ffffff)."),
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Application Maps Collection"
-        verbose_name_plural = "Application Maps Collections"
+        verbose_name = _("Application Maps Collection")
+        verbose_name_plural = _("Application Maps Collections")
         ordering = ("title",)
 
     def __str__(self) -> str:
@@ -96,9 +97,18 @@ class ApplicationMap(models.Model):
     Main container for the application flow graph. 
     Uses serializes natively into Cytoscape.js format.
     """
-    name = models.CharField(max_length=150, help_text="Global flow name (e.g., 'Checkout Flow')")
+    name = models.CharField(max_length=150, help_text=_("Global flow name (e.g., 'Checkout Flow')"))
     created_at = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True)
+
+    flow_uid = models.CharField(
+        max_length=22,
+        unique=True,
+        default=generate_compact_node_uid,
+        editable=False,
+        db_index=True,
+        help_text=_("Compact, globally unique flow identifier (Base62 UUID4) usable as a stable LLM reference."),
+    )
 
     # Optional logical grouping. SET_NULL keeps the map if its collection is
     # deleted (the map simply becomes ungrouped).
@@ -108,7 +118,7 @@ class ApplicationMap(models.Model):
         null=True,
         blank=True,
         related_name="maps",
-        help_text="Optional collection this map belongs to.",
+        help_text=_("Optional collection this map belongs to."),
     )
 
     # JSON field where NetworkX saves the entire structure (nodes, edges, and visual styles)
@@ -116,12 +126,12 @@ class ApplicationMap(models.Model):
     graph_data = models.JSONField(
         default=dict,
         blank=True,
-        help_text="Structure in Cytoscape format"
+        help_text=_("Structure in Cytoscape format")
     )
 
     class Meta:
-        verbose_name = "Application Map"
-        verbose_name_plural = "TestCanvas App"
+        verbose_name = _("Application Map")
+        verbose_name_plural = _("TestCanvas App")
 
     def __str__(self):
         return self.name
@@ -194,12 +204,12 @@ class FlowNode(models.Model):
     PURE = "PURE"
     SUBFLOW = "SUBFLOW"
     NODE_TYPE_CHOICES = [
-        (PURE, "Pure Node"),
-        (SUBFLOW, "Sub-flow Reference"),
+        (PURE, _("Pure Node")),
+        (SUBFLOW, _("Sub-flow Reference")),
     ]
 
     application_map = models.ForeignKey(ApplicationMap, on_delete=models.CASCADE, related_name='relational_nodes')
-    local_graph_id = models.CharField(max_length=50, help_text="ID matching the node.data.id inside the NetworkX graph")
+    local_graph_id = models.CharField(max_length=50, help_text=_("ID matching the node.data.id inside the NetworkX graph"))
     # Compact, globally unique identifier (Base62-encoded UUID4). Unlike
     # local_graph_id (unique only within a single map), this value is unique
     # across every map, so it is safe to expose as a stable node reference,
@@ -210,7 +220,7 @@ class FlowNode(models.Model):
         default=generate_compact_node_uid,
         editable=False,
         db_index=True,
-        help_text="Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference.",
+        help_text=_("Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference."),
     )
     title = models.CharField(max_length=100)
     description = models.TextField(blank=True)
@@ -220,7 +230,7 @@ class FlowNode(models.Model):
         max_length=10,
         choices=NODE_TYPE_CHOICES,
         default=PURE,
-        help_text=(
+        help_text=_(
             "PURE: node owns its UserStory tree. "
             "SUBFLOW: node references another ApplicationMap as a sub-flow."
         ),
@@ -234,13 +244,13 @@ class FlowNode(models.Model):
         null=True,
         blank=True,
         related_name="referencing_nodes",
-        help_text="Target ApplicationMap when node_type is SUBFLOW.",
+        help_text=_("Target ApplicationMap when node_type is SUBFLOW."),
     )
 
     class Meta:
         unique_together = ('application_map', 'local_graph_id')
-        verbose_name = "Flow Node"
-        verbose_name_plural = "Flow Nodes"
+        verbose_name = _("Flow Node")
+        verbose_name_plural = _("Flow Nodes")
 
     def __str__(self):
         return f"{self.local_graph_id} - {self.title}"
@@ -264,25 +274,25 @@ class FlowNode(models.Model):
         # 1. node_type <-> sub_flow coherence.
         if self.node_type == self.SUBFLOW and self.sub_flow_id is None:
             raise ValidationError(
-                {"sub_flow": "A SUBFLOW node must reference a sub-flow map."}
+                {"sub_flow": _("A SUBFLOW node must reference a sub-flow map.")}
             )
         if self.node_type == self.PURE and self.sub_flow_id is not None:
             raise ValidationError(
-                {"sub_flow": "A PURE node must not reference a sub-flow map."}
+                {"sub_flow": _("A PURE node must not reference a sub-flow map.")}
             )
 
         if self.sub_flow_id is not None:
             # 2. No self-reference.
             if self.sub_flow_id == self.application_map_id:
                 raise ValidationError(
-                    {"sub_flow": "A node cannot reference its own map."}
+                    {"sub_flow": _("A node cannot reference its own map.")}
                 )
 
             # 3. Single-level nesting: the referenced map must be "flat"
             #    (it must not contain any SUBFLOW node).
             if self.sub_flow.relational_nodes.filter(node_type=self.SUBFLOW).exists():
                 raise ValidationError(
-                    {"sub_flow": (
+                    {"sub_flow": _(
                         "The referenced map already contains sub-flow nodes; "
                         "only single-level nesting is allowed."
                     )}
@@ -292,13 +302,13 @@ class FlowNode(models.Model):
             #    indirectly) reference this node's own map.
             if self._creates_cycle(self.sub_flow, target_map_id=self.application_map_id):
                 raise ValidationError(
-                    {"sub_flow": "This reference would create a cycle between maps."}
+                    {"sub_flow": _("This reference would create a cycle between maps.")}
                 )
 
         # 5. A reference node must not own its own leaves.
         if self.node_type == self.SUBFLOW and self.pk and self.user_stories.exists():
             raise ValidationError(
-                "A SUBFLOW node cannot own User Stories; leaves live in the sub-flow."
+                _("A SUBFLOW node cannot own User Stories; leaves live in the sub-flow.")
             )
 
     def _creates_cycle(self, start_map: "ApplicationMap", target_map_id: int) -> bool:
@@ -338,75 +348,75 @@ class UserStory(models.Model):
 
     # Standard priority levels for ISTQB Risk-Based Testing
     class Priority(models.TextChoices):
-        HIGH = 'HIGH', 'High'
-        MEDIUM = 'MEDIUM', 'Medium'
-        LOW = 'LOW', 'Low'
+        HIGH = 'HIGH', _('High')
+        MEDIUM = 'MEDIUM', _('Medium')
+        LOW = 'LOW', _('Low')
 
     description = models.TextField(blank=True)
 
-    node_uid = models.CharField(
+    user_story_uid = models.CharField(
         max_length=22,
         unique=True,
         default=generate_compact_node_uid,
         editable=False,
         db_index=True,
-        help_text="Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference.",
+        help_text=_("Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference."),
     )
 
     flow_node = models.ForeignKey(
         'FlowNode',
         on_delete=models.CASCADE,
         related_name='user_stories',
-        verbose_name="Flow Node"
+        verbose_name=_("Flow Node")
     )
     code = models.CharField(
         max_length=20,
         unique=True,
-        help_text="Unique identifier ensuring ISTQB vertical traceability. E.g., US-01",
-        verbose_name="Code"
+        help_text=_("Unique identifier ensuring ISTQB vertical traceability. E.g., US-01"),
+        verbose_name=_("Code")
     )
     title = models.CharField(
         max_length=150,
-        verbose_name="Title"
+        verbose_name=_("Title")
     )
 
     # Breakdown to enforce Agile syntax structure
     as_a = models.CharField(
         max_length=100,
         blank=True,
-        help_text="The actor/role persona (e.g., Guest Customer)",
-        verbose_name="As a..."
+        help_text=_("The actor/role persona (e.g., Guest Customer)"),
+        verbose_name=_("As a...")
     )
     i_want_to = models.CharField(
         max_length=255,
         blank=True,
-        help_text="The core action or feature required from the system",
-        verbose_name="I want to..."
+        help_text=_("The core action or feature required from the system"),
+        verbose_name=_("I want to...")
     )
     so_that = models.CharField(
         max_length=255,
         blank=True,
-        help_text="The underlying business value or user benefit",
-        verbose_name="So that..."
+        help_text=_("The underlying business value or user benefit"),
+        verbose_name=_("So that...")
     )
 
     # Extra technical context or constraints
     additional_notes = models.TextField(
         blank=True,
-        help_text="Technical constraints, business rules, or extra context",
-        verbose_name="Additional Notes"
+        help_text=_("Technical constraints, business rules, or extra context"),
+        verbose_name=_("Additional Notes")
     )
 
     priority = models.CharField(
         max_length=10,
         choices=Priority.choices,
         default=Priority.MEDIUM,
-        verbose_name="Priority"
+        verbose_name=_("Priority")
     )
 
     class Meta:
-        verbose_name = "User Story"
-        verbose_name_plural = "User Stories"
+        verbose_name = _("User Story")
+        verbose_name_plural = _("User Stories")
         ordering = ['code']  # Keeps stories ordered sequentially in test reports
 
     def __str__(self):
@@ -416,23 +426,27 @@ class UserStory(models.Model):
     def full_statement(self):
         """Returns the standard Agile user story narrative statement."""
         if self.as_a and self.i_want_to and self.so_that:
-            return f"As a {self.as_a}, I want to {self.i_want_to} so that {self.so_that}."
+            return _("As a %(as_a)s, I want to %(i_want_to)s so that %(so_that)s.") % {
+                "as_a": self.as_a,
+                "i_want_to": self.i_want_to,
+                "so_that": self.so_that,
+            }
         return self.title
 
 
 class AcceptanceCriterion(models.Model):
     """Detailed requirements and acceptance criteria bound to the User Story."""
     user_story = models.ForeignKey(UserStory, on_delete=models.CASCADE, related_name='criteria')
-    code = models.CharField(max_length=20, help_text="E.g., AC-01.1")
+    code = models.CharField(max_length=20, help_text=_("E.g., AC-01.1"))
     text = models.TextField()
 
-    node_uid = models.CharField(
+    ac_uid = models.CharField(
         max_length=22,
         unique=True,
         default=generate_compact_node_uid,
         editable=False,
         db_index=True,
-        help_text="Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference.",
+        help_text=_("Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference."),
     )
 
     # ISTQB: distinguishes functional criteria (what the system does) from
@@ -441,12 +455,12 @@ class AcceptanceCriterion(models.Model):
     # False -> non-functional criterion.
     is_functional = models.BooleanField(
         default=True,
-        help_text="True if the criterion is functional, False if non-functional.",
+        help_text=_("True if the criterion is functional, False if non-functional."),
     )
 
     class Meta:
-        verbose_name = "Acceptance Criterion"
-        verbose_name_plural = "Acceptance Criteria"
+        verbose_name = _("Acceptance Criterion")
+        verbose_name_plural = _("Acceptance Criteria")
 
     def __str__(self):
         return f"{self.code}"
@@ -456,37 +470,37 @@ class TestCase(models.Model):
     criteria = models.ManyToManyField(
         AcceptanceCriterion,
         related_name='test_cases',
-        help_text="One or more acceptance criteria validated by this test case",
+        help_text=_("One or more acceptance criteria validated by this test case"),
     )
-    test_code = models.CharField(max_length=20, help_text="E.g., TC-001")
+    test_code = models.CharField(max_length=20, help_text=_("E.g., TC-001"))
     title = models.CharField(max_length=150)
     preconditions = models.TextField(blank=True)
-    steps = models.TextField(help_text="Sequence of textual actions separated by newlines")
+    steps = models.TextField(help_text=_("Sequence of textual actions separated by newlines"))
     expected_result = models.TextField()
 
-    node_uid = models.CharField(
+    tc_uid = models.CharField(
         max_length=22,
         unique=True,
         default=generate_compact_node_uid,
         editable=False,
         db_index=True,
-        help_text="Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference.",
+        help_text=_("Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference."),
     )
 
     # i risultati attuali del test sono delegati 
     # ai sistemi di test automatici o manuali esterni, quindi non li memorizziamo qui.
 
     STATUS_CHOICES = [
-        ('TO_EXECUTE', 'To Execute'),
-        ('PASSED', 'Passed'),
-        ('FAILED', 'Failed'),
-        ('BLOCKED', 'Blocked'),
+        ('TO_EXECUTE', _('To Execute')),
+        ('PASSED', _('Passed')),
+        ('FAILED', _('Failed')),
+        ('BLOCKED', _('Blocked')),
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='TO_EXECUTE')
 
     class Meta:
-        verbose_name = "Test Case"
-        verbose_name_plural = "Test Cases"
+        verbose_name = _("Test Case")
+        verbose_name_plural = _("Test Cases")
 
     def __str__(self):
         return f"{self.test_code} - {self.title}"

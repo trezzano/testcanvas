@@ -1,33 +1,33 @@
 {% extends "testcanvas/bases/base_page.html" %}
-{% block html_lang %}en{% endblock %}
-{% block title %}Edit Acceptance Criterion · {{ criterion.code }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktranslate with code=criterion.code %}Edit Acceptance Criterion · {{ code }}{% endblocktranslate %}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} · {{ user_story.code }}</div>{% endblock %}
-{% block page_heading %}Edit Acceptance Criterion · {{ criterion.code }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% block page_heading %}{% blocktranslate with code=criterion.code %}Edit Acceptance Criterion · {{ code }}{% endblocktranslate %}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block wrap_class %}wrap-narrow{% endblock %}
 {% block content %}
 <div class="card">
-    <h2>Edit details</h2>
+    <h2>{% translate "Edit details" %}</h2>
     <form method="post" action="{% url 'testcanvas:acceptance_criterion_edit' criterion.pk %}">
         {% csrf_token %}
         <div class="field">
-            <label for="{{ form.code.id_for_label }}">Code</label>
+            <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
             {{ form.code }}
             {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
         </div>
         <div class="field">
-            <label for="{{ form.text.id_for_label }}">Text</label>
+            <label for="{{ form.text.id_for_label }}">{% translate "Text" %}</label>
             {{ form.text }}
             {% if form.text.errors %}<div class="errors">{{ form.text.errors|striptags }}</div>{% endif %}
         </div>
         <div class="field">
-            <label for="{{ form.is_functional.id_for_label }}">Criterion type</label>
+            <label for="{{ form.is_functional.id_for_label }}">{% translate "Criterion type" %}</label>
             {{ form.is_functional }}
             {% if form.is_functional.errors %}<div class="errors">{{ form.is_functional.errors|striptags }}</div>{% endif %}
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Save changes</button>
-            <a class="btn btn-secondary" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">Cancel</a>
+            <button type="submit" class="btn btn-primary">{% translate "Save changes" %}</button>
+            <a class="btn btn-secondary" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">{% translate "Cancel" %}</a>
         </div>
     </form>
 </div>

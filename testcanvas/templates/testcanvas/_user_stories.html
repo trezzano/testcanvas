@@ -1,16 +1,17 @@
+{% load i18n %}
 {% if flow_node %}
     {% if is_subflow %}
-        <h2>User Story · {{ flow_node.title }}</h2>
+        <h2>{% translate "User Story" %} · {{ flow_node.title }}</h2>
         <div class="sidebar-empty">
-            This is a <strong>sub-flow</strong> node: User Stories are managed
-            in the referenced map, not on this node.
+            {% blocktranslate %}This is a <strong>sub-flow</strong> node: User Stories are managed
+            in the referenced map, not on this node.{% endblocktranslate %}
         </div>
     {% else %}
-        <h2>User Story · {{ flow_node.title }}</h2>
+        <h2>{% translate "User Story" %} · {{ flow_node.title }}</h2>
 
         <a href="{% url traceability_url_name flow_node.pk %}" target="_blank"
            class="btn btn-primary stories-trace-link">
-            🔗 Traceability matrix (US → AC → TC)
+            🔗 {% translate "Traceability matrix (US → AC → TC)" %}
         </a>
         {% for us in user_stories %}
             <div class="story-card">
@@ -22,15 +23,15 @@
         {% empty %}
             {# Empty state: the "Manage User Stories" button above is the way to add the first story, so make that explicit here. #}
             <div class="sidebar-empty">
-                No User Story for this node yet.
-                Use <strong>Traceability matrix</strong> above to add the first one.
+                {% blocktranslate %}No User Story for this node yet.
+                Use <strong>Traceability matrix</strong> above to add the first one.{% endblocktranslate %}
             </div>
         {% endfor %}
     {% endif %}
 {% else %}
     {# The node exists only in the graph until the map is saved: without a saved FlowNode there is nothing to attach User Stories to, so guide the user to press Save first (then reopen this tab to get the Manage button). #}
     <div class="sidebar-empty">
-        This node has not been saved yet.
-        Press <strong>💾 Save</strong> first, then reopen this tab to add User Stories.
+        {% blocktranslate %}This node has not been saved yet.
+        Press <strong>💾 Save</strong> first, then reopen this tab to add User Stories.{% endblocktranslate %}
     </div>
 {% endif %}

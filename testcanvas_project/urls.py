@@ -10,6 +10,8 @@ admin.site.index_title = "Test Canvas administration"
 urlpatterns = [
     # rest framework browsable API
     path("api-auth/", include("rest_framework.urls")),
+    # Built-in i18n endpoints (includes the `set_language` URL name).
+    path("i18n/", include("django.conf.urls.i18n")),
     path('admin/', admin.site.urls),
     path("", include('mcp_server.urls')),  # endpoint for mcp server /mcp
     path('', include('testcanvas.urls')),

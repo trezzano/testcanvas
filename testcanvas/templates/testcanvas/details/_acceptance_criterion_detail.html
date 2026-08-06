@@ -1,3 +1,4 @@
+{% load i18n %}
 {% comment %}
     Acceptance Criterion detail card (HTMX partial).
 
@@ -7,37 +8,47 @@
 {% endcomment %}
 <div class="detail-card">
     <div class="detail-head">
-        <span class="detail-badge {% if covered %}badge-ac-covered{% else %}badge-ac-uncovered{% endif %}">Acceptance Criterion</span>
+        <span class="detail-badge {% if covered %}badge-ac-covered{% else %}badge-ac-uncovered{% endif %}">{% translate "Acceptance Criterion" %}</span>
     </div>
 
     <div class="detail-code">{{ criterion.code }}</div>
 
-    {% if criterion.node_uid %}
-        <div class="detail-uid"><span class="detail-uid-label">UID</span><code>{{ criterion.node_uid }}</code></div>
+    {% if criterion.ac_uid %}
+        <div class="detail-uid">
+            <span class="detail-uid-label">{% translate "UID" %}</span>
+            <code>{{ criterion.ac_uid }}</code>
+            <button type="button"
+                    class="btn btn-sm btn-secondary detail-copy-btn"
+                    data-copy-text="{{ criterion.ac_uid }}"
+                    data-copy-label="📋"
+                    data-copy-success-label="✔"
+                    title="{% translate 'Copy Acceptance Criterion UID' %}"
+                    aria-label="{% translate 'Copy Acceptance Criterion UID' %}">📋</button>
+        </div>
     {% endif %}
 
-    <div class="detail-field"><span class="detail-label">Criterion</span><span>{{ criterion.text }}</span></div>
+    <div class="detail-field"><span class="detail-label">{% translate "Criterion" %}</span><span>{{ criterion.text }}</span></div>
     <div class="detail-field">
-        <span class="detail-label">Type</span>
-        <span>{% if criterion.is_functional %}Functional{% else %}Non-functional{% endif %}</span>
+        <span class="detail-label">{% translate "Type" %}</span>
+        <span>{% if criterion.is_functional %}{% translate "Functional" %}{% else %}{% translate "Non-functional" %}{% endif %}</span>
     </div>
     <div class="detail-field">
-        <span class="detail-label">User Story</span>
+        <span class="detail-label">{% translate "User Story" %}</span>
         <span>{{ criterion.user_story.code }} — {{ criterion.user_story.title }}</span>
     </div>
     <div class="detail-field">
-        <span class="detail-label">Coverage</span>
+        <span class="detail-label">{% translate "Coverage" %}</span>
         <span>
             {% if covered %}
-                <span class="badge ok">covered</span> {{ criterion.test_cases.count }} test case(s)
+                <span class="badge ok">{% translate "covered" %}</span> {% blocktranslate count counter=criterion.test_cases.count %}{{ counter }} test case{% plural %}{{ counter }} test cases{% endblocktranslate %}
             {% else %}
-                <span class="badge no">uncovered</span>
+                <span class="badge no">{% translate "uncovered" %}</span>
             {% endif %}
         </span>
     </div>
 
     <div class="detail-actions">
-        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:acceptance_criterion_edit' criterion.pk %}">✎ Edit Acceptance Criterion</a>
+        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:acceptance_criterion_edit' criterion.pk %}">✎ {% translate "Edit Acceptance Criterion" %}</a>
     </div>
 </div>
 

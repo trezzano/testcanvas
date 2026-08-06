@@ -10,6 +10,7 @@ from .views.standard_views import (
     map_save,
     map_delete,
     map_editor,
+    map_editor_by_uid,
     map_subflow_usage,
     # traceability page
     flow_node_traceability,
@@ -52,6 +53,7 @@ urlpatterns = [
     path('<int:pk>/save/', map_save, name='map_save'),
     path('<int:pk>/delete/', map_delete, name='map_delete'),
     path('<int:pk>/subflow-usage/', map_subflow_usage, name='map_subflow_usage'),
+    path('flow/<str:flow_uid>/', map_editor_by_uid, name='map_editor_by_uid'),
     path('<int:pk>/', map_editor, name='map_editor'),
 
     # traceability page

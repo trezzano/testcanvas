@@ -1,54 +1,54 @@
 {% extends "testcanvas/bases/base.html" %}
 {% load static %}
-{% block html_lang %}en{% endblock %}
-{% block title %}Traceability matrix · {{ flow_node.title }}{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Traceability matrix" %} · {{ flow_node.title }}{% endblock %}
 {% block body_class %}traceability-page{% endblock %}
 {% block extra_css %}
     {# Reuse the shared header / stats / badge styles, then add the table-only rules. #}
-    <link rel="stylesheet" href="{% static 'css/traceability.css' %}?v=20260722c">
+    <link rel="stylesheet" href="{% static 'css/traceability.css' %}?v=20260805a">
     <link rel="stylesheet" href="{% static 'css/rtm.css' %}?v=20260722b">
 {% endblock %}
 {% block body %}
     <header class="app-header">
         <div>
-            <div class="crumbs"><strong>{{ application_map.name }}</strong> · Requirements Traceability Matrix</div>
+            <div class="crumbs"><strong>{{ application_map.name }}</strong> · {% translate "Requirements Traceability Matrix" %}</div>
             <h1>{{ flow_node.local_graph_id }} — {{ flow_node.title }}</h1>
         </div>
         <div class="header-actions">
             {# Switch to the graph view of the same data. #}
-            <a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">◨ Graph view</a>
-            <a class="header-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← Back to editor</a>
+            <a class="header-link" href="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">◨ {% translate "Graph view" %}</a>
+            <a class="header-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← {% translate "Back to editor" %}</a>
         </div>
     </header>
 
     <div class="stats">
-        <div class="stat"><div class="n">{{ us_count }}</div><div class="l">User Story</div></div>
-        <div class="stat"><div class="n">{{ ac_count }}</div><div class="l">Criteria</div></div>
-        <div class="stat"><div class="n">{{ tc_count }}</div><div class="l">Test Case</div></div>
-        <div class="stat ok"><div class="n">{{ covered_count }}</div><div class="l">Covered</div></div>
-        <div class="stat warn"><div class="n">{{ uncovered_count }}</div><div class="l">Uncovered</div></div>
+        <div class="stat"><div class="n">{{ us_count }}</div><div class="l">{% translate "User Story" %}</div></div>
+        <div class="stat"><div class="n">{{ ac_count }}</div><div class="l">{% translate "Criteria" %}</div></div>
+        <div class="stat"><div class="n">{{ tc_count }}</div><div class="l">{% translate "Test Case" %}</div></div>
+        <div class="stat ok"><div class="n">{{ covered_count }}</div><div class="l">{% translate "Covered" %}</div></div>
+        <div class="stat warn"><div class="n">{{ uncovered_count }}</div><div class="l">{% translate "Uncovered" %}</div></div>
 
         {# Edit shortcuts, mirroring the graph view. Their enabled state is decided server-side. #}
         <div class="stat-actions">
-            <a class="stat-edit us" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="Manage User Stories">
-                <i>✎</i> User Stories
+            <a class="stat-edit us" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="{% translate 'Manage User Stories' %}">
+                <i>✎</i> {% translate "User Stories" %}
             </a>
             {% if us_count == 0 %}
-                <span class="stat-edit ac disabled" title="Add a User Story first to create Acceptance Criteria">
-                    <i>✎</i> Acceptance Criteria
+                <span class="stat-edit ac disabled" title="{% translate 'Add a User Story first to create Acceptance Criteria' %}">
+                    <i>✎</i> {% translate "Acceptance Criteria" %}
                 </span>
             {% else %}
-                <a class="stat-edit ac" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="Manage Acceptance Criteria">
-                    <i>✎</i> Acceptance Criteria
+                <a class="stat-edit ac" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="{% translate 'Manage Acceptance Criteria' %}">
+                    <i>✎</i> {% translate "Acceptance Criteria" %}
                 </a>
             {% endif %}
             {% if ac_count == 0 %}
-                <span class="stat-edit tc disabled" title="Add an Acceptance Criterion first to create Test Cases">
-                    <i>✎</i> Test Cases
+                <span class="stat-edit tc disabled" title="{% translate 'Add an Acceptance Criterion first to create Test Cases' %}">
+                    <i>✎</i> {% translate "Test Cases" %}
                 </span>
             {% else %}
-                <a class="stat-edit tc" href="{% url 'testcanvas:test_case_manage' flow_node.pk %}" title="Manage Test Cases">
-                    <i>✎</i> Test Cases
+                <a class="stat-edit tc" href="{% url 'testcanvas:test_case_manage' flow_node.pk %}" title="{% translate 'Manage Test Cases' %}">
+                    <i>✎</i> {% translate "Test Cases" %}
                 </a>
             {% endif %}
         </div>
@@ -58,15 +58,15 @@
         {% if ac_count == 0 %}
             {# Empty state: nothing to trace yet for this Flow Node. #}
             <div class="rtm-empty">
-                <div>No Acceptance Criteria to show for this Flow Node.</div>
-                <a class="btn btn-primary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">＋ Add a User Story</a>
+                <div>{% translate "No Acceptance Criteria to show for this Flow Node." %}</div>
+                <a class="btn btn-primary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">＋ {% translate "Add a User Story" %}</a>
             </div>
         {% else %}
             <table class="rtm-table">
                 <thead>
                     <tr>
                         {# Top-left corner label; rows are AC, columns are TC. #}
-                        <th class="rtm-corner">Acceptance Criterion \ Test Case</th>
+                        <th class="rtm-corner">{% translate "Acceptance Criterion \ Test Case" %}</th>
                         {% for tc in test_cases %}
                             <th class="rtm-col">
                                 {# Open the shared detail sidebar (HTMX loads the card). #}
@@ -76,7 +76,7 @@
                                    title="{{ tc.title }}">{{ tc.test_code }}</a>
                             </th>
                         {% empty %}
-                            <th class="rtm-col muted">No Test Cases yet</th>
+                            <th class="rtm-col muted">{% translate "No Test Cases yet" %}</th>
                         {% endfor %}
                     </tr>
                 </thead>
@@ -100,9 +100,9 @@
                                        hx-get="{% url 'testcanvas:acceptance_criterion_detail' row.criterion.pk %}"
                                        hx-target="#detail-sidebar-body">{{ row.criterion.code }}</a>
                                     {% if row.covered %}
-                                        <span class="badge ok">covered</span>
+                                        <span class="badge ok">{% translate "covered" %}</span>
                                     {% else %}
-                                        <span class="badge no">uncovered</span>
+                                        <span class="badge no">{% translate "uncovered" %}</span>
                                     {% endif %}
                                 </th>
                                 {% for covered in row.cells %}
@@ -123,6 +123,6 @@
 {% endblock %}
 {% block extra_js %}
     {# Shared controller for the detail sidebar (open/close + HTMX auto-open). #}
-    <script src="{% static 'js/detail_sidebar.js' %}?v=20260723a"></script>
+    <script src="{% static 'js/detail_sidebar.js' %}?v=20260805a"></script>
 {% endblock %}
 

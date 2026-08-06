@@ -1,7 +1,7 @@
 {% extends "testcanvas/bases/base.html" %}
 {% load static %}
-{% block html_lang %}en{% endblock %}
-{% block title %}Editor · {{ application_map.name }}{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktranslate with name=application_map.name %}Editor · {{ name }}{% endblocktranslate %}{% endblock %}
 {% block body_class %}editor-page{% endblock %}
 {% block extra_css %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
@@ -11,129 +11,163 @@
 {% block body %}
     {% csrf_token %}
     <header class="app-header">
-        <input type="text" id="map-name" class="header-input" value="{{ application_map.name }}">
+        <div class="header-map-info">
+            <input type="text" id="map-name" class="header-input" value="{{ application_map.name }}"
+                   title="{% translate 'Click to rename the flow' %}"  placeholder="{% translate 'Flow name…' %}">
+            {# Flow UID: stable LLM reference, read-only with one-click copy. #}
+            <span class="header-flow-uid">
+                <code id="map-flow-uid" title="{% translate 'Flow UID' %}">{{ application_map.flow_uid }}</code>
+                <button type="button" id="btn-copy-flow-uid" class="btn btn-sm btn-secondary"
+                        title="{% translate 'Copy Flow UID' %}">📋</button>
+            </span>
+            {# Collection picker: (re)group this map on the next Save. The current #}
+            {# collection is pre-selected; the empty option detaches the map.       #}
+            <label class="header-collection" for="map-collection">
+                <span class="header-collection__label">{% translate "Collection" %}</span>
+                <select id="map-collection" class="header-select" title="{% translate 'Associate this flow with a collection' %}">
+                    <option value="">— {% translate "No collection" %} —</option>
+                    {% for collection in collections %}
+                        <option value="{{ collection.pk }}"
+                                {% if application_map.collection_id == collection.pk %}selected{% endif %}>
+                            {{ collection.title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
         <div class="app-header__actions">
             {# Page-specific action only; global logout lives in the shared navbar. #}
-            <a class="header-link" href="{% url 'testcanvas:map_list' %}">← Back to list</a>
+            <a class="header-link" href="{% url 'testcanvas:map_list' %}">← {% translate "Back to list" %}</a>
         </div>
     </header>
     <div class="toolbar">
-        <button class="btn btn-secondary" id="btn-toggle-sidebar">☰ Properties</button>
-        <button class="btn btn-secondary" id="btn-description" data-bs-toggle="modal" data-bs-target="#description-modal">Description</button>
-        <button class="btn btn-secondary" id="btn-add-node">+ Node</button>
-        <button class="btn btn-secondary" id="btn-add-edge">+ Edge (link 2 selected)</button>
-        <button class="btn btn-secondary" id="btn-rename">Rename selected</button>
-        <button class="btn btn-danger" id="btn-delete">Delete selected</button>
-        <button class="btn btn-primary" id="btn-save">Save</button>
+        <button class="btn btn-secondary" id="btn-toggle-sidebar">☰ {% translate "Properties" %}</button>
+        {# Toggle for the right-hand operations sidebar (mirrors the properties toggle). #}
+        <button class="btn btn-secondary" id="btn-toggle-ops">☰ {% translate "Operations" %}</button>
+        <button class="btn btn-secondary" id="btn-description" data-bs-toggle="modal" data-bs-target="#description-modal">{% translate "Description" %}</button>
+        <button class="btn btn-primary" id="btn-save">{% translate "Save" %}</button>
         <span class="toolbar-sep"></span>
         <!-- Graph visualization controls grouped together -->
-        <div class="btn-group" role="group" aria-label="Graph visualization">
-            <button class="btn btn-secondary" id="btn-layout-td" title="Auto-orient the graph top → down (start on top, end at the bottom)">⬇ Auto Top-Down</button>
-            <button class="btn btn-secondary" id="btn-layout-lr" title="Auto-orient the graph left → right (start on the left, end on the right)">➡ Auto Left-Right</button>
-            <button class="btn btn-secondary" id="btn-fit" title="Fit the whole graph to the screen">⛶ Fit to screen</button>
+        <div class="btn-group" role="group" aria-label="{% translate 'Graph visualization' %}">
+            <button class="btn btn-secondary" id="btn-layout-td" title="{% translate 'Auto-orient the graph top → down (start on top, end at the bottom)' %}">⬇ {% translate "Auto Top-Down" %}</button>
+            <button class="btn btn-secondary" id="btn-layout-lr" title="{% translate 'Auto-orient the graph left → right (start on the left, end on the right)' %}">➡ {% translate "Auto Left-Right" %}</button>
+            <button class="btn btn-secondary" id="btn-fit" title="{% translate 'Fit the whole graph to the screen' %}">⛶ {% translate "Fit to screen" %}</button>
         </div>
         <span id="status"></span>
-        <span class="hint">Tip: click a node then Shift+click another, then "+ Edge".</span>
+        <span class="hint">{% translate 'Tip: click a node then Shift+click another, then "+ Edge".' %}</span>
     </div>
     <div class="editor-body" id="editor-body">
         <aside class="map-sidebar" id="map-sidebar">
             <div class="sidebar-tabs">
-                <button type="button" id="tab-btn-props" class="active" data-tab="props">Properties</button>
-                <button type="button" id="tab-btn-stories" data-tab="stories">User Story</button>
+                <button type="button" id="tab-btn-props" class="active" data-tab="props">{% translate "Properties" %}</button>
+                <button type="button" id="tab-btn-stories" data-tab="stories">{% translate "User Story" %}</button>
             </div>
             <div class="tab-panel active" id="tab-props">
-                <h2>Selection properties</h2>
+                <h2>{% translate "Selection properties" %}</h2>
                 <div class="sidebar-empty" id="sidebar-empty">
-                    Select a node or an edge to edit its appearance.
+                    {% translate "Select a node or an edge to edit its appearance." %}
                 </div>
                 <div class="sidebar-section" id="node-props" style="display:none;">
                     {# Node id shown in read-only mode. #}
                     <div class="field">
-                        <label>Node ID</label>
+                        <label>{% translate "Node ID" %}</label>
                         <input type="text" id="node-id" class="node-id-input" readonly>
                     </div>
                     {# Compact, globally unique node identifier (stable LLM reference), read-only. #}
                     <div class="field">
-                        <label>Node UUID</label>
+                        <label>{% translate "Node UUID" %}</label>
                         <div class="input-group">
                             <input type="text" id="node-uid" class="node-id-input form-control" readonly>
                             {# One-click copy of the node_uid to the clipboard. #}
                             <button type="button" id="btn-copy-uid" class="btn btn-secondary"
-                                    title="Copy the node UUID">📋</button>
+                                    title="{% translate 'Copy the node UUID' %}">📋</button>
                         </div>
                     </div>
                     <div class="field">
-                        <label>Node name</label>
-                        <input type="text" id="node-name" placeholder="Node name...">
+                        <label>{% translate "Node name" %}</label>
+                        <input type="text" id="node-name" placeholder="{% translate 'Node name...' %}">
                     </div>
                     <div class="field">
-                        <label>Node description</label>
-                        <textarea id="node-description" placeholder="Node description..."></textarea>
+                        <label>{% translate "Node description" %}</label>
+                        <textarea id="node-description" placeholder="{% translate 'Node description...' %}"></textarea>
                     </div>
                     <div class="field">
-                        <label>Node type</label>
+                        <label>{% translate "Node type" %}</label>
                         <div class="nodetype-group" id="node-type">
-                            <button type="button" data-type="PURE" class="active" title="Pure node with its own User Stories">Pure node</button>
-                            <button type="button" data-type="SUBFLOW" title="Reference to another flow">Sub-flow</button>
+                            <button type="button" data-type="PURE" class="active" title="{% translate 'Pure node with its own User Stories' %}">{% translate "Pure node" %}</button>
+                            <button type="button" data-type="SUBFLOW" title="{% translate 'Reference to another flow' %}">{% translate "Sub-flow" %}</button>
                         </div>
                     </div>
                     <div class="field" id="node-subflow-field" style="display:none;">
-                        <label>Referenced sub-flow</label>
+                        <label>{% translate "Referenced sub-flow" %}</label>
                         <select id="node-subflow"></select>
                         <a id="node-subflow-open" class="btn btn-primary subflow-open-link"
                            href="#" target="_blank" rel="noopener" style="display:none;">
-                            🔗 Open the sub-flow
+                            🔗 {% translate "Open the sub-flow" %}
                         </a>
                     </div>
                     {# Shape and colour are only meaningful for PURE nodes; hidden for SUBFLOW. #}
                     <div id="node-style-fields">
                         <div class="field">
-                            <label>Node color</label>
+                            <label>{% translate "Node color" %}</label>
                             <div class="swatch-grid" data-target="node-color"></div>
                         </div>
                         <div class="field">
-                            <label>Node shape</label>
+                            <label>{% translate "Node shape" %}</label>
                             <div class="shape-group" id="node-shape">
-                                <button type="button" data-shape="start"     class="shape-start"     title="Start (green rectangle)">Start</button>
-                                <button type="button" data-shape="end"       class="shape-end"       title="End (orange rectangle)">End</button>
-                                <button type="button" data-shape="condition" class="shape-condition" title="Condition (yellow diamond)">Condition</button>
-                                <button type="button" data-shape="squared"   class="shape-squared"   title="Squared (square)">Squared</button>
+                                <button type="button" data-shape="start"     class="shape-start"     title="{% translate 'Start (green rectangle)' %}">{% translate "Start" %}</button>
+                                <button type="button" data-shape="end"       class="shape-end"       title="{% translate 'End (orange rectangle)' %}">{% translate "End" %}</button>
+                                <button type="button" data-shape="condition" class="shape-condition" title="{% translate 'Condition (yellow diamond)' %}">{% translate "Condition" %}</button>
+                                <button type="button" data-shape="squared"   class="shape-squared"   title="{% translate 'Squared (square)' %}">{% translate "Squared" %}</button>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="sidebar-section" id="edge-props" style="display:none;">
                     <div class="field">
-                        <label>Edge label</label>
-                        <input type="text" id="edge-label" placeholder="Label...">
+                        <label>{% translate "Edge label" %}</label>
+                        <input type="text" id="edge-label" placeholder="{% translate 'Label...' %}">
                     </div>
                     <div class="field">
-                        <label>Arrow direction</label>
+                        <label>{% translate "Arrow direction" %}</label>
                         <div class="dir-group" id="edge-dir">
-                            <button type="button" data-dir="forward"  title="Source → Target">→</button>
-                            <button type="button" data-dir="backward" title="Target → Source">←</button>
-                            <button type="button" data-dir="both"     title="Bidirectional">↔</button>
-                            <button type="button" data-dir="none"     title="No arrow">—</button>
+                            <button type="button" data-dir="forward"  title="{% translate 'Source → Target' %}">→</button>
+                            <button type="button" data-dir="backward" title="{% translate 'Target → Source' %}">←</button>
+                            <button type="button" data-dir="both"     title="{% translate 'Bidirectional' %}">↔</button>
+                            <button type="button" data-dir="none"     title="{% translate 'No arrow' %}">—</button>
                         </div>
                     </div>
                     <div class="field">
-                        <label>Edge width <span class="val" id="edge-width-val">2 px</span></label>
+                        <label>{% translate "Edge width" %} <span class="val" id="edge-width-val">2 px</span></label>
                         <input type="range" id="edge-width" min="1" max="10" step="1" value="2">
                     </div>
                     <div class="field">
-                        <label>Edge color</label>
+                        <label>{% translate "Edge color" %}</label>
                         <div class="swatch-grid" data-target="edge-color"></div>
                     </div>
                 </div>
             </div>
             <div class="tab-panel" id="tab-stories">
                 <div id="stories-content">
-                    <div class="sidebar-empty">Select a node to see its User Stories.</div>
+                    <div class="sidebar-empty">{% translate "Select a node to see its User Stories." %}</div>
                 </div>
             </div>
         </aside>
-        <button class="sidebar-toggle-tab" id="sidebar-reopen" title="Show properties">☰</button>
+        <button class="sidebar-toggle-tab" id="sidebar-reopen" title="{% translate 'Show properties' %}">☰</button>
         <div id="cy"></div>
+
+        {# ---- Right sidebar: node/edge operations (collapsible, mirrors the left one) ---- #}
+        <aside class="map-sidebar map-sidebar--right" id="ops-sidebar">
+            <h2>{% translate "Operations" %}</h2>
+            <div class="ops-list">
+                <button class="btn btn-secondary" id="btn-add-node">+ {% translate "Node" %}</button>
+                <button class="btn btn-secondary" id="btn-add-edge">+ {% translate "Edge (link 2 selected)" %}</button>
+                <button class="btn btn-danger" id="btn-delete">{% translate "Delete selected" %}</button>
+            </div>
+        </aside>
+        {# Re-open tab shown on the right edge when the operations sidebar is collapsed. #}
+        <button class="sidebar-toggle-tab sidebar-toggle-tab--right"
+                id="ops-sidebar-reopen" title="{% translate 'Show operations' %}">☰</button>
     </div>
 
     <!-- Rich-text description editor (Bootstrap modal + Quill) -->
@@ -142,17 +176,17 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="description-modal-label">Flow description</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="description-modal-label">{% translate "Flow description" %}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Close' %}"></button>
                 </div>
                 <div class="modal-body">
                     <p class="description-modal-hint">
-                        Edit the rich-text description of this flow. Changes are stored when you press <strong>💾 Save</strong>.
+                        {% blocktranslate %}Edit the rich-text description of this flow. Changes are stored when you press <strong>💾 Save</strong>.{% endblocktranslate %}
                     </p>
                     <div id="description-editor"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Done</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% translate "Done" %}</button>
                 </div>
             </div>
         </div>

@@ -1,70 +1,70 @@
 {% extends "testcanvas/bases/base_page.html" %}
-{% block html_lang %}en{% endblock %}
-{% block title %}Manage User Stories · {{ flow_node.title }}{% endblock %}
-{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · Flow Node</div>{% endblock %}
-{% block page_heading %}User Stories · {{ flow_node.local_graph_id }} — {{ flow_node.title }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← Back to traceability</a>{% endblock %}
+{% load i18n %}
+{% block title %}{% blocktranslate with title=flow_node.title %}Manage User Stories · {{ title }}{% endblocktranslate %}{% endblock %}
+{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {% translate "Flow Node" %}</div>{% endblock %}
+{% block page_heading %}{% translate "User Stories" %} · {{ flow_node.local_graph_id }} — {{ flow_node.title }}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block content %}
 <div class="card">
-    <h2>Add a new User Story</h2>
+    <h2>{% translate "Add a new User Story" %}</h2>
     <form method="post" action="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
         {% csrf_token %}
         <div class="form-row">
             <div class="field">
-                <label for="{{ form.code.id_for_label }}">Code</label>
+                <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
                 {{ form.code }}
                 {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
             </div>
             <div class="field">
-                <label for="{{ form.title.id_for_label }}">Title</label>
+                <label for="{{ form.title.id_for_label }}">{% translate "Title" %}</label>
                 {{ form.title }}
                 {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
             </div>
             <div class="field">
-                <label for="{{ form.priority.id_for_label }}">Priority</label>
+                <label for="{{ form.priority.id_for_label }}">{% translate "Priority" %}</label>
                 {{ form.priority }}
                 {% if form.priority.errors %}<div class="errors">{{ form.priority.errors|striptags }}</div>{% endif %}
             </div>
         </div>
         <div class="field">
-            <label for="{{ form.description.id_for_label }}">Description</label>
+            <label for="{{ form.description.id_for_label }}">{% translate "Description" %}</label>
             {{ form.description }}
             {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
         </div>
         <div class="form-row">
             <div class="field">
-                <label for="{{ form.as_a.id_for_label }}">As a...</label>
+                <label for="{{ form.as_a.id_for_label }}">{% translate "As a..." %}</label>
                 {{ form.as_a }}
                 {% if form.as_a.errors %}<div class="errors">{{ form.as_a.errors|striptags }}</div>{% endif %}
             </div>
             <div class="field">
-                <label for="{{ form.i_want_to.id_for_label }}">I want to...</label>
+                <label for="{{ form.i_want_to.id_for_label }}">{% translate "I want to..." %}</label>
                 {{ form.i_want_to }}
                 {% if form.i_want_to.errors %}<div class="errors">{{ form.i_want_to.errors|striptags }}</div>{% endif %}
             </div>
             <div class="field">
-                <label for="{{ form.so_that.id_for_label }}">So that...</label>
+                <label for="{{ form.so_that.id_for_label }}">{% translate "So that..." %}</label>
                 {{ form.so_that }}
                 {% if form.so_that.errors %}<div class="errors">{{ form.so_that.errors|striptags }}</div>{% endif %}
             </div>
         </div>
         <div class="field">
-            <label for="{{ form.additional_notes.id_for_label }}">Additional notes</label>
+            <label for="{{ form.additional_notes.id_for_label }}">{% translate "Additional notes" %}</label>
             {{ form.additional_notes }}
             {% if form.additional_notes.errors %}<div class="errors">{{ form.additional_notes.errors|striptags }}</div>{% endif %}
         </div>
-        <button type="submit" class="btn btn-primary">+ Add User Story</button>
+        <button type="submit" class="btn btn-primary">+ {% translate "Add User Story" %}</button>
     </form>
 </div>
 <div class="card">
-    <h2>User Stories <span class="count-pill">{{ user_stories|length }}</span></h2>
+    <h2>{% translate "User Stories" %} <span class="count-pill">{{ user_stories|length }}</span></h2>
     {% if user_stories %}
         <table>
             <thead>
                 <tr>
-                    <th style="width: 110px;">Code</th>
-                    <th>Title / Description</th>
-                    <th style="width: 160px;">Actions</th>
+                    <th style="width: 110px;">{% translate "Code" %}</th>
+                    <th>{% translate "Title / Description" %}</th>
+                    <th style="width: 160px;">{% translate "Actions" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -79,14 +79,14 @@
                         <td>
                             <div class="actions">
                                 <a class="btn btn-secondary btn-sm"
-                                   href="{% url 'testcanvas:user_story_edit' flow_node.pk us.pk %}">Edit</a>
+                                   href="{% url 'testcanvas:user_story_edit' flow_node.pk us.pk %}">{% translate "Edit" %}</a>
                                 <a class="btn btn-secondary btn-sm"
-                                   href="{% url 'testcanvas:acceptance_criterion_manage' us.pk %}">Criteria</a>
+                                   href="{% url 'testcanvas:acceptance_criterion_manage' us.pk %}">{% translate "Criteria" %}</a>
                                 <form method="post"
                                       action="{% url 'testcanvas:user_story_delete' flow_node.pk us.pk %}"
-                                      onsubmit="return confirm('Delete user story {{ us.code }}?');">
+                                      onsubmit="return confirm('{% blocktranslate with code=us.code %}Delete user story {{ code }}?{% endblocktranslate %}');">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
                                 </form>
                             </div>
                         </td>
@@ -95,7 +95,7 @@
             </tbody>
         </table>
     {% else %}
-        <p class="muted">No user stories yet. Add the first one above.</p>
+        <p class="muted">{% translate "No user stories yet. Add the first one above." %}</p>
     {% endif %}
 </div>
 {% endblock %}

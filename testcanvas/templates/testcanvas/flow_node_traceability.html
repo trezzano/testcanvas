@@ -1,51 +1,51 @@
 {% extends "testcanvas/bases/base.html" %}
 {% load static %}
-{% block html_lang %}en{% endblock %}
-{% block title %}Traceability · {{ flow_node.title }}{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Traceability" %} · {{ flow_node.title }}{% endblock %}
 {% block body_class %}traceability-page{% endblock %}
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/traceability.css' %}?v=20260722c">
+    <link rel="stylesheet" href="{% static 'css/traceability.css' %}?v=20260805a">
 {% endblock %}
 {% block body %}
     <header class="app-header">
         <div>
-            <div class="crumbs"><strong>{{ application_map.name }}</strong> · Flow Node</div>
+            <div class="crumbs"><strong>{{ application_map.name }}</strong> · {% translate "Flow Node" %}</div>
             <h1>{{ flow_node.local_graph_id }} — {{ flow_node.title }}</h1>
         </div>
         <div class="header-actions">
             {# Switch to the table (RTM) view of the same data. #}
-            <a class="header-link" href="{% url 'testcanvas:flow_node_traceability_matrix' flow_node.pk %}">▦ Matrix view</a>
-            <a class="header-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← Back to editor</a>
+            <a class="header-link" href="{% url 'testcanvas:flow_node_traceability_matrix' flow_node.pk %}">▦ {% translate "Matrix view" %}</a>
+            <a class="header-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← {% translate "Back to editor" %}</a>
         </div>
     </header>
     <div class="stats">
-        <div class="stat"><div class="n" id="stat-us">{{ us_count }}</div><div class="l">User Story</div></div>
-        <div class="stat"><div class="n" id="stat-ac">{{ ac_count }}</div><div class="l">Criteria</div></div>
-        <div class="stat"><div class="n" id="stat-tc">{{ tc_count }}</div><div class="l">Test Case</div></div>
-        <div class="stat ok"><div class="n" id="stat-covered">{{ covered_count }}</div><div class="l">Covered</div></div>
-        <div class="stat warn"><div class="n" id="stat-uncovered">{{ uncovered_count }}</div><div class="l">Uncovered</div></div>
+        <div class="stat"><div class="n" id="stat-us">{{ us_count }}</div><div class="l">{% translate "User Story" %}</div></div>
+        <div class="stat"><div class="n" id="stat-ac">{{ ac_count }}</div><div class="l">{% translate "Criteria" %}</div></div>
+        <div class="stat"><div class="n" id="stat-tc">{{ tc_count }}</div><div class="l">{% translate "Test Case" %}</div></div>
+        <div class="stat ok"><div class="n" id="stat-covered">{{ covered_count }}</div><div class="l">{% translate "Covered" %}</div></div>
+        <div class="stat warn"><div class="n" id="stat-uncovered">{{ uncovered_count }}</div><div class="l">{% translate "Uncovered" %}</div></div>
 
         {# Edit shortcuts live top-right next to the numbers. Their enabled state is decided server-side: AC needs a User Story, TC needs a Criterion. #}
         <div class="stat-actions">
-            <a class="stat-edit us" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="Manage User Stories">
-                <i>✎</i> User Stories
+            <a class="stat-edit us" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="{% translate 'Manage User Stories' %}">
+                <i>✎</i> {% translate "User Stories" %}
             </a>
             {% if us_count == 0 %}
-                <span class="stat-edit ac disabled" title="Add a User Story first to create Acceptance Criteria">
-                    <i>✎</i> Acceptance Criteria
+                <span class="stat-edit ac disabled" title="{% translate 'Add a User Story first to create Acceptance Criteria' %}">
+                    <i>✎</i> {% translate "Acceptance Criteria" %}
                 </span>
             {% else %}
-                <a class="stat-edit ac" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="Manage Acceptance Criteria">
-                    <i>✎</i> Acceptance Criteria
+                <a class="stat-edit ac" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="{% translate 'Manage Acceptance Criteria' %}">
+                    <i>✎</i> {% translate "Acceptance Criteria" %}
                 </a>
             {% endif %}
             {% if ac_count == 0 %}
-                <span class="stat-edit tc disabled" title="Add an Acceptance Criterion first to create Test Cases">
-                    <i>✎</i> Test Cases
+                <span class="stat-edit tc disabled" title="{% translate 'Add an Acceptance Criterion first to create Test Cases' %}">
+                    <i>✎</i> {% translate "Test Cases" %}
                 </span>
             {% else %}
-                <a class="stat-edit tc" href="{% url 'testcanvas:test_case_manage' flow_node.pk %}" title="Manage Test Cases">
-                    <i>✎</i> Test Cases
+                <a class="stat-edit tc" href="{% url 'testcanvas:test_case_manage' flow_node.pk %}" title="{% translate 'Manage Test Cases' %}">
+                    <i>✎</i> {% translate "Test Cases" %}
                 </a>
             {% endif %}
         </div>
@@ -53,24 +53,24 @@
     <div class="main">
         <aside class="trace-sidebar">
             <div class="section">
-                <p class="section-title">Layout</p>
+                <p class="section-title">{% translate "Layout" %}</p>
                 {# Orientation toggle: switches the graph between US|AC|TC #}
                 {# columns (horizontal) and stacked bands (vertical). The graph #}
                 {# is repositioned client-side; no page reload is needed. #}
-                <div class="layout-toggle" role="group" aria-label="Graph orientation">
-                    <button type="button" class="layout-btn" data-orientation="horizontal">↔ Horizontal</button>
-                    <button type="button" class="layout-btn" data-orientation="vertical">↕ Vertical</button>
+                <div class="layout-toggle" role="group" aria-label="{% translate 'Graph orientation' %}">
+                    <button type="button" class="layout-btn" data-orientation="horizontal">↔ {% translate "Horizontal" %}</button>
+                    <button type="button" class="layout-btn" data-orientation="vertical">↕ {% translate "Vertical" %}</button>
                 </div>
             </div>
             <div class="section">
-                <p class="section-title">Legend</p>
-                <div class="legend-row"><span class="swatch" style="background:#ede9fe;border:2px solid #7c3aed;"></span> User Story</div>
-                <div class="legend-row"><span class="swatch" style="background:#d1fae5;border:2px solid #059669;border-radius:50%;"></span> Acceptance Criteria — covered</div>
-                <div class="legend-row"><span class="swatch" style="background:#fee2e2;border:2px solid #ef4444;border-radius:50%;"></span> Acceptance Criteria — uncovered</div>
-                <div class="legend-row"><span class="swatch" style="background:#e0f2fe;border:2px dashed #0284c7;"></span> Test Case</div>
+                <p class="section-title">{% translate "Legend" %}</p>
+                <div class="legend-row"><span class="swatch" style="background:#ede9fe;border:2px solid #7c3aed;"></span> {% translate "User Story" %}</div>
+                <div class="legend-row"><span class="swatch" style="background:#d1fae5;border:2px solid #059669;border-radius:50%;"></span> {% translate "Acceptance Criteria — covered" %}</div>
+                <div class="legend-row"><span class="swatch" style="background:#fee2e2;border:2px solid #ef4444;border-radius:50%;"></span> {% translate "Acceptance Criteria — uncovered" %}</div>
+                <div class="legend-row"><span class="swatch" style="background:#e0f2fe;border:2px dashed #0284c7;"></span> {% translate "Test Case" %}</div>
             </div>
             <div class="section">
-                <p class="section-title">AC coverage</p>
+                <p class="section-title">{% translate "AC coverage" %}</p>
                 {# Coverage list is rendered server-side: one row per Acceptance #}
                 {# Criterion with a badge telling whether it is covered by a TC. #}
                 <div id="coverage-list">
@@ -78,9 +78,9 @@
                         <div class="cov-row">
                             <span>{{ row.code }}</span>
                             {% if row.covered %}
-                                <span class="badge ok">{{ row.count }} TC</span>
+                                <span class="badge ok">{% blocktranslate with count=row.count %}{{ count }} TC{% endblocktranslate %}</span>
                             {% else %}
-                                <span class="badge no">uncovered</span>
+                                <span class="badge no">{% translate "uncovered" %}</span>
                             {% endif %}
                         </div>
                     {% endfor %}
@@ -92,9 +92,9 @@
             {# Empty state is decided server-side: no elements means nothing to draw. #}
             {% if not elements_json or elements_json == '[]' %}
                 <div id="empty-state" style="display:flex;">
-                    <div>No relationship to show for this Flow Node.</div>
+                    <div>{% translate "No relationship to show for this Flow Node." %}</div>
                     <a class="empty-cta" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
-                        <i style="font-style:normal;">＋</i> Add a User Story
+                        <i style="font-style:normal;">＋</i> {% translate "Add a User Story" %}
                     </a>
                 </div>
             {% endif %}
@@ -119,6 +119,6 @@
         };
     </script>
     {# Shared controller for the detail sidebar (open/close + HTMX auto-open). #}
-    <script src="{% static 'js/detail_sidebar.js' %}?v=20260723a"></script>
+    <script src="{% static 'js/detail_sidebar.js' %}?v=20260805a"></script>
     <script src="{% static 'js/traceability.js' %}?v=20260723a"></script>
 {% endblock %}

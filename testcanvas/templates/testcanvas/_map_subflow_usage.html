@@ -1,3 +1,4 @@
+{% load i18n %}
 {% comment %}
     HTMX partial: sidebar content listing every flow node that uses
     ``application_map`` as a sub-flow. Loaded into the map_list sidebar via an
@@ -5,16 +6,15 @@
 {% endcomment %}
 <div class="subflow-usage-panel">
     <div class="subflow-usage-head">
-        <h3>Sub-flow usage</h3>
+        <h3>{% translate "Sub-flow usage" %}</h3>
         {# Close button clears the drawer without a server round-trip. #}
         <button type="button"
                 class="subflow-usage-close"
-                aria-label="Close"
+                aria-label="{% translate 'Close' %}"
                 onclick="document.getElementById('subflow-usage-sidebar').innerHTML = '';">&times;</button>
     </div>
     <p class="muted">
-        <strong>{{ application_map.name }}</strong> is used as a sub-flow by
-        <strong>{{ referencing_nodes|length }}</strong> node(s).
+        {% blocktranslate count counter=referencing_nodes|length with name=application_map.name %}<strong>{{ name }}</strong> is used as a sub-flow by <strong>{{ counter }}</strong> node.{% plural %}<strong>{{ name }}</strong> is used as a sub-flow by <strong>{{ counter }}</strong> nodes.{% endblocktranslate %}
     </p>
     {% if referencing_nodes %}
         <ul class="subflow-usage-list">
@@ -28,7 +28,7 @@
             {% endfor %}
         </ul>
     {% else %}
-        <p class="muted">This flow is not used as a sub-flow anywhere.</p>
+        <p class="muted">{% translate "This flow is not used as a sub-flow anywhere." %}</p>
     {% endif %}
 </div>
 

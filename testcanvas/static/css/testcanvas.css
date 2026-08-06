@@ -156,18 +156,53 @@ a, button, input, .card, .btn {
 }
 
 .app-header input.header-input {
-    padding: .45rem .8rem;
+    padding: .55rem 1rem;
     border: 1px solid var(--tc-border);
-    border-radius: 4px; /* professional squared input */
+    border-radius: 4px;
     background: var(--tc-bg);
     color: var(--tc-ink);
-    font-size: .88rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    min-width: 420px;
+    width: clamp(420px, 35vw, 700px); /* grows with the viewport, never too narrow or too wide */
 }
 .app-header input.header-input:focus {
     outline: none;
     border-color: var(--tc-primary);
     background: var(--tc-surface);
     box-shadow: 0 0 0 3px var(--tc-primary-soft);
+}
+
+/* Read-only map name displayed as plain text in the editor header. */
+.app-header .header-title {
+    padding: .45rem .8rem;
+    color: var(--tc-ink);
+    font-size: .88rem;
+    font-weight: 600;
+}
+
+/* Container that groups the map name and its flow UID badge. */
+.app-header .header-map-info {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+/* Flow UID badge: muted pill shown next to the map name. */
+.app-header .header-flow-uid {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+}
+.app-header .header-flow-uid code {
+    font-size: .75rem;
+    color: var(--tc-muted, #6b7280);
+    background: var(--tc-surface, #f3f4f6);
+    border: 1px solid var(--tc-border, #e5e7eb);
+    border-radius: 4px;
+    padding: .15rem .45rem;
+    letter-spacing: .02em;
+    user-select: all; /* lets the user select it with a single click */
 }
 
 /* ==========================================================================
@@ -227,6 +262,29 @@ a, button, input, .card, .btn {
     gap: 1rem;
     margin-left: auto;
 }
+
+/* Language switcher (navbar): compact dropdown that auto-submits on change. */
+.lang-form {
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+.lang-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--tc-surface);
+    color: var(--tc-ink);
+    border: 1px solid var(--tc-border);
+    border-radius: 4px;
+    padding: .35rem 1.75rem .35rem .6rem;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right .5rem center;
+}
+.lang-select:hover { border-color: var(--tc-accent, #6366f1); }
 
 /* ==========================================================================
    Layout containers

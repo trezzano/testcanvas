@@ -76,7 +76,7 @@ class ApplicationMapsCollectionAdmin(admin.ModelAdmin):
 
 @admin.register(ApplicationMap)
 class ApplicationMapAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "collection", "node_count", "created_at")
+    list_display = ("id", "name", "collection", "node_count", "created_at", "flow_uid")
     list_filter = ("collection",)
     search_fields = ("name",)
     date_hierarchy = "created_at"
@@ -104,7 +104,7 @@ class FlowNodeAdmin(admin.ModelAdmin):
 
 @admin.register(UserStory)
 class UserStoryAdmin(admin.ModelAdmin):
-    list_display = ("id", "code", "title", "flow_node")
+    list_display = ("id", "code", "title", "flow_node", "user_story_uid")
     list_filter = ("flow_node__application_map",)
     search_fields = ("code", "title", "description")
     list_select_related = ("flow_node",)
@@ -114,7 +114,7 @@ class UserStoryAdmin(admin.ModelAdmin):
 
 @admin.register(AcceptanceCriterion)
 class AcceptanceCriterionAdmin(admin.ModelAdmin):
-    list_display = ("id", "code", "user_story")
+    list_display = ("id", "code", "user_story", "ac_uid")
     list_filter = ("user_story__flow_node__application_map",)
     search_fields = ("code", "text")
     list_select_related = ("user_story",)

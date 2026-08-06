@@ -8,6 +8,31 @@ body.editor-page { margin: 0; }
 /* ---- Editor header (extends the shared dark bar) ---- */
 .editor-page .app-header h1 { font-size: 1.1rem; }
 
+/* Collection picker sitting next to the flow UID in the header. Kept compact so
+   it blends into the dark bar without crowding the map name / UID. */
+.header-collection {
+    display: inline-flex; align-items: center; gap: .4rem;
+    margin-left: .75rem; color: #cbd5e1; font-size: .8rem;
+}
+.header-collection__label {
+    text-transform: uppercase; letter-spacing: .04em; font-weight: 600;
+}
+.header-select {
+    /* Solid light background + dark text so the selected value stays visible on
+       every platform. Relying on a transparent background with white text is
+       unreliable: native (GTK/Linux) selects paint an opaque light control and
+       keep the white text, which makes the chosen collection invisible. */
+    background: #fff;
+    color: #1f2937;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 6px;
+    padding: .25rem .5rem;
+    font-size: .82rem;
+    max-width: 220px;
+}
+/* Keep the dropdown options readable on the native (light) menu too. */
+.header-select option { color: #1f2937; background: #fff; }
+
 /* ---- Toolbar ---- */
 .toolbar {
     display: flex; gap: .5rem;
@@ -25,11 +50,15 @@ body.editor-page { margin: 0; }
 
 /* ---- Layout: graph + sidebar ---- */
 .editor-body { position: relative; display: flex; height: calc(100vh - 120px); overflow: hidden; }
-#cy { flex: 1 1 auto; height: 100%; background: #fafbfc; }
+/* min-width:0 lets the graph shrink so an expanding sidebar always has room. */
+#cy { flex: 1 1 auto; height: 100%; background: #fafbfc; min-width: 0; }
 
 /* ---- Inspector sidebar ---- */
 .map-sidebar {
-    flex: 0 0 300px;
+    /* Size is driven by `width` (which is animatable) with flex-basis auto, so
+       the exact same collapse works whether the sidebar is the first or the
+       last flex item. */
+    flex: 0 0 auto;
     width: 300px;
     box-sizing: border-box;
     background: var(--tc-surface);
@@ -37,11 +66,21 @@ body.editor-page { margin: 0; }
     box-shadow: 4px 0 18px rgba(0, 0, 0, .06);
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
     overflow-y: auto;
-    transition: margin-left .25s ease;
+    transition: width .25s ease, padding .25s ease;
     padding: 1rem;
 }
-.map-sidebar.collapsed { margin-left: -300px; }
+/* Collapse by shrinking the width to zero. This is reliable for BOTH sidebars
+   and lets #cy reclaim the space via flex-grow; negative margins were
+   unreliable on the right (last) flex item. */
+.map-sidebar.collapsed {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-left-width: 0;
+    border-right-width: 0;
+}
 .map-sidebar h2 {
     font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
     color: var(--tc-muted); margin: 0 0 .75rem;
@@ -149,7 +188,27 @@ body.editor-page { margin: 0; }
     background: var(--tc-primary); color: #fff; border: none; border-radius: 6px;
     padding: .45rem .7rem; font-size: .9rem; display: none; cursor: pointer;
 }
-.editor-body.sidebar-hidden .sidebar-toggle-tab { display: inline-block; }
+/* Left reopen tab only: exclude the right variant so collapsing the LEFT
+   sidebar never reveals the RIGHT sidebar's reopen tab (and vice versa). */
+.editor-body.sidebar-hidden .sidebar-toggle-tab:not(.sidebar-toggle-tab--right) { display: inline-block; }
+
+/* ---- Right sidebar variant (node/edge operations) ---- */
+/* Mirrors .map-sidebar but is pinned to the right edge: the border and shadow
+   flip sides. Collapse/expand is handled by the shared .map-sidebar.collapsed
+   width rule, so it behaves exactly like the left sidebar. */
+.map-sidebar--right {
+    border-right: none;
+    border-left: 1px solid var(--tc-border);
+    box-shadow: -4px 0 18px rgba(0, 0, 0, .06);
+}
+
+/* Vertical stack of full-width operation buttons inside the right sidebar. */
+.ops-list { display: flex; flex-direction: column; gap: .5rem; }
+.ops-list .btn { width: 100%; }
+
+/* Re-open tab pinned to the right edge when the operations sidebar is collapsed. */
+.sidebar-toggle-tab--right { left: auto; right: 12px; display: none; }
+.editor-body.ops-hidden .sidebar-toggle-tab--right { display: inline-block; }
 
 /* ---- Rich-text description modal (Quill editor) ---- */
 .description-modal-hint { font-size: .85rem; color: var(--tc-muted); margin-bottom: .75rem; }

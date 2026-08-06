@@ -1,7 +1,7 @@
 {% extends "testcanvas/bases/base.html" %}
 {% load static %}
-{% block html_lang %}en{% endblock %}
-{% block title %}TestCanvas · Sign in{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "TestCanvas · Sign in" %}{% endblock %}
 {# Page-specific styles live in a scoped CSS file so the shared theme stays clean. #}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/login.css' %}">
@@ -12,9 +12,9 @@
     <section class="login__card">
         <img class="login__logo"
              src="{% static 'images/white_small_logo_trasparent.png' %}"
-             alt="TestCanvas logo">
+             alt="{% translate 'TestCanvas logo' %}">
         <h1 class="login__brand">Test Canvas</h1>
-        <p class="login__tagline">TRACEABILITY · COVERAGE · ASSURANCE</p>
+        <p class="login__tagline">{% translate "TRACEABILITY · COVERAGE · ASSURANCE" %}</p>
         {# Non-field errors (e.g. wrong username/password) reported by Django. #}
         {% if form.non_field_errors %}
         <div class="login__errors alert alert-danger" role="alert">
@@ -26,7 +26,7 @@
         <form class="login__form" method="post" action="{% url 'testcanvas:index' %}">
             {% csrf_token %}
             <div class="mb-3">
-                <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+                <label for="{{ form.username.id_for_label }}" class="form-label">{% translate "Username" %}</label>
                 <input type="text"
                        name="{{ form.username.html_name }}"
                        id="{{ form.username.id_for_label }}"
@@ -40,7 +40,7 @@
                 {% endfor %}
             </div>
             <div class="mb-4">
-                <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
+                <label for="{{ form.password.id_for_label }}" class="form-label">{% translate "Password" %}</label>
                 <input type="password"
                        name="{{ form.password.html_name }}"
                        id="{{ form.password.id_for_label }}"
@@ -52,7 +52,7 @@
                 {% endfor %}
             </div>
             <div class="d-grid">
-                <button type="submit" class="btn btn-primary">Sign in</button>
+                <button type="submit" class="btn btn-primary">{% translate "Sign in" %}</button>
             </div>
         </form>
     </section>

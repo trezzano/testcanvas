@@ -1,3 +1,4 @@
+{% load i18n %}
 {% comment %}
     User Story detail card (HTMX partial).
 
@@ -7,40 +8,50 @@
 {% endcomment %}
 <div class="detail-card">
     <div class="detail-head">
-        <span class="detail-badge badge-us">User Story</span>
+        <span class="detail-badge badge-us">{% translate "User Story" %}</span>
     </div>
 
     <div class="detail-code">{{ user_story.code }}</div>
     <h3 class="detail-title">{{ user_story.title }}</h3>
 
-    {% if user_story.node_uid %}
-        <div class="detail-uid"><span class="detail-uid-label">UID</span><code>{{ user_story.node_uid }}</code></div>
+    {% if user_story.user_story_uid %}
+        <div class="detail-uid">
+            <span class="detail-uid-label">{% translate "UID" %}</span>
+            <code>{{ user_story.user_story_uid }}</code>
+            <button type="button"
+                    class="btn btn-sm btn-secondary detail-copy-btn"
+                    data-copy-text="{{ user_story.user_story_uid }}"
+                    data-copy-label="📋"
+                    data-copy-success-label="✔"
+                    title="{% translate 'Copy User Story UID' %}"
+                    aria-label="{% translate 'Copy User Story UID' %}">📋</button>
+        </div>
     {% endif %}
 
     <div class="detail-field">
-        <span class="detail-label">Statement</span>
+        <span class="detail-label">{% translate "Statement" %}</span>
         <span>{{ user_story.full_statement }}</span>
     </div>
     {% if user_story.as_a %}
-        <div class="detail-field"><span class="detail-label">As a</span><span>{{ user_story.as_a }}</span></div>
+        <div class="detail-field"><span class="detail-label">{% translate "As a" %}</span><span>{{ user_story.as_a }}</span></div>
     {% endif %}
     {% if user_story.i_want_to %}
-        <div class="detail-field"><span class="detail-label">I want to</span><span>{{ user_story.i_want_to }}</span></div>
+        <div class="detail-field"><span class="detail-label">{% translate "I want to" %}</span><span>{{ user_story.i_want_to }}</span></div>
     {% endif %}
     {% if user_story.so_that %}
-        <div class="detail-field"><span class="detail-label">So that</span><span>{{ user_story.so_that }}</span></div>
+        <div class="detail-field"><span class="detail-label">{% translate "So that" %}</span><span>{{ user_story.so_that }}</span></div>
     {% endif %}
-    <div class="detail-field"><span class="detail-label">Priority</span><span>{{ user_story.get_priority_display }}</span></div>
+    <div class="detail-field"><span class="detail-label">{% translate "Priority" %}</span><span>{{ user_story.get_priority_display }}</span></div>
     {% if user_story.description %}
-        <div class="detail-field"><span class="detail-label">Description</span><span>{{ user_story.description }}</span></div>
+        <div class="detail-field"><span class="detail-label">{% translate "Description" %}</span><span>{{ user_story.description }}</span></div>
     {% endif %}
     {% if user_story.additional_notes %}
-        <div class="detail-field"><span class="detail-label">Notes</span><span>{{ user_story.additional_notes }}</span></div>
+        <div class="detail-field"><span class="detail-label">{% translate "Notes" %}</span><span>{{ user_story.additional_notes }}</span></div>
     {% endif %}
 
     <div class="detail-actions">
-        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:user_story_edit' user_story.flow_node.pk user_story.pk %}">✎ Edit User Story</a>
-        <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">Manage AC</a>
+        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:user_story_edit' user_story.flow_node.pk user_story.pk %}">✎ {% translate "Edit User Story" %}</a>
+        <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">{% translate "Manage AC" %}</a>
     </div>
 </div>
 
