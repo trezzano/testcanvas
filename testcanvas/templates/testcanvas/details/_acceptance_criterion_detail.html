@@ -27,10 +27,25 @@
         </div>
     {% endif %}
 
-    <div class="detail-field"><span class="detail-label">{% translate "Criterion" %}</span><span>{{ criterion.text }}</span></div>
+    <div class="detail-field"><span class="detail-label">{% translate "Description" %}</span><span>{{ criterion.description }}</span></div>
     <div class="detail-field">
         <span class="detail-label">{% translate "Type" %}</span>
-        <span>{% if criterion.is_functional %}{% translate "Functional" %}{% else %}{% translate "Non-functional" %}{% endif %}</span>
+        <span>{{ criterion.get_criterion_type_display }}</span>
+    </div>
+    <div class="detail-field">
+        <div class="detail-field-head">
+            <span class="detail-label">{% translate "Gherkin" %}</span>
+            {% if criterion.gherkin_text %}
+                <button type="button"
+                        class="btn btn-sm btn-secondary detail-copy-btn"
+                        data-copy-text="{{ criterion.gherkin_text }}"
+                        data-copy-label="📋"
+                        data-copy-success-label="✔"
+                        title="{% translate 'Copy Gherkin content' %}"
+                        aria-label="{% translate 'Copy Gherkin content' %}">📋</button>
+            {% endif %}
+        </div>
+        <span>{% if criterion.gherkin_text %}<pre class="gherkin-preview mb-0">{{ criterion.gherkin_text }}</pre>{% else %}—{% endif %}</span>
     </div>
     <div class="detail-field">
         <span class="detail-label">{% translate "User Story" %}</span>

@@ -572,8 +572,8 @@ def acceptance_criterion_detail(request, pk):
 def test_case_detail(request, pk):
     """Render a Test Case detail card as an HTMX partial.
 
-    Reused by both traceability views: shows the full test case (steps, expected
-    result, verified criteria) and links to the existing edit form.
+    Reused by both traceability views: shows the test-case execution metadata,
+    the verified criteria and a link to the existing edit form.
 
     Args:
         request: The incoming HTTP request (typically an hx-get).

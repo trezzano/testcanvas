@@ -3,8 +3,7 @@
     Test Case detail card (HTMX partial).
 
     Loaded into the shared detail sidebar by both traceability views. Read-only:
-    shows the full test case (steps, expected result, verified criteria) and
-    links to the edit form.
+    shows the execution metadata, linked acceptance criteria and edit link.
 {% endcomment %}
 <div class="detail-card">
     <div class="detail-head">
@@ -28,12 +27,20 @@
         </div>
     {% endif %}
 
-    <div class="detail-field"><span class="detail-label">{% translate "Status" %}</span><span>{{ test_case.get_status_display }}</span></div>
-    {% if test_case.preconditions %}
-        <div class="detail-field"><span class="detail-label">{% translate "Preconditions" %}</span><span>{{ test_case.preconditions }}</span></div>
+    <div class="detail-field"><span class="detail-label">{% translate "Test layer" %}</span><span>{{ test_case.get_test_layer_display }}</span></div>
+    <div class="detail-field"><span class="detail-label">{% translate "Last execution status" %}</span><span>{{ test_case.get_last_execution_status_display }}</span></div>
+    {% if test_case.last_execution_at %}
+        <div class="detail-field"><span class="detail-label">{% translate "Last execution at" %}</span><span>{{ test_case.last_execution_at }}</span></div>
     {% endif %}
-    <div class="detail-field"><span class="detail-label">{% translate "Steps" %}</span><span>{{ test_case.steps }}</span></div>
-    <div class="detail-field"><span class="detail-label">{% translate "Expected result" %}</span><span>{{ test_case.expected_result }}</span></div>
+    {% if test_case.feature_file %}
+        <div class="detail-field"><span class="detail-label">{% translate "Feature file" %}</span><span>{{ test_case.feature_file }}</span></div>
+    {% endif %}
+    {% if test_case.allure_history_id %}
+        <div class="detail-field"><span class="detail-label">{% translate "Allure history ID" %}</span><span>{{ test_case.allure_history_id }}</span></div>
+    {% endif %}
+    {% if test_case.allure_report_url %}
+        <div class="detail-field"><span class="detail-label">{% translate "Allure report URL" %}</span><span><a href="{{ test_case.allure_report_url }}" target="_blank" rel="noopener noreferrer">{{ test_case.allure_report_url }}</a></span></div>
+    {% endif %}
     <div class="detail-field">
         <span class="detail-label">{% translate "Verifies" %}</span>
         <span>

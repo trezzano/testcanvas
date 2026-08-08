@@ -33,7 +33,7 @@ class UserStoryInline(admin.TabularInline):
 class AcceptanceCriterionInline(admin.TabularInline):
     model = AcceptanceCriterion
     extra = 0
-    fields = ("code", "text")
+    fields = ("code", "criterion_type", "description", "gherkin_text")
     show_change_link = True
 
 
@@ -114,9 +114,9 @@ class UserStoryAdmin(admin.ModelAdmin):
 
 @admin.register(AcceptanceCriterion)
 class AcceptanceCriterionAdmin(admin.ModelAdmin):
-    list_display = ("id", "code", "user_story", "ac_uid")
+    list_display = ("id", "code", "criterion_type", "user_story", "has_gherkin", "ac_uid")
     list_filter = ("user_story__flow_node__application_map",)
-    search_fields = ("code", "text")
+    search_fields = ("code", "description", "gherkin_text")
     list_select_related = ("user_story",)
     autocomplete_fields = ("user_story",)
     inlines = (TestCaseInline,)
@@ -124,12 +124,29 @@ class AcceptanceCriterionAdmin(admin.ModelAdmin):
 
 @admin.register(TestCase)
 class TestCaseAdmin(admin.ModelAdmin):
-    list_display = ("id", "test_code", "title", "status", "criteria_list")
-    list_filter = ("status", "criteria__user_story__flow_node__application_map")
-    search_fields = ("test_code", "title", "preconditions", "steps", "expected_result")
+    list_display = (
+        "id",
+        "test_code",
+        "title",
+        "test_layer",
+        "last_execution_status",
+        "criteria_list",
+    )
+    list_filter = (
+        "test_layer",
+        "last_execution_status",
+        "criteria__user_story__flow_node__application_map",
+    )
+    search_fields = (
+        "test_code",
+        "title",
+        "feature_file",
+        "allure_history_id",
+        "allure_report_url",
+    )
     autocomplete_fields = ("criteria",)
     filter_horizontal = ("criteria",)
-    list_editable = ("status",)
+    list_editable = ("test_layer", "last_execution_status")
 
     def get_queryset(self, request):
         # Prefetch the M2M so criteria_list doesn't trigger N+1 queries.

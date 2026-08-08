@@ -18,15 +18,27 @@
                     {% if form.test_code.errors %}<div class="errors">{{ form.test_code.errors|striptags }}</div>{% endif %}
                 </div>
                 <div class="field">
-                    <label for="{{ form.status.id_for_label }}">{% translate "Status" %}</label>
-                    {{ form.status }}
-                    {% if form.status.errors %}<div class="errors">{{ form.status.errors|striptags }}</div>{% endif %}
+                    <label for="{{ form.test_layer.id_for_label }}">{% translate "Test layer" %}</label>
+                    {{ form.test_layer }}
+                    {% if form.test_layer.errors %}<div class="errors">{{ form.test_layer.errors|striptags }}</div>{% endif %}
                 </div>
             </div>
             <div class="field">
                 <label for="{{ form.title.id_for_label }}">{% translate "Title" %}</label>
                 {{ form.title }}
                 {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="form-row">
+                <div class="field">
+                    <label for="{{ form.last_execution_status.id_for_label }}">{% translate "Last execution status" %}</label>
+                    {{ form.last_execution_status }}
+                    {% if form.last_execution_status.errors %}<div class="errors">{{ form.last_execution_status.errors|striptags }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="{{ form.last_execution_at.id_for_label }}">{% translate "Last execution at" %}</label>
+                    {{ form.last_execution_at }}
+                    {% if form.last_execution_at.errors %}<div class="errors">{{ form.last_execution_at.errors|striptags }}</div>{% endif %}
+                </div>
             </div>
             <div class="field">
                 <label for="{{ form.criteria.id_for_label }}">{% translate "Acceptance Criteria" %}</label>
@@ -35,19 +47,21 @@
                 {% if form.criteria.errors %}<div class="errors">{{ form.criteria.errors|striptags }}</div>{% endif %}
             </div>
             <div class="field">
-                <label for="{{ form.preconditions.id_for_label }}">{% translate "Preconditions" %}</label>
-                {{ form.preconditions }}
-                {% if form.preconditions.errors %}<div class="errors">{{ form.preconditions.errors|striptags }}</div>{% endif %}
+                <label for="{{ form.feature_file.id_for_label }}">{% translate "Feature file" %}</label>
+                {{ form.feature_file }}
+                {% if form.feature_file.errors %}<div class="errors">{{ form.feature_file.errors|striptags }}</div>{% endif %}
             </div>
-            <div class="field">
-                <label for="{{ form.steps.id_for_label }}">{% translate "Steps" %}</label>
-                {{ form.steps }}
-                {% if form.steps.errors %}<div class="errors">{{ form.steps.errors|striptags }}</div>{% endif %}
-            </div>
-            <div class="field">
-                <label for="{{ form.expected_result.id_for_label }}">{% translate "Expected result" %}</label>
-                {{ form.expected_result }}
-                {% if form.expected_result.errors %}<div class="errors">{{ form.expected_result.errors|striptags }}</div>{% endif %}
+            <div class="form-row">
+                <div class="field">
+                    <label for="{{ form.allure_history_id.id_for_label }}">{% translate "Allure history ID" %}</label>
+                    {{ form.allure_history_id }}
+                    {% if form.allure_history_id.errors %}<div class="errors">{{ form.allure_history_id.errors|striptags }}</div>{% endif %}
+                </div>
+                <div class="field">
+                    <label for="{{ form.allure_report_url.id_for_label }}">{% translate "Allure report URL" %}</label>
+                    {{ form.allure_report_url }}
+                    {% if form.allure_report_url.errors %}<div class="errors">{{ form.allure_report_url.errors|striptags }}</div>{% endif %}
+                </div>
             </div>
             <button type="submit" class="btn btn-primary">+ {% translate "Add Test Case" %}</button>
         </form>
@@ -69,7 +83,8 @@
                     <th style="width: 110px;">{% translate "Code" %}</th>
                     <th>{% translate "Title" %}</th>
                     <th>{% translate "Verifies" %}</th>
-                    <th style="width: 110px;">{% translate "Status" %}</th>
+                    <th style="width: 110px;">{% translate "Layer" %}</th>
+                    <th style="width: 140px;">{% translate "Last status" %}</th>
                     <th style="width: 160px;">{% translate "Actions" %}</th>
                 </tr>
             </thead>
@@ -85,7 +100,8 @@
                                 <span class="muted">—</span>
                             {% endfor %}
                         </td>
-                        <td><span class="status-pill status-{{ tc.status }}">{{ tc.get_status_display }}</span></td>
+                        <td><span class="chip">{{ tc.get_test_layer_display }}</span></td>
+                        <td><span class="status-pill status-{{ tc.last_execution_status }}">{{ tc.get_last_execution_status_display }}</span></td>
                         <td>
                             <div class="actions">
                                 <a class="btn btn-secondary btn-sm"

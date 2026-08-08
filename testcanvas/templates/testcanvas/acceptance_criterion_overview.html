@@ -19,7 +19,8 @@
                     <thead>
                         <tr>
                             <th style="width: 110px;">{% translate "Code" %}</th>
-                            <th>{% translate "Text" %}</th>
+                            <th>{% translate "Description" %}</th>
+                            <th style="width: 180px;">{% translate "Type" %}</th>
                             <th style="width: 160px;">{% translate "Actions" %}</th>
                         </tr>
                     </thead>
@@ -27,7 +28,8 @@
                         {% for ac in us.criteria.all %}
                             <tr>
                                 <td class="code">{{ ac.code }}</td>
-                                <td><div class="desc">{{ ac.text }}</div></td>
+                                <td><div class="desc">{{ ac.description }}</div></td>
+                                <td>{{ ac.get_criterion_type_display }}</td>
                                 <td>
                                     <div class="actions">
                                         <a class="btn btn-secondary btn-sm"

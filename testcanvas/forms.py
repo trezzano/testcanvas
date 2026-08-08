@@ -101,30 +101,99 @@ class UserStoryForm(forms.ModelForm):
 
 
 class AcceptanceCriterionForm(forms.ModelForm):
-    """Simple ModelForm to create/edit an AcceptanceCriterion bound to a UserStory."""
+    """ModelForm to create/edit an AcceptanceCriterion bound to a UserStory.
+
+    Exposes the new split between business description and optional BDD text,
+    plus the full ISTQB/ISO 25010 criterion type taxonomy.
+
+    The optional ``gherkin_text`` field is designed for content pasted from an
+    external LLM/editor. The form stays permissive and only performs lightweight
+    normalization so pasted content is stored consistently without blocking the
+    user on syntax quality.
+    """
 
     class Meta:
         model = AcceptanceCriterion
-        fields = ("code", "text", "is_functional")
+        fields = ("code", "description", "gherkin_text", "criterion_type")
         widgets = {
             "code": forms.TextInput(attrs={
                 "class": "field-input",
                 "placeholder": _("e.g. AC-01.1"),
             }),
-            "text": forms.Textarea(attrs={
+            "description": forms.Textarea(attrs={
                 "class": "field-input",
                 "rows": 4,
-                "placeholder": _("Given <context> when <action> then <outcome>"),
+                "placeholder": _("Business rule, expected behaviour, or acceptance condition"),
             }),
-            # Dropdown to pick whether the criterion is functional or not.
-            "is_functional": forms.Select(
-                choices=((True, _("Functional")), (False, _("Non-functional"))),
-                attrs={"class": "field-input"},
-            ),
+            # Optional pure BDD scenario; shown always for explicit authoring.
+            "gherkin_text": forms.Textarea(attrs={
+                "class": "field-input gherkin-editor",
+                "rows": 14,
+                "spellcheck": "false",
+                "autocomplete": "off",
+                "autocapitalize": "off",
+                "placeholder": _(
+                    "Scenario: Successful payment\n"
+                    "Given the customer is on the checkout page\n"
+                    "When the customer confirms the order\n"
+                    "Then the system creates the order"
+                ),
+            }),
+            "criterion_type": forms.Select(attrs={"class": "field-input"}),
         }
         labels = {
-            "is_functional": _("Criterion type"),
+            "description": _("Description"),
+            "gherkin_text": _("Gherkin scenario (optional)"),
+            "criterion_type": _("Criterion type"),
         }
+
+    def _normalize_gherkin_text(self, value: str) -> str:
+        """Return a cleaned version of pasted Gherkin text.
+
+        Normalizes newlines, strips BOM/zero-width characters, removes a pair
+        of outer Markdown code fences when present, and trims trailing spaces so
+        copy/paste from chat tools does not pollute stored scenarios.
+
+        Args:
+            value: Raw user input coming from the textarea.
+
+        Returns:
+            The normalized scenario text ready for structural validation.
+        """
+        normalized = (
+            (value or "")
+            .replace("\r\n", "\n")
+            .replace("\r", "\n")
+            .replace("\ufeff", "")
+            .replace("\u200b", "")
+            .strip()
+        )
+        if not normalized:
+            return ""
+
+        fence_lines = normalized.split("\n")
+        if (
+            len(fence_lines) >= 2
+            and fence_lines[0].strip().startswith("```")
+            and fence_lines[-1].strip() == "```"
+        ):
+            normalized = "\n".join(fence_lines[1:-1]).strip()
+
+        return "\n".join(line.rstrip() for line in normalized.split("\n")).strip()
+
+    def clean_gherkin_text(self) -> str:
+        """Normalize the optional pasted Gherkin text.
+
+        The field intentionally accepts imperfect or mixed content pasted from
+        LLM chats and external editors. The only transformation performed here
+        is newline/fence cleanup so the stored text stays readable and stable.
+
+        Returns:
+            The normalized Gherkin text, or an empty string when omitted.
+        """
+        return self._normalize_gherkin_text(
+            self.cleaned_data.get("gherkin_text", "")
+        )
 
 
 class TestCaseForm(forms.ModelForm):
@@ -136,10 +205,12 @@ class TestCaseForm(forms.ModelForm):
             "test_code",
             "title",
             "criteria",
-            "preconditions",
-            "steps",
-            "expected_result",
-            "status",
+            "feature_file",
+            "test_layer",
+            "allure_history_id",
+            "last_execution_status",
+            "last_execution_at",
+            "allure_report_url",
         )
         widgets = {
             "test_code": forms.TextInput(attrs={
@@ -154,23 +225,27 @@ class TestCaseForm(forms.ModelForm):
                 "class": "field-input",
                 "size": 6,
             }),
-            "preconditions": forms.Textarea(attrs={
+            "feature_file": forms.TextInput(attrs={
                 "class": "field-input",
-                "rows": 3,
-                "placeholder": _("State required before running the test"),
+                "placeholder": _("e.g. features/sales/agent_selection.feature"),
             }),
-            "steps": forms.Textarea(attrs={
+            "test_layer": forms.Select(attrs={
                 "class": "field-input",
-                "rows": 5,
-                "placeholder": _("One action per line"),
             }),
-            "expected_result": forms.Textarea(attrs={
+            "allure_history_id": forms.TextInput(attrs={
                 "class": "field-input",
-                "rows": 3,
-                "placeholder": _("Expected outcome"),
+                "placeholder": _("Allure historyId"),
             }),
-            "status": forms.Select(attrs={
+            "last_execution_status": forms.Select(attrs={
                 "class": "field-input",
+            }),
+            "last_execution_at": forms.DateTimeInput(attrs={
+                "class": "field-input",
+                "type": "datetime-local",
+            }),
+            "allure_report_url": forms.URLInput(attrs={
+                "class": "field-input",
+                "placeholder": _("https://allure.example.test/report/test-case"),
             }),
         }
 

@@ -27,6 +27,11 @@
     // so it lives in JS; we remember the choice per session so it survives page
     // navigations just like the viewport does.
     const ORIENTATION_KEY = 'traceability-orientation';
+    // First-load framing should feel elegant: centered, with visible breathing
+    // room around the diagram, and never so zoomed-in that a handful of nodes
+    // occupy the whole canvas.
+    const INITIAL_FIT_PADDING = 110;
+    const MAX_INITIAL_FIT_ZOOM = 1.0;
     let orientation = sessionStorage.getItem(ORIENTATION_KEY) || 'horizontal';
 
     // Build the elements with a preset position for the active orientation.
@@ -97,7 +102,8 @@
      * The page is rebuilt from scratch every time the user edits a node and
      * comes back, which would otherwise reset zoom and position. We store the
      * viewport in ``sessionStorage`` (keyed by Flow Node id) and restore it on
-     * load; when there is nothing saved we fit the whole graph instead.
+     * load; when there is nothing saved we apply a softer first-load fit that
+     * keeps small graphs centered without letting them balloon to full screen.
      *
      * Args:
      *     cy: The Cytoscape instance to observe and control.
@@ -123,8 +129,10 @@
             }
         }
 
-        // First visit (or unreadable state): center + zoom the whole graph.
-        if (!restoreViewport()) cy.fit(undefined, 30);
+        // First visit (or unreadable state): use a softer framing with a larger
+        // padding and a zoom ceiling, so even tiny diagrams keep some elegant
+        // white space instead of expanding edge-to-edge.
+        if (!restoreViewport()) fitGraphInitially(cy);
 
         // Persist on every zoom/pan, debounced to avoid excessive writes.
         let saveTimer = null;
@@ -132,6 +140,24 @@
             clearTimeout(saveTimer);
             saveTimer = setTimeout(saveViewport, 150);
         });
+    }
+
+    /**
+     * Center the whole graph with an intentionally airy first-load framing.
+     *
+     * Cytoscape's raw ``fit`` tries to fill as much of the viewport as it can,
+     * which makes very small diagrams look oversized. We fit first, then cap the
+     * resulting zoom at a natural scale and re-center the graph.
+     *
+     * Args:
+     *     cy: The Cytoscape instance to frame.
+     */
+    function fitGraphInitially(cy) {
+        cy.fit(cy.elements(), INITIAL_FIT_PADDING);
+        if (cy.zoom() > MAX_INITIAL_FIT_ZOOM) {
+            cy.zoom(MAX_INITIAL_FIT_ZOOM);
+            cy.center(cy.elements());
+        }
     }
 
 

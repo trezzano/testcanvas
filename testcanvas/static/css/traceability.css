@@ -101,19 +101,23 @@ body.traceability-page { display: flex; flex-direction: column; overflow: hidden
 
 /* ---- Shared detail sidebar ----
    Both traceability views (graph + RTM) load the US / AC / TC detail card into
-   this left panel via HTMX. It overlays the left edge of the content area so
+   this right panel via HTMX. It overlays the right edge of the content area so
    the markup and styles stay identical across the two pages regardless of their
-   own layout. Slides in/out; can stay open or be dismissed. */
+   own layout. Slides in/out; can stay open or be dismissed.
+   The user can drag the left edge (.detail-sidebar__resize) to resize the panel. */
 .detail-sidebar {
-    position: fixed; top: 0; left: 0; bottom: 0; z-index: 1045;
-    width: 340px; max-width: 85vw;
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 1045;
+    width: 340px; min-width: 220px; max-width: 85vw;
     display: flex; flex-direction: column;
     background: var(--tc-surface, #fff);
-    border-right: 1px solid var(--tc-border, #e2e8f0);
-    box-shadow: 4px 0 18px rgba(15, 23, 42, .12);
+    border-left: 1px solid var(--tc-border, #e2e8f0);
+    box-shadow: -4px 0 18px rgba(15, 23, 42, .12);
     transition: transform .25s ease;
 }
-.detail-sidebar.collapsed { transform: translateX(-105%); }
+.detail-sidebar.collapsed { transform: translateX(105%); }
+/* Suppress the slide transition while the user is actively dragging, so the
+   panel tracks the pointer without lag. The class is added/removed by JS. */
+.detail-sidebar.is-resizing { transition: none; }
 .detail-sidebar__head {
     display: flex; align-items: center; justify-content: space-between;
     padding: .7rem 1rem; border-bottom: 1px solid var(--tc-border, #e2e8f0);
@@ -134,12 +138,25 @@ body.traceability-page { display: flex; flex-direction: column; overflow: hidden
 
 /* Re-open tab, shown only after the panel has been opened once and closed. */
 .detail-sidebar-reopen {
-    position: fixed; bottom: 16px; left: 16px; z-index: 1044;
+    position: fixed; bottom: 16px; right: 16px; z-index: 1044;
     background: var(--tc-primary, #4f46e5); color: #fff; border: none;
     border-radius: 6px; padding: .45rem .7rem; font-size: .85rem; cursor: pointer;
     box-shadow: 0 2px 8px rgba(15, 23, 42, .18);
 }
 .detail-sidebar-reopen.is-hidden { display: none; }
+
+/* Resize handle — draggable left edge of the sidebar. */
+.detail-sidebar__resize {
+    position: absolute; top: 0; left: -4px; bottom: 0;
+    width: 8px; cursor: ew-resize; z-index: 1;
+    user-select: none; -webkit-user-select: none;
+    border-radius: 4px 0 0 4px;
+    transition: background .15s ease;
+}
+.detail-sidebar__resize:hover,
+.detail-sidebar__resize.is-resizing {
+    background: rgba(79, 70, 229, .18);
+}
 
 /* ---- Shared detail card (rendered inside the detail sidebar) ----
    Used by both traceability views: the HTMX partials load this card into the
@@ -163,6 +180,7 @@ body.traceability-page { display: flex; flex-direction: column; overflow: hidden
 
 /* One labelled field per row (label above the value). */
 .detail-field { display: flex; flex-direction: column; gap: 2px; margin-top: .6rem; }
+.detail-field-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 .detail-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--tc-muted-2); }
 .detail-field > span:last-child { font-size: 12.5px; line-height: 1.55; color: #334155; white-space: pre-wrap; }
 

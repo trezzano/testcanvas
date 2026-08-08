@@ -437,6 +437,50 @@ button.btn-primary, button.btn-secondary, button.btn-danger, button.btn-info {
     margin-top: .4rem;
 }
 
+/* Dedicated chrome for pasted Gherkin scenarios. The wrapper carries the
+   border/focus states so the textarea can stay visually light while remaining a
+   regular Django form field. */
+.field-gherkin {
+    margin-bottom: 1.5rem;
+}
+.gherkin-editor-wrap {
+    border: 1px solid var(--tc-border);
+    border-radius: 6px;
+    background: linear-gradient(180deg, #fcfcff 0%, #f8fafc 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+.gherkin-editor-wrap:focus-within {
+    border-color: var(--tc-primary);
+    background: var(--tc-surface);
+    box-shadow: 0 0 0 3px var(--tc-primary-soft);
+}
+.gherkin-editor {
+    min-height: 18rem;
+    padding: 1rem 1.1rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--tc-ink-2);
+    font-family: var(--tc-font-mono);
+    font-size: .86rem;
+    line-height: 1.65;
+    letter-spacing: 0;
+    white-space: pre;
+    resize: vertical;
+    tab-size: 4;
+}
+.gherkin-editor:focus {
+    box-shadow: none;
+}
+.gherkin-editor::placeholder {
+    color: var(--tc-muted-2);
+    opacity: 1;
+}
+.field-gherkin .field-hint {
+    max-width: 80ch;
+    line-height: 1.5;
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 160px 1fr;
@@ -542,6 +586,24 @@ tr:hover td {
     font-size: .85rem;
     line-height: 1.5;
     white-space: pre-wrap;
+}
+
+.gherkin-cell {
+    min-width: 24rem;
+}
+
+.gherkin-preview {
+    margin: 0;
+    padding: .85rem .95rem;
+    border: 1px solid rgba(99, 102, 241, 0.12);
+    border-radius: 6px;
+    background: linear-gradient(180deg, rgba(238, 242, 255, 0.5) 0%, rgba(248, 250, 252, 0.9) 100%);
+    color: var(--tc-ink-2);
+    font-family: var(--tc-font-mono);
+    font-size: .8rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-x: auto;
 }
 
 .count-pill {

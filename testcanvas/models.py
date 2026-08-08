@@ -435,10 +435,34 @@ class UserStory(models.Model):
 
 
 class AcceptanceCriterion(models.Model):
-    """Detailed requirements and acceptance criteria bound to the User Story."""
-    user_story = models.ForeignKey(UserStory, on_delete=models.CASCADE, related_name='criteria')
-    code = models.CharField(max_length=20, help_text=_("E.g., AC-01.1"))
-    text = models.TextField()
+    """
+    ISTQB / BDD Acceptance Criteria Model:
+    Separa il contesto di business descrittivo dagli scenari Gherkin
+    eseguibili da Cucumber.
+    """
+    user_story = models.ForeignKey(
+        'UserStory',
+        on_delete=models.CASCADE,
+        related_name='criteria'
+    )
+    code = models.CharField(
+        max_length=20,
+        help_text=_("E.g., AC-01.1")
+    )
+
+    # 1. Descrizione generale in testo libero (Business context, note, regole)
+    description = models.TextField(
+        help_text=_("General description, business rules, or context for this criterion")
+    )
+
+    # 2. Campo opzionale dedicato ESCLUSIVAMENTE alla sintassi Gherkin pura
+    gherkin_text = models.TextField(
+        blank=True,
+        help_text=_(
+            "Pure Gherkin scenario (Given-When-Then). "
+            "Leave empty if this criterion is not formatted as BDD."
+        )
+    )
 
     ac_uid = models.CharField(
         max_length=22,
@@ -449,35 +473,116 @@ class AcceptanceCriterion(models.Model):
         help_text=_("Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference."),
     )
 
-    # ISTQB: distinguishes functional criteria (what the system does) from
-    # non-functional ones (how the system behaves: performance, security, etc.).
-    # True  -> functional criterion.
-    # False -> non-functional criterion.
-    is_functional = models.BooleanField(
-        default=True,
-        help_text=_("True if the criterion is functional, False if non-functional."),
+    # Categoria ISTQB / ISO 25010
+    CRITERION_TYPE_CHOICES = [
+        ('FUNCTIONAL', _('Functional (Behavior/Rules)')),
+        ('PERFORMANCE', _('Non-Functional: Performance Efficiency')),
+        ('SECURITY', _('Non-Functional: Security')),
+        ('USABILITY', _('Non-Functional: Usability / UI')),
+        ('RELIABILITY', _('Non-Functional: Reliability & Fault Tolerance')),
+        ('MAINTAINABILITY', _('Non-Functional: Compatibility / Maintainability')),
+    ]
+    criterion_type = models.CharField(
+        max_length=25,
+        choices=CRITERION_TYPE_CHOICES,
+        default='FUNCTIONAL',
     )
 
     class Meta:
         verbose_name = _("Acceptance Criterion")
         verbose_name_plural = _("Acceptance Criteria")
+        ordering = ['user_story', 'code']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user_story', 'code'],
+                name='unique_ac_code_per_user_story'
+            )
+        ]
+
+    @property
+    def has_gherkin(self) -> bool:
+        """Indica se l'AC ha uno scenario BDD associato ed eseguibile."""
+        return bool(self.gherkin_text and self.gherkin_text.strip())
+
 
     def __str__(self):
-        return f"{self.code}"
+        return f"{self.user_story.code} -> {self.code}"
+
 
 class TestCase(models.Model):
-    """ISTQB: Actual and executable test cases linked to individual criteria."""
+    """
+    ISTQB / BDD Bridge Model:
+    Mappa gli Acceptance Criteria (Gherkin) con i file .feature Cucumber
+    e traccia le metriche di esecuzione inviate da Allure Report.
+    """
     criteria = models.ManyToManyField(
-        AcceptanceCriterion,
+        'AcceptanceCriterion',
         related_name='test_cases',
         help_text=_("One or more acceptance criteria validated by this test case"),
     )
-    test_code = models.CharField(max_length=20, help_text=_("E.g., TC-001"))
-    title = models.CharField(max_length=150)
-    preconditions = models.TextField(blank=True)
-    steps = models.TextField(help_text=_("Sequence of textual actions separated by newlines"))
-    expected_result = models.TextField()
 
+    # 1. Tracciabilità Cucumber & Tagging
+    test_code = models.CharField(
+        max_length=50,
+        db_index=True,
+        help_text=_("Unique identifier matching the Cucumber tag (e.g., @TC-001 or @allure.id=TC-001)")
+    )
+    title = models.CharField(
+        max_length=200,
+        help_text=_("Matches the Scenario / Scenario Outline title in the .feature file")
+    )
+    feature_file = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text=_("Relative path to .feature file (e.g., features/sales/agent_selection.feature)")
+    )
+
+    # 2. Layer Tecnologico (Utile per la parallelizzazione in CI/CD)
+    LAYER_CHOICES = [
+        ('API', _('API / Service')),
+        ('UI', _('UI / End-to-End')),
+        ('INTEGRATION', _('Integration')),
+    ]
+    test_layer = models.CharField(
+        max_length=20,
+        choices=LAYER_CHOICES,
+        default='UI',
+        help_text=_("Execution layer used to group tests for parallel runs")
+    )
+
+    # 3. Metadati e Integrazione Allure Report
+    allure_history_id = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text=_("Allure historyId used to match test results across multiple executions")
+    )
+
+    # Stati allineati allo standard Allure / ISTQB
+    STATUS_CHOICES = [
+        ('TO_EXECUTE', _('To Execute')),
+        ('PASSED', _('Passed')),
+        ('FAILED', _('Failed')),  # Assertion error (bug di business)
+        ('BROKEN', _('Broken')),  # Eccezione / Timeout dell'infrastruttura di test
+        ('SKIPPED', _('Skipped')),  # Test ignorato / disabilitato
+    ]
+    last_execution_status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='TO_EXECUTE',
+        help_text=_("Updated automatically by CI/CD via Allure result parser or webhook")
+    )
+    last_execution_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("Timestamp of the last run reported by Allure")
+    )
+    allure_report_url = models.URLField(
+        blank=True,
+        max_length=500,
+        help_text=_("Direct link to this test's detail page on Allure Server / Dashboard")
+    )
+
+    # Identificatore Univoco di Sistema
     tc_uid = models.CharField(
         max_length=22,
         unique=True,
@@ -487,20 +592,10 @@ class TestCase(models.Model):
         help_text=_("Compact, globally unique node identifier (Base62 UUID4) usable as a stable LLM reference."),
     )
 
-    # i risultati attuali del test sono delegati 
-    # ai sistemi di test automatici o manuali esterni, quindi non li memorizziamo qui.
-
-    STATUS_CHOICES = [
-        ('TO_EXECUTE', _('To Execute')),
-        ('PASSED', _('Passed')),
-        ('FAILED', _('Failed')),
-        ('BLOCKED', _('Blocked')),
-    ]
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='TO_EXECUTE')
-
     class Meta:
         verbose_name = _("Test Case")
         verbose_name_plural = _("Test Cases")
+        ordering = ['test_code']
 
     def __str__(self):
         return f"{self.test_code} - {self.title}"
