@@ -1,0 +1,119 @@
+{% extends "testcanvas/bases/base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% translate "Traceability matrix" %} · {{ flow_node.title }}{% endblock %}
+{% block body_class %}traceability-page{% endblock %}
+{% block extra_css %}
+    {# Reuse the shared header / stats / badge styles, then add the table-only rules. #}
+    <link rel="stylesheet" href="{% static 'css/traceability.css' %}?v=20260812b">
+    <link rel="stylesheet" href="{% static 'css/rtm.css' %}?v=20260722b">
+{% endblock %}
+{% block body %}
+    <header class="app-header">
+        {# LEFT: node info + grouped controls (graph view). #}
+        <div class="header-actions">
+            {# Group 1 — node information (breadcrumb + node identity). #}
+            <div class="header-group header-node-info">
+                <div class="crumbs"><strong>{{ application_map.name }}</strong> · {% translate "Requirements Traceability Matrix" %}</div>
+                <h1>{{ flow_node.local_graph_id }} — {{ flow_node.title }}</h1>
+            </div>
+
+            <span class="header-sep"></span>
+
+            {# Group 2 — switch to the graph view. POST to set_traceability_view so the choice is persisted in the session and later "traceability" links resolve to the graph view. #}
+            <div class="header-group">
+                <form method="post" action="{% url 'testcanvas:set_traceability_view' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="mode" value="graph">
+                    <input type="hidden" name="next" value="{% url 'testcanvas:flow_node_traceability' flow_node.pk %}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">◨ {% translate "Graph view" %}</button>
+                </form>
+            </div>
+        </div>
+
+        {# RIGHT: single, isolated action to leave the traceability view. #}
+        <div class="header-right">
+            <a class="header-link back-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← {% translate "Back to editor" %}</a>
+        </div>
+    </header>
+
+    {% if plugin_widgets %}
+        {# Plugin sub-bar for map-level integrations. Render only when at least one widget has content, so no empty bar is shown. #}
+        <div class="map-plugin-subbar">
+            {# Plugin widgets (e.g. coverage progress, manage-test-cases button) for this flow node. #}
+            {% include "testcanvas/slots/_object_widgets.html" with widgets=plugin_widgets %}
+        </div>
+    {% endif %}
+
+    <div class="stats">
+        <div class="stat"><div class="n">{{ us_count }}</div><div class="l">{% translate "User Story" %}</div></div>
+        <div class="stat"><div class="n">{{ ac_count }}</div><div class="l">{% translate "Criteria" %}</div></div>
+
+        {# Edit shortcuts, mirroring the graph view. Their enabled state is decided server-side. #}
+        <div class="stat-actions">
+            <a class="stat-edit us" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="{% translate 'Manage User Stories' %}">
+                <i>✎</i> {% translate "User Stories" %}
+            </a>
+            {% if us_count == 0 %}
+                <span class="stat-edit ac disabled" title="{% translate 'Add a User Story first to create Acceptance Criteria' %}">
+                    <i>✎</i> {% translate "Acceptance Criteria" %}
+                </span>
+            {% else %}
+                <a class="stat-edit ac" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="{% translate 'Manage Acceptance Criteria' %}">
+                    <i>✎</i> {% translate "Acceptance Criteria" %}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="rtm-wrap">
+        {% if ac_count == 0 %}
+            {# Empty state: nothing to trace yet for this Flow Node. #}
+            <div class="rtm-empty">
+                <div>{% translate "No Acceptance Criteria to show for this Flow Node." %}</div>
+                <a class="btn btn-primary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">＋ {% translate "Add a User Story" %}</a>
+            </div>
+        {% else %}
+            <table class="rtm-table">
+                <thead>
+                    <tr>
+                        {# Rows are User Stories and their Acceptance Criteria. #}
+                        <th class="rtm-corner">{% translate "User Story / Acceptance Criterion" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in matrix_groups %}
+                        {# One banner row per User Story, then its criteria below. #}
+                        <tr class="rtm-group">
+                            <th>
+                                <a href="#" class="rtm-open"
+                                   hx-get="{% url 'testcanvas:user_story_detail' group.user_story.pk %}"
+                                   hx-target="#detail-sidebar-body">
+                                    {{ group.user_story.code }} — {{ group.user_story.title }}
+                                </a>
+                            </th>
+                        </tr>
+                        {% for row in group.rows %}
+                            <tr>
+                                <th class="rtm-row-head">
+                                    {# Open the shared detail sidebar (HTMX loads the card). #}
+                                    <a href="#" class="rtm-open"
+                                       hx-get="{% url 'testcanvas:acceptance_criterion_detail' row.criterion.pk %}"
+                                       hx-target="#detail-sidebar-body">{{ row.criterion.code }}</a>
+                                </th>
+                            </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+
+    {# Shared detail sidebar: HTMX loads the clicked US/AC/TC card into it. #}
+    {% include "testcanvas/details/_detail_sidebar.html" %}
+{% endblock %}
+{% block extra_js %}
+    {# Shared controller for the detail sidebar (open/close + HTMX auto-open). #}
+    <script src="{% static 'js/detail_sidebar.js' %}?v=20260807a"></script>
+{% endblock %}
+

@@ -1,0 +1,93 @@
+{% extends "testcanvas/bases/base_page.html" %}
+{% load i18n %}
+{% block title %}{% blocktranslate with code=user_story.code %}Manage Acceptance Criteria · {{ code }}{% endblocktranslate %}{% endblock %}
+{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} — {{ flow_node.title }}</div>{% endblock %}
+{% block page_heading %}{% translate "Acceptance Criteria" %} · {{ user_story.code }}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+{% block content %}
+<div class="story-summary">
+    <div><span class="code">{{ user_story.code }}</span> · <span class="title">{{ user_story.title }}</span></div>
+    {% if user_story.description %}<div class="desc">{{ user_story.description }}</div>{% endif %}
+</div>
+{# Plugin extension slot for this user story (ordered widgets). #}
+<div class="plugin-slotbar">
+    {% include "testcanvas/slots/_object_widgets.html" with widgets=plugin_widgets %}
+</div>
+<div class="card">
+    <h2>{% translate "Add a new Acceptance Criterion" %}</h2>
+    <form method="post" action="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">
+        {% csrf_token %}
+        <div class="field">
+            <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
+            {{ form.code }}
+            {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.description.id_for_label }}">{% translate "Description" %}</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field field-gherkin">
+            <label for="{{ form.gherkin_text.id_for_label }}">{% translate "Gherkin scenario (optional)" %}</label>
+            <div class="gherkin-editor-wrap">{{ form.gherkin_text }}</div>
+            <div class="field-hint">
+                {% translate "Paste a pure Gherkin scenario generated externally. Markdown code fences are removed automatically, but introductory prose and bullet lists are rejected." %}
+            </div>
+            {% if form.gherkin_text.errors %}<div class="errors">{{ form.gherkin_text.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.criterion_type.id_for_label }}">{% translate "Criterion type" %}</label>
+            {{ form.criterion_type }}
+            {% if form.criterion_type.errors %}<div class="errors">{{ form.criterion_type.errors|striptags }}</div>{% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">+ {% translate "Add Acceptance Criterion" %}</button>
+    </form>
+</div>
+<div class="card">
+    <h2>{% translate "Acceptance Criteria" %} <span class="count-pill">{{ criteria|length }}</span></h2>
+    {% if criteria %}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 110px;">{% translate "Code" %}</th>
+                    <th>{% translate "Description" %}</th>
+                    <th>{% translate "Gherkin" %}</th>
+                    <th style="width: 130px;">{% translate "Type" %}</th>
+                    <th style="width: 160px;">{% translate "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ac in criteria %}
+                    <tr>
+                        <td class="code">{{ ac.code }}</td>
+                        <td><div class="desc">{{ ac.description }}</div></td>
+                        <td class="gherkin-cell">
+                            {% if ac.gherkin_text %}
+                                <pre class="gherkin-preview mb-0">{{ ac.gherkin_text }}</pre>
+                            {% else %}
+                                <span class="muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ ac.get_criterion_type_display }}</td>
+                        <td>
+                            <div class="actions">
+                                <a class="btn btn-secondary btn-sm"
+                                   href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% translate "Edit" %}</a>
+                                <form method="post"
+                                      action="{% url 'testcanvas:acceptance_criterion_delete' ac.pk %}"
+                                      onsubmit="return confirm('{% blocktranslate with code=ac.code %}Delete acceptance criterion {{ code }}?{% endblocktranslate %}');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">{% translate "No acceptance criteria yet. Add the first one above." %}</p>
+    {% endif %}
+</div>
+{% endblock %}

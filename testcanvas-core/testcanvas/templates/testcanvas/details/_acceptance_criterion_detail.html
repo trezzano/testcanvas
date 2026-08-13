@@ -1,0 +1,70 @@
+{% load i18n %}
+{% comment %}
+    Acceptance Criterion detail card (HTMX partial).
+
+    Loaded into the shared detail sidebar by both traceability views. Read-only:
+    shows the criterion text, its nature and links to the edit form. Test
+    coverage is a plugin concern and is intentionally not shown here.
+{% endcomment %}
+<div class="detail-card">
+    <div class="detail-head">
+        <span class="detail-badge badge-ac">{% translate "Acceptance Criterion" %}</span>
+    </div>
+
+    <div class="detail-code">{{ criterion.code }}</div>
+
+    {% if criterion.ac_uid %}
+        <div class="detail-uid">
+            <span class="detail-uid-label">{% translate "UID" %}</span>
+            <code>{{ criterion.ac_uid }}</code>
+            <button type="button"
+                    class="btn btn-sm btn-secondary detail-copy-btn"
+                    data-copy-text="{{ criterion.ac_uid }}"
+                    data-copy-label="📋"
+                    data-copy-success-label="✔"
+                    title="{% translate 'Copy Acceptance Criterion UID' %}"
+                    aria-label="{% translate 'Copy Acceptance Criterion UID' %}">📋</button>
+        </div>
+    {% endif %}
+
+    <div class="detail-field"><span class="detail-label">{% translate "Description" %}</span><span>{{ criterion.description }}</span></div>
+    <div class="detail-field">
+        <span class="detail-label">{% translate "Type" %}</span>
+        <span>{{ criterion.get_criterion_type_display }}</span>
+    </div>
+    <div class="detail-field">
+        <div class="detail-field-head">
+            <span class="detail-label">{% translate "Gherkin" %}</span>
+            {% if criterion.gherkin_text %}
+                <button type="button"
+                        class="btn btn-sm btn-secondary detail-copy-btn"
+                        data-copy-text="{{ criterion.gherkin_text }}"
+                        data-copy-label="📋"
+                        data-copy-success-label="✔"
+                        title="{% translate 'Copy Gherkin content' %}"
+                        aria-label="{% translate 'Copy Gherkin content' %}">📋</button>
+            {% endif %}
+        </div>
+        <span>{% if criterion.gherkin_text %}<pre class="gherkin-preview mb-0">{{ criterion.gherkin_text }}</pre>{% else %}—{% endif %}</span>
+    </div>
+    <div class="detail-field">
+        <span class="detail-label">{% translate "User Story" %}</span>
+        <span>{{ criterion.user_story.code }} — {{ criterion.user_story.title }}</span>
+    </div>
+
+    {% if plugin_widgets %}
+        {# Plugin extension slot: ordered widgets contributed by installed #}
+        {# plugins for this Acceptance Criterion. Only shown when non-empty. #}
+        <div class="detail-plugins">
+            <span class="detail-label">{% translate "Plugins" %}</span>
+            <div class="detail-plugins-widgets">
+                {% include "testcanvas/slots/_object_widgets.html" with widgets=plugin_widgets %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="detail-actions">
+        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:acceptance_criterion_edit' criterion.pk %}">✎ {% translate "Edit Acceptance Criterion" %}</a>
+    </div>
+</div>
+

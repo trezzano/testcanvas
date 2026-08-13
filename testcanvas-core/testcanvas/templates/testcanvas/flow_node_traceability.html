@@ -1,0 +1,112 @@
+{% extends "testcanvas/bases/base.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% translate "Traceability" %} · {{ flow_node.title }}{% endblock %}
+{% block body_class %}traceability-page{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/traceability.css' %}?v=20260812b">
+{% endblock %}
+{% block body %}
+    <header class="app-header">
+        {# LEFT: node info + grouped controls (orientation, matrix view). #}
+        <div class="header-actions">
+            {# Group 1 — node information (breadcrumb + node identity). #}
+            <div class="header-group header-node-info">
+                <div class="crumbs"><strong>{{ application_map.name }}</strong> · {% translate "Flow Node" %}</div>
+                <h1>{{ flow_node.local_graph_id }} — {{ flow_node.title }}</h1>
+            </div>
+
+            <span class="header-sep"></span>
+
+            {# Group 2 — graph orientation as a Bootstrap combo (btn-group) so the two options share the exact same size. #}
+            <div class="header-group btn-group layout-toggle" role="group" aria-label="{% translate 'Graph orientation' %}">
+                <button type="button" class="btn btn-sm btn-outline-secondary layout-btn" data-orientation="horizontal">↔ {% translate "Horizontal" %}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary layout-btn" data-orientation="vertical">↕ {% translate "Vertical" %}</button>
+            </div>
+
+            <span class="header-sep"></span>
+
+            {# Group 3 — switch to the RTM view. POST to set_traceability_view so the choice is persisted in the session and later "traceability" links (e.g. from the User Stories sidebar) resolve to the matrix view. #}
+            <div class="header-group">
+                <form method="post" action="{% url 'testcanvas:set_traceability_view' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="mode" value="matrix">
+                    <input type="hidden" name="next" value="{% url 'testcanvas:flow_node_traceability_matrix' flow_node.pk %}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">▦ {% translate "Matrix view" %}</button>
+                </form>
+            </div>
+        </div>
+
+        {# RIGHT: single, isolated action to leave the traceability view. #}
+        <div class="header-right">
+            <a class="header-link back-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← {% translate "Back to editor" %}</a>
+        </div>
+    </header>
+    {% if plugin_widgets %}
+        {# Plugin sub-bar for map-level integrations. Render only when at least one widget has content, so no empty bar is shown. #}
+        <div class="map-plugin-subbar">
+            {# Plugin widgets (e.g. coverage progress, manage-test-cases button) for this flow node. #}
+            {% include "testcanvas/slots/_object_widgets.html" with widgets=plugin_widgets %}
+        </div>
+    {% endif %}
+
+    <div class="stats">
+        <div class="stat"><div class="n" id="stat-us">{{ us_count }}</div><div class="l">{% translate "User Story" %}</div></div>
+        <div class="stat"><div class="n" id="stat-ac">{{ ac_count }}</div><div class="l">{% translate "Criteria" %}</div></div>
+
+        {# Edit shortcuts live top-right next to the numbers. Their enabled state is decided server-side: AC needs a User Story. #}
+        <div class="stat-actions">
+            <a class="stat-edit us" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="{% translate 'Manage User Stories' %}">
+                <i>✎</i> {% translate "User Stories" %}
+            </a>
+            {% if us_count == 0 %}
+                <span class="stat-edit ac disabled" title="{% translate 'Add a User Story first to create Acceptance Criteria' %}">
+                    <i>✎</i> {% translate "Acceptance Criteria" %}
+                </span>
+            {% else %}
+                <a class="stat-edit ac" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="{% translate 'Manage Acceptance Criteria' %}">
+                    <i>✎</i> {% translate "Acceptance Criteria" %}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="main">
+
+        <div class="graph-wrap">
+            <div id="cy"></div>
+            {# Empty state is decided server-side: no elements means nothing to draw. #}
+            {% if not elements_json or elements_json == '[]' %}
+                <div id="empty-state" style="display:flex;">
+                    <div>{% translate "No relationship to show for this Flow Node." %}</div>
+                    <a class="empty-cta" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
+                        <i style="font-style:normal;">＋</i> {% translate "Add a User Story" %}
+                    </a>
+                </div>
+            {% endif %}
+            <div id="tooltip"><div class="t-id"></div><div class="t-desc"></div></div>
+        </div>
+    </div>
+
+
+
+
+    {# Shared detail sidebar: HTMX loads the tapped node's US/AC/TC card into it. #}
+    {% include "testcanvas/details/_detail_sidebar.html" %}
+{% endblock %}
+{% block extra_js %}
+    <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+    <script>
+        // Ready-to-use Cytoscape elements (nodes + edges) built by the view.
+        // Each node already carries its label, type, coverage flag and edit URL,
+        // so the JS only has to draw the graph — no data reshaping needed.
+        window.TRACEABILITY_CONFIG = {
+            elements: {{ elements_json|safe }},
+            // Flow Node id: used to key the saved viewport (zoom + pan) so each
+            // node keeps its own graph position across page navigations.
+            node_id: {{ flow_node.pk }}
+        };
+    </script>
+    {# Shared controller for the detail sidebar (open/close + HTMX auto-open). #}
+    <script src="{% static 'js/detail_sidebar.js' %}?v=20260807a"></script>
+    <script src="{% static 'js/traceability.js' %}?v=20260812a"></script>
+{% endblock %}

@@ -233,3 +233,9 @@ __marimo__/
 /.BACKUP_testcanvas_mcp/
 /cpq_docs/
 /docs/
+/private_docs/
+/testcanvas_example/
+/testcanvas/tests/
+/sandbox/
+/testcanvas-core/docs/internal/
+/testcanvas-core/sandbox/

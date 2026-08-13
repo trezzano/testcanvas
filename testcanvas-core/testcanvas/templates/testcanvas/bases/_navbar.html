@@ -1,0 +1,53 @@
+{% load static %}
+{% load i18n %}
+{% comment %}
+    Shared top navigation bar rendered on every authenticated page.
+
+    It contains ONLY elements that are common to the whole application:
+      - the small application logo (left side),
+      - the application name (settings-driven ``navbar_logo_text``),
+      - plugin-provided navigation links,
+      - the language switcher,
+      - the logout button.
+
+    Page-specific actions (e.g. "Back to list", "Rename", etc.) must NOT be
+    placed here; keep them in the individual page headers instead.
+{% endcomment %}
+<nav class="app-navbar navbar navbar-expand-lg">
+    {# Brand: logo + application name, linking back to the flows home page. #}
+    <a class="app-navbar__brand" href="{% url 'testcanvas:map_list' %}">
+
+        <span class="app-navbar__name">{{ navbar_logo_text|default:"Test Canvas" }}</span>
+    </a>
+    <div class="app-navbar__links nav nav-pills gap-2">
+        {% for link in nav_links %}
+            <a class="app-navbar__link nav-link {% if link.active %}is-active{% endif %}" href="{{ link.url }}">
+                {% if link.icon %}<span class="app-navbar__icon">{{ link.icon }}</span>{% endif %}
+                {{ link.label }}
+            </a>
+        {% endfor %}
+    </div>
+    <div class="app-navbar__actions">
+        {# Language switcher: POSTs to set_language and reloads the current page. #}
+        <form action="{% url 'set_language' %}" method="post" class="lang-form">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{{ request.get_full_path }}">
+            {% get_current_language as CURRENT_LANGUAGE %}
+            {% get_available_languages as AVAILABLE_LANGUAGES %}
+            {% get_language_info_list for AVAILABLE_LANGUAGES as languages %}
+            <select name="language" class="lang-select form-select form-select-sm" onchange="this.form.submit()"
+                    aria-label="{% translate 'Language' %}" title="{% translate 'Language' %}">
+                {% for language in languages %}
+                    <option value="{{ language.code }}"{% if language.code == CURRENT_LANGUAGE %} selected{% endif %}>
+                        {{ language.name_local|capfirst }} ({{ language.code }})
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+        {# Logout is POST-only for CSRF safety; render it as a small inline form. #}
+        <form action="{% url 'testcanvas:logout' %}" method="post" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="logout-btn btn btn-outline-secondary btn-sm">{% translate "Logout" %}</button>
+        </form>
+    </div>
+</nav>
