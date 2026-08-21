@@ -5,6 +5,7 @@ from .models import (
     ApplicationMap,
     ApplicationMapsCollection,
     FlowNode,
+    TestCase,
     UserStory,
 )
 
@@ -33,6 +34,13 @@ class AcceptanceCriterionInline(admin.TabularInline):
     model = AcceptanceCriterion
     extra = 0
     fields = ("code", "criterion_type", "description", "gherkin_text")
+    show_change_link = True
+
+
+class TestCaseInline(admin.TabularInline):
+    model = TestCase
+    extra = 0
+    fields = ("code", "description")
     show_change_link = True
 
 
@@ -108,4 +116,17 @@ class AcceptanceCriterionAdmin(admin.ModelAdmin):
     search_fields = ("code", "description", "gherkin_text")
     list_select_related = ("user_story",)
     autocomplete_fields = ("user_story",)
+    inlines = (TestCaseInline,)
+
+
+@admin.register(TestCase)
+class TestCaseAdmin(admin.ModelAdmin):
+    list_display = ("id", "code", "acceptance_criterion", "tc_uid")
+    list_filter = ("acceptance_criterion__user_story__flow_node__application_map",)
+    search_fields = ("code", "description", "tc_uid")
+    list_select_related = ("acceptance_criterion",)
+    # tc_uid is auto-generated (editable=False), so expose it read-only.
+    readonly_fields = ("tc_uid",)
+    autocomplete_fields = ("acceptance_criterion",)
+
 

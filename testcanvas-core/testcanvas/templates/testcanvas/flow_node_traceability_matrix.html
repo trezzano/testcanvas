@@ -48,6 +48,7 @@
     <div class="stats">
         <div class="stat"><div class="n">{{ us_count }}</div><div class="l">{% translate "User Story" %}</div></div>
         <div class="stat"><div class="n">{{ ac_count }}</div><div class="l">{% translate "Criteria" %}</div></div>
+        <div class="stat"><div class="n">{{ tc_count }}</div><div class="l">{% translate "Test Cases" %}</div></div>
 
         {# Edit shortcuts, mirroring the graph view. Their enabled state is decided server-side. #}
         <div class="stat-actions">
@@ -93,16 +94,26 @@
                                 </a>
                             </th>
                         </tr>
-                        {% for row in group.rows %}
-                            <tr>
-                                <th class="rtm-row-head">
-                                    {# Open the shared detail sidebar (HTMX loads the card). #}
-                                    <a href="#" class="rtm-open"
-                                       hx-get="{% url 'testcanvas:acceptance_criterion_detail' row.criterion.pk %}"
-                                       hx-target="#detail-sidebar-body">{{ row.criterion.code }}</a>
-                                </th>
-                            </tr>
-                        {% endfor %}
+                         {% for row in group.rows %}
+                             <tr>
+                                 <th class="rtm-row-head">
+                                     {# Open the shared detail sidebar (HTMX loads the card). #}
+                                     <a href="#" class="rtm-open"
+                                        hx-get="{% url 'testcanvas:acceptance_criterion_detail' row.criterion.pk %}"
+                                        hx-target="#detail-sidebar-body">{{ row.criterion.code }}</a>
+                                 </th>
+                             </tr>
+                             {% for tc in row.test_cases %}
+                                  <tr>
+                                      <td class="rtm-tc-cell">
+                                          {# Test Case sub-row: opens the shared detail sidebar. #}
+                                          <a href="#" class="rtm-open"
+                                             hx-get="{% url 'testcanvas:test_case_detail' tc.pk %}"
+                                             hx-target="#detail-sidebar-body">↳ {{ tc.code }} — {{ tc.name }}</a>
+                                      </td>
+                                  </tr>
+                              {% endfor %}
+                         {% endfor %}
                     {% endfor %}
                 </tbody>
             </table>

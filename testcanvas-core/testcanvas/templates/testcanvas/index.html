@@ -13,8 +13,8 @@
         <img class="login__logo"
              src="{{ login_logo_url }}"
              alt="{% translate 'TestCanvas logo' %}">
-        <h1 class="login__brand">Test Canvas</h1>
-        <p class="login__tagline">{% translate "TRACEABILITY · COVERAGE · ASSURANCE" %}</p>
+        <h1 class="login__brand">{{ navbar_logo_text }}</h1>
+        <p class="login__tagline">Test management</p>
         {# Non-field errors (e.g. wrong username/password) reported by Django. #}
         {% if form.non_field_errors %}
         <div class="login__errors alert alert-danger" role="alert">

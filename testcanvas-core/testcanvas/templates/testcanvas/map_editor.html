@@ -116,10 +116,6 @@
                     {# Shape and colour are only meaningful for PURE nodes; hidden for SUBFLOW. #}
                     <div id="node-style-fields">
                         <div class="field">
-                            <label>{% translate "Node color" %}</label>
-                            <div class="swatch-grid" data-target="node-color"></div>
-                        </div>
-                        <div class="field">
                             <label>{% translate "Node shape" %}</label>
                             <div class="shape-group" id="node-shape">
                                 <button type="button" data-shape="start"     class="shape-start"     title="{% translate 'Start (green rectangle)' %}">{% translate "Start" %}</button>
@@ -147,10 +143,6 @@
                     <div class="field">
                         <label>{% translate "Edge width" %} <span class="val" id="edge-width-val">2 px</span></label>
                         <input type="range" id="edge-width" min="1" max="10" step="1" value="2">
-                    </div>
-                    <div class="field">
-                        <label>{% translate "Edge color" %}</label>
-                        <div class="swatch-grid" data-target="edge-color"></div>
                     </div>
                 </div>
             </div>

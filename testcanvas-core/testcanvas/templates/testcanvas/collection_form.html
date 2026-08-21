@@ -14,6 +14,8 @@
     <form method="post" id="collection-form"
           action="{% if is_edit %}{% url 'testcanvas:collection_edit' collection.pk %}{% else %}{% url 'testcanvas:collection_create' %}{% endif %}">
         {% csrf_token %}
+        {# Redirect target: the view returns here on save or cancel (list or tree view). #}
+        <input type="hidden" name="next" value="{{ next_url }}">
 
         <div class="field">
             <label for="{{ form.title.id_for_label }}">{% translate "Title" %}</label>
@@ -30,14 +32,30 @@
         </div>
 
         <div class="field">
-            <label for="{{ form.background_color.id_for_label }}">{{ form.background_color.label }}</label>
-            {{ form.background_color }}
+            <label>{{ form.background_color.label }}</label>
+            {# Fixed palette rendered as clickable color swatches (radio inputs). #}
+            <div class="color-palette">
+                {% for radio in form.background_color %}
+                    <label class="swatch" title="{{ radio.choice_label }}">
+                        {{ radio.tag }}
+                        <span class="swatch-dot" style="background-color: {{ radio.data.value }};"></span>
+                    </label>
+                {% endfor %}
+            </div>
             {% if form.background_color.errors %}<div class="errors">{{ form.background_color.errors|striptags }}</div>{% endif %}
+        </div>
+
+        <div class="field">
+            {# Nesting: attach this collection under a parent to build the folder tree. The dropdown already excludes this collection and its descendants. #}
+            <label for="{{ form.parent.id_for_label }}">{{ form.parent.label }}</label>
+            {{ form.parent }}
+            {% if form.parent.help_text %}<div class="field-help text-muted small">{{ form.parent.help_text }}</div>{% endif %}
+            {% if form.parent.errors %}<div class="errors">{{ form.parent.errors|striptags }}</div>{% endif %}
         </div>
 
         <div class="actions">
             <button type="submit" class="btn btn-primary">{% if is_edit %}💾 {% translate "Save changes" %}{% else %}+ {% translate "Create collection" %}{% endif %}</button>
-            <a class="btn btn-secondary" href="{% url 'testcanvas:collection_list' %}">{% translate "Cancel" %}</a>
+            <a class="btn btn-secondary" href="{{ next_url }}">{% translate "Cancel" %}</a>
         </div>
     </form>
 </div>
@@ -46,4 +64,3 @@
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
     <script src="{% static 'js/collection_form.js' %}?v={% now 'U' %}"></script>
 {% endblock %}
-

@@ -70,10 +70,12 @@
                             {% endif %}
                         </td>
                         <td>{{ ac.get_criterion_type_display }}</td>
-                        <td>
-                            <div class="actions">
-                                <a class="btn btn-secondary btn-sm"
-                                   href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% translate "Edit" %}</a>
+                         <td>
+                             <div class="actions">
+                                 <a class="btn btn-secondary btn-sm"
+                                    href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% translate "Edit" %}</a>
+                                 <a class="btn btn-secondary btn-sm"
+                                    href="{% url 'testcanvas_test_execution:test_case_manage' flow_node.pk %}">🧪 {% translate "Test Cases" %} <span class="count-pill">{{ ac.test_cases.count }}</span></a>
                                 <form method="post"
                                       action="{% url 'testcanvas:acceptance_criterion_delete' ac.pk %}"
                                       onsubmit="return confirm('{% blocktranslate with code=ac.code %}Delete acceptance criterion {{ code }}?{% endblocktranslate %}');">

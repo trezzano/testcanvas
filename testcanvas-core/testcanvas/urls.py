@@ -16,9 +16,10 @@ from .views.standard_views import (
     flow_node_traceability,
     flow_node_traceability_matrix,
     set_traceability_view,
-    # shared HTMX detail cards (US / AC), reused by graph and RTM table
+    # shared HTMX detail cards (US / AC / TC), reused by graph and RTM table
     user_story_detail,
     acceptance_criterion_detail,
+    test_case_detail,
     # user story
     node_user_stories,
     user_story_manage,
@@ -29,11 +30,22 @@ from .views.standard_views import (
     acceptance_criterion_edit,
     acceptance_criterion_delete,
     node_acceptance_criteria,
+    # test cases
+    test_case_manage,
+    test_case_edit,
+    test_case_delete,
     # application maps collections
     collection_list,
     collection_create,
     collection_edit,
     collection_delete,
+)
+from .views.collection_hierarchy_views import (
+    # nested (folder/sub-folder) hierarchy operations
+    collection_tree,
+    collection_children,
+    collection_move,
+    collection_detail,
 )
 
 app_name = 'testcanvas'
@@ -60,6 +72,7 @@ urlpatterns = [
     # shared HTMX detail cards, reused by both the graph and the RTM table
     path('user-stories/<int:pk>/detail/', user_story_detail, name='user_story_detail'),
     path('acceptance-criteria/<int:pk>/detail/', acceptance_criterion_detail, name='acceptance_criterion_detail'),
+    path('test-cases/<int:pk>/detail/', test_case_detail, name='test_case_detail'),
 
     # user story
     path('<int:pk>/node/<str:node_id>/user-stories/', node_user_stories, name='node_user_stories'),
@@ -73,11 +86,22 @@ urlpatterns = [
     path('acceptance-criteria/<int:pk>/edit/', acceptance_criterion_edit, name='acceptance_criterion_edit'),
     path('acceptance-criteria/<int:pk>/delete/', acceptance_criterion_delete, name='acceptance_criterion_delete'),
 
+    # test cases
+    path('acceptance-criteria/<int:acceptance_criterion_id>/test-cases/manage/', test_case_manage, name='test_case_manage'),
+    path('test-cases/<int:pk>/edit/', test_case_edit, name='test_case_edit'),
+    path('test-cases/<int:pk>/delete/', test_case_delete, name='test_case_delete'),
+
 
     # application maps collections (logical grouping layer)
     path('collections/', collection_list, name='collection_list'),
     path('collections/create/', collection_create, name='collection_create'),
     path('collections/<int:pk>/edit/', collection_edit, name='collection_edit'),
     path('collections/<int:pk>/delete/', collection_delete, name='collection_delete'),
+
+    # application maps collections — nested (folder/sub-folder) hierarchy
+    path('collections/tree/', collection_tree, name='collection_tree'),
+    path('collections/<int:pk>/children/', collection_children, name='collection_children'),
+    path('collections/<int:pk>/move/', collection_move, name='collection_move'),
+    path('collections/<int:pk>/detail/', collection_detail, name='collection_detail'),
 ]
 

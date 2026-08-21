@@ -1,0 +1,43 @@
+{% extends "testcanvas/bases/base_page.html" %}
+{% load static %}
+{% load i18n %}
+{% block title %}{% translate "Collections tree" %}{% endblock %}
+{% block page_heading %}{% translate "Collections tree" %}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url 'testcanvas:collection_list' %}">← {% translate "Back to collections" %}</a>{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+{% block extra_css %}
+    {# Reused for the shared detail sidebar + detail card styles. #}
+    <link rel="stylesheet" href="{% static 'css/traceability.css' %}?v=20260812b">
+    <link rel="stylesheet" href="{% static 'css/collection_tree.css' %}?v={% now 'U' %}">
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="m-0">{% translate "Nested collections" %}</h2>
+    <div class="actions">
+        {# Switch back to the flat card list view. #}
+        <a class="btn btn-secondary" href="{% url 'testcanvas:collection_list' %}">☰ {% translate "List view" %}</a>
+        <a class="btn btn-primary" href="{% url 'testcanvas:collection_create' %}?next={% url 'testcanvas:collection_tree' %}">+ {% translate "New collection" %}</a>
+    </div>
+</div>
+
+{% if tree %}
+    {# Recursive folder-like tree rendered server-side from the serialized nodes. #}
+    <ul class="collection-tree">
+        {% for node in tree %}
+            {% include "testcanvas/_collection_tree_node.html" with node=node %}
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="card">
+        <p class="muted m-0">{% translate "No collections yet. Create the first one above." %}</p>
+    </div>
+{% endif %}
+
+{# Shared detail sidebar: HTMX loads the clicked collection card into it. #}
+{% include "testcanvas/details/_detail_sidebar.html" %}
+{% endblock %}
+{% block extra_js %}
+    {# Shared controller for the detail sidebar (open/close + resize + HTMX auto-open). #}
+    <script src="{% static 'js/detail_sidebar.js' %}?v=20260807a"></script>
+{% endblock %}
+

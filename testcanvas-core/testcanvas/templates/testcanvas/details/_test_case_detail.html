@@ -1,0 +1,44 @@
+{% load i18n %}
+{% comment %}
+    Test Case detail card (HTMX partial).
+
+    Loaded into the shared detail sidebar by both traceability views. Read-only:
+    shows the test case description, its owning Acceptance Criterion and a link
+    to the edit form. Mirrors the Acceptance Criterion detail card, including the
+    copyable stable UID.
+{% endcomment %}
+<div class="detail-card">
+    <div class="detail-head">
+        <span class="detail-badge badge-tc">{% translate "Test Case" %}</span>
+    </div>
+
+    <div class="detail-code">{{ test_case.code }}</div>
+
+    {% if test_case.tc_uid %}
+        <div class="detail-uid">
+            <span class="detail-uid-label">{% translate "UID" %}</span>
+            <code>{{ test_case.tc_uid }}</code>
+            <button type="button"
+                    class="btn btn-sm btn-secondary detail-copy-btn"
+                    data-copy-text="{{ test_case.tc_uid }}"
+                    data-copy-label="📋"
+                    data-copy-success-label="✔"
+                    title="{% translate 'Copy Test Case UID' %}"
+                    aria-label="{% translate 'Copy Test Case UID' %}">📋</button>
+        </div>
+    {% endif %}
+
+    <div class="detail-field">
+        <span class="detail-label">{% translate "Description" %}</span>
+        <span>{% if test_case.description %}{{ test_case.description }}{% else %}—{% endif %}</span>
+    </div>
+    <div class="detail-field">
+        <span class="detail-label">{% translate "Acceptance Criterion" %}</span>
+        <span>{{ test_case.acceptance_criterion.code }}</span>
+    </div>
+
+    <div class="detail-actions">
+         <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:test_case_edit' test_case.pk %}">✎ {% translate "Edit Test Case" %}</a>
+     </div>
+</div>
+

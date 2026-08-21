@@ -265,41 +265,6 @@
 
     let selectedEl = null;
 
-    function normHex(c) { return (c || '').toLowerCase(); }
-
-    // Build the swatch grids.
-    function buildSwatchGrid(grid) {
-        const target = grid.dataset.target;
-        grid.innerHTML = '';
-        SWATCH_PALETTE.forEach(color => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'swatch';
-            btn.style.backgroundColor = color;
-            btn.title = color;
-            btn.dataset.color = color;
-            btn.addEventListener('click', () => applyColor(target, color));
-            grid.appendChild(btn);
-        });
-    }
-
-    function highlightSwatch(target, color) {
-        const grid = document.querySelector(`.swatch-grid[data-target="${target}"]`);
-        if (!grid) return;
-        grid.querySelectorAll('.swatch').forEach(s => {
-            s.classList.toggle('active', normHex(s.dataset.color) === normHex(color));
-        });
-    }
-
-    function applyColor(target, color) {
-        if (!selectedEl) return;
-        if (target === 'node-color' && selectedEl.isNode()) selectedEl.data('color', color);
-        else if (target === 'edge-color' && selectedEl.isEdge()) selectedEl.data('color', color);
-        highlightSwatch(target, color);
-    }
-
-    document.querySelectorAll('.swatch-grid').forEach(buildSwatchGrid);
-
     // Highlight the active shape button that matches the node's current shape.
     function highlightShape(shapeKey) {
         nodeShapeGroup.querySelectorAll('button').forEach(b => {
@@ -307,16 +272,10 @@
         });
     }
 
-    // Apply a shape preset to the selected node (sets the shape and, for semantic
-    // presets, the matching colour) and refresh the inspector highlighting.
+    // Apply a shape preset to the selected node (sets the shape) and refresh the inspector highlighting.
     function applyShape(shapeKey) {
         if (!selectedEl || !selectedEl.isNode()) return;
         selectedEl.data('shape', shapeKey);
-        const preset = SHAPE_PRESETS[shapeKey];
-        if (preset && preset.color) {
-            selectedEl.data('color', preset.color);
-            highlightSwatch('node-color', preset.color);
-        }
         highlightShape(shapeKey);
     }
 
@@ -482,7 +441,6 @@
             }
             nodeNameInput.value = el.data('name') || '';
             nodeDescriptionInput.value = el.data('description') || '';
-            highlightSwatch('node-color', el.data('color') || NODE_DEFAULT_COLOR);
             highlightShape(el.data('shape') || '');
             // Reflect the node nature and the referenced sub-flow (if any).
             const nodeType = el.data('node_type') || 'PURE';
@@ -502,7 +460,6 @@
             edgeDirGroup.querySelectorAll('button').forEach(b => {
                 b.classList.toggle('active', b.dataset.dir === dir);
             });
-            highlightSwatch('edge-color', el.data('color') || EDGE_DEFAULT_COLOR);
         }
     }
 
@@ -764,36 +721,53 @@
         showInspectorFor(null);
     });
 
-    // --- Save to backend ---
-    document.getElementById('btn-save').addEventListener('click', async () => {
-        setStatus('Saving…', false);
-        const json = cy.json();
-        const payload = {
-            name: (document.getElementById('map-name').value || '').trim(),
-            description: mapDescription,
-            // Chosen collection (empty string = detach the map). Server-side the
-            // value is validated and unknown ids fall back to "no collection".
-            collection: (document.getElementById('map-collection').value || ''),
-            elements: json.elements
-        };
-        try {
-            const resp = await fetch(SAVE_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCsrfToken()
-                },
-                body: JSON.stringify(payload)
-            });
-            const result = await resp.json();
-            if (result.ok) {
-                setStatus('Saved ✔', false);
-            } else {
-                setStatus('Error: ' + result.error, true);
-            }
-        } catch (err) {
-            setStatus('Network error: ' + err, true);
-        }
-    });
+     // --- Save to backend ---
+     document.getElementById('btn-save').addEventListener('click', async () => {
+         setStatus('Saving…', false);
+         const json = cy.json();
+         const payload = {
+             name: (document.getElementById('map-name').value || '').trim(),
+             description: mapDescription,
+             // Chosen collection (empty string = detach the map). Server-side the
+             // value is validated and unknown ids fall back to "no collection".
+             collection: (document.getElementById('map-collection').value || ''),
+             elements: json.elements
+         };
+         try {
+             const resp = await fetch(SAVE_URL, {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'X-CSRFToken': getCsrfToken()
+                 },
+                 body: JSON.stringify(payload)
+             });
+             const result = await resp.json();
+             if (result.ok) {
+                 // Sync node colors from the server response (coverage calculation).
+                 // The backend computes coverage colors (green = complete, yellow = incomplete)
+                 // and returns them in graph_data. We must update each node in Cytoscape
+                 // so the visual representation matches the server state.
+                 if (result.graph_data && result.graph_data.elements && result.graph_data.elements.nodes) {
+                     const serverNodes = result.graph_data.elements.nodes;
+                     serverNodes.forEach(serverNode => {
+                         const nodeId = serverNode.data.id;
+                         const cyNode = cy.getElementById(nodeId);
+                         if (cyNode.isNode()) {
+                             // Apply the coverage color computed by the server.
+                             if (serverNode.data.color) {
+                                 cyNode.data('color', serverNode.data.color);
+                             }
+                         }
+                     });
+                 }
+                 setStatus('Saved ✔', false);
+             } else {
+                 setStatus('Error: ' + result.error, true);
+             }
+         } catch (err) {
+             setStatus('Network error: ' + err, true);
+         }
+     });
 })();
 

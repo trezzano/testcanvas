@@ -1,0 +1,14 @@
+{% comment %}
+Divider widget: a separator line used to group other widgets into tidy sections.
+
+``data`` keys (already validated by testcanvas.plugins._normalize_divider):
+    label  optional caption shown centered on the separator
+{% endcomment %}
+{% if data.label %}
+    <div class="plugin-widget plugin-widget-divider plugin-widget-divider-labelled">
+        <span class="plugin-widget-divider-label small text-muted">{{ data.label }}</span>
+    </div>
+{% else %}
+    <hr class="plugin-widget plugin-widget-divider">
+{% endif %}
+

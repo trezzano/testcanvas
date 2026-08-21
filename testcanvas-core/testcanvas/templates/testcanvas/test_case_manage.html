@@ -1,0 +1,67 @@
+{% extends "testcanvas/bases/base_page.html" %}
+{% load i18n %}
+{% block title %}{% blocktranslate with code=criterion.code %}Manage Test Cases · {{ code }}{% endblocktranslate %}{% endblock %}
+{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} · {{ user_story.code }}</div>{% endblock %}
+{% block page_heading %}{% translate "Test Cases" %} · {{ criterion.code }}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+{% block content %}
+<div class="story-summary">
+    <div><span class="code">{{ criterion.code }}</span> · <span class="title">{{ user_story.code }} — {{ user_story.title }}</span></div>
+    {% if criterion.description %}<div class="desc">{{ criterion.description }}</div>{% endif %}
+</div>
+<div class="card">
+    <h2>{% translate "Add a new Test Case" %}</h2>
+    <form method="post" action="{% url 'testcanvas:test_case_manage' criterion.pk %}">
+        {% csrf_token %}
+        <div class="field">
+            <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
+            {{ form.code }}
+            {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.description.id_for_label }}">{% translate "Description" %}</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">+ {% translate "Add Test Case" %}</button>
+    </form>
+</div>
+<div class="card">
+    <h2>{% translate "Test Cases" %} <span class="count-pill">{{ test_cases|length }}</span></h2>
+    {% if test_cases %}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 130px;">{% translate "Code" %}</th>
+                    <th>{% translate "Description" %}</th>
+                    <th style="width: 160px;">{% translate "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tc in test_cases %}
+                    <tr>
+                        <td class="code">{{ tc.code }}</td>
+                        <td><div class="desc">{{ tc.description }}</div></td>
+                        <td>
+                            <div class="actions">
+                                <a class="btn btn-secondary btn-sm"
+                                   href="{% url 'testcanvas:test_case_edit' tc.pk %}">{% translate "Edit" %}</a>
+                                <form method="post"
+                                      action="{% url 'testcanvas:test_case_delete' tc.pk %}"
+                                      onsubmit="return confirm('{% blocktranslate with code=tc.code %}Delete test case {{ code }}?{% endblocktranslate %}');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">{% translate "No test cases yet. Add the first one above." %}</p>
+    {% endif %}
+</div>
+{% endblock %}
+

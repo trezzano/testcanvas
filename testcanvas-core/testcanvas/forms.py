@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     AcceptanceCriterion,
     ApplicationMapsCollection,
+    TestCase,
     UserStory,
 )
 
@@ -13,12 +14,36 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
 
     The ``description`` is a rich-text (HTML) field edited on the front-end
     through a Quill editor; the underlying widget is a hidden textarea that Quill
-    keeps in sync. ``background_color`` uses an HTML5 color input.
+    keeps in sync. ``background_color`` is chosen from a fixed palette of six
+    predefined colors (rendered as clickable swatches). The optional ``parent``
+    field lets the collection be nested under another one, forming the
+    folder/sub-folder tree.
     """
+
+    # Compact palette of six clearly distinct, fresh/modern accent colors. Hues
+    # are spread across the wheel so adjacent swatches never look alike. Values
+    # are the hex codes stored on the model; labels stay human-readable.
+    COLOR_PALETTE = [
+        ("#ef4444", _("Red")),
+        ("#f97316", _("Orange")),
+        ("#22c55e", _("Green")),
+        ("#06b6d4", _("Cyan")),
+        ("#6366f1", _("Indigo")),
+        ("#ec4899", _("Pink")),
+    ]
+
+    # Replace the free color picker with a constrained palette. RadioSelect keeps
+    # a single choice; the template renders each option as a colored swatch.
+    background_color = forms.ChoiceField(
+        choices=COLOR_PALETTE,
+        initial=COLOR_PALETTE[0][0],
+        widget=forms.RadioSelect(attrs={"class": "color-palette"}),
+        label=_("Background color"),
+    )
 
     class Meta:
         model = ApplicationMapsCollection
-        fields = ("title", "description", "background_color")
+        fields = ("title", "description", "background_color", "parent")
         widgets = {
             "title": forms.TextInput(attrs={
                 "class": "field-input",
@@ -30,15 +55,61 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
                 "id": "collection-description",
                 "hidden": True,
             }),
-            # Native color picker; stores the value as a hex string (#rrggbb).
-            "background_color": forms.TextInput(attrs={
-                "type": "color",
-                "class": "field-color",
+            # Parent folder selector; "---------" (empty) keeps the collection
+            # at the top level.
+            "parent": forms.Select(attrs={
+                "class": "field-input",
             }),
         }
         labels = {
-            "background_color": _("Background color"),
+            "parent": _("Parent collection"),
         }
+
+    def __init__(self, *args, **kwargs):
+        """Restrict the ``parent`` choices to avoid self-references and cycles.
+
+        When editing an existing collection, the instance itself and all of its
+        descendants are removed from the ``parent`` dropdown so the UI cannot
+        even offer a choice that would create a cycle. ``clean_parent`` still
+        enforces the rule server-side as a safety net.
+        """
+        super().__init__(*args, **kwargs)
+
+        queryset = ApplicationMapsCollection.objects.all()
+        if self.instance and self.instance.pk:
+            # Exclude self and every descendant: none of them can be the parent.
+            forbidden_ids = [self.instance.pk] + [
+                descendant.pk for descendant in self.instance.get_descendants()
+            ]
+            queryset = queryset.exclude(pk__in=forbidden_ids)
+
+        self.fields["parent"].queryset = queryset.order_by("title")
+        self.fields["parent"].required = False
+        self.fields["parent"].empty_label = _("— No parent (top level) —")
+
+    def clean_parent(self):
+        """Reject a ``parent`` that is the instance itself or one of its descendants.
+
+        Returns:
+            The validated parent collection, or ``None`` for a root collection.
+
+        Raises:
+            forms.ValidationError: If the chosen parent would create a cycle.
+        """
+        parent = self.cleaned_data.get("parent")
+        if parent is None:
+            return None
+
+        if self.instance and self.instance.pk:
+            if parent.pk == self.instance.pk:
+                raise forms.ValidationError(
+                    _("A collection cannot be its own parent.")
+                )
+            if parent.is_descendant_of(self.instance):
+                raise forms.ValidationError(
+                    _("A collection cannot be moved under its own descendants.")
+                )
+        return parent
 
 
 class UserStoryForm(forms.ModelForm):
@@ -195,5 +266,30 @@ class AcceptanceCriterionForm(forms.ModelForm):
         )
 
 
+class TestCaseForm(forms.ModelForm):
+    """ModelForm to create/edit a TestCase bound to an AcceptanceCriterion.
 
+    Exposes the minimal Test Case model: a traceability ``code`` and a free-text
+    ``description`` holding steps, data and expected result. Mirrors
+    ``AcceptanceCriterionForm`` for a consistent authoring UX.
+    """
+
+    class Meta:
+        model = TestCase
+        fields = ("code", "description")
+        widgets = {
+            "code": forms.TextInput(attrs={
+                "class": "field-input",
+                "placeholder": _("e.g. TC-01.1.1"),
+            }),
+            "description": forms.Textarea(attrs={
+                "class": "field-input",
+                "rows": 6,
+                "placeholder": _("Steps, test data, expected result, or extra context"),
+            }),
+        }
+        labels = {
+            "code": _("Code"),
+            "description": _("Description"),
+        }
 

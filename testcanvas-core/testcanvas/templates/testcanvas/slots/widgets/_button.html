@@ -1,0 +1,25 @@
+{% comment %}
+Button widget: an action link styled as a Bootstrap button.
+
+``data`` keys (already validated by testcanvas.plugins._normalize_button):
+    label    visible text
+    url      URL already reversed server-side (templates never build URLs)
+    icon     optional glyph shown before the label
+    context  Bootstrap button contextual token (btn-{context})
+    htmx     when true, fire the URL through hx-get instead of navigating
+    target   optional hx-target selector for the HTMX variant
+{% endcomment %}
+{% if data.htmx %}
+    {# HTMX action: URL was reversed in the view; HTMX only fires it. #}
+    <a class="btn btn-{{ data.context }} btn-sm plugin-widget plugin-widget-button"
+       href="#"
+       hx-get="{{ data.url }}"
+       {% if data.target %}hx-target="{{ data.target }}"{% endif %}>
+        {% if data.icon %}<span class="plugin-widget-icon">{{ data.icon }}</span> {% endif %}{{ data.label }}
+    </a>
+{% else %}
+    <a class="btn btn-{{ data.context }} btn-sm plugin-widget plugin-widget-button" href="{{ data.url }}">
+        {% if data.icon %}<span class="plugin-widget-icon">{{ data.icon }}</span> {% endif %}{{ data.label }}
+    </a>
+{% endif %}
+

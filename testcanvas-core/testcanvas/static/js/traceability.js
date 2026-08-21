@@ -1,18 +1,17 @@
 /* ==========================================================================
-   TestCanvas · Traceability graph (US -> AC)
+    TestCanvas · Traceability graph (US -> AC -> TC)
 
-   The view (flow_node_traceability) does all the data shaping and hands us a
-   ready-to-use Cytoscape `elements` array via `window.TRACEABILITY_CONFIG`:
+    The view (flow_node_traceability) does all the data shaping and hands us a
+    ready-to-use Cytoscape `elements` array via `window.TRACEABILITY_CONFIG`:
 
-       { elements: [ { data: { id, label, type, code, detail_url } }, ... ] }
+        { elements: [ { data: { id, label, type, code, detail_url } }, ... ] }
 
-   Node `type` is one of "us" | "ac". Edges carry a `kind` of "decompose"
-   (US -> AC). This script only draws the graph and wires a few interactions:
-   hover focus + tooltip and a tap that opens the shared, server-rendered detail
-   modal (loaded on demand via HTMX from each node's `detail_url`). No parsing,
-   no DOM building. Test execution artefacts live in the
-   testcanvas_test_execution plugin.
-   ========================================================================== */
+    Node `type` is one of "us" | "ac" | "tc". Edges carry a `kind` of
+    "decompose" (US -> AC) or "verify" (AC -> TC). This script only draws the
+    graph and wires a few interactions: hover focus + tooltip and a tap that
+    opens the shared, server-rendered detail modal (loaded on demand via HTMX
+    from each node's `detail_url`). No parsing, no DOM building.
+    ========================================================================== */
 (function () {
     'use strict';
 
@@ -61,8 +60,25 @@
                 'shape': 'ellipse', 'background-color': '#e0e7ff', 'border-color': '#6366f1',
                 'color': '#312e81', 'width': 78, 'height': 78,
             }},
+            { selector: 'node[type="tc"]', style: {
+                'shape': 'round-tag', 'background-color': '#e0f2fe', 'border-color': '#0284c7',
+                'color': '#075985', 'width': 120, 'height': 44, 'font-size': 10,
+            }},
+            // Coverage colors: complete (green) overrides type defaults; incomplete (yellow) gets a warning tint
+            { selector: 'node[is_complete="true"]', style: {
+                'background-color': '#dcfce7', 'border-color': '#10b981',
+                'color': '#065f46',
+            }},
+            { selector: 'node[is_complete="false"]', style: {
+                'background-color': '#fef3c7', 'border-color': '#fbbf24',
+                'color': '#78350f',
+            }},
             { selector: 'edge[kind="decompose"]', style: {
                 'width': 2, 'line-color': '#c4b5fd', 'target-arrow-color': '#c4b5fd',
+                'target-arrow-shape': 'triangle', 'curve-style': 'bezier',
+            }},
+            { selector: 'edge[kind="verify"]', style: {
+                'width': 2, 'line-color': '#7dd3fc', 'target-arrow-color': '#7dd3fc',
                 'target-arrow-shape': 'triangle', 'curve-style': 'bezier',
             }},
             { selector: '.faded', style: { 'opacity': 0.45 } },
@@ -176,7 +192,7 @@
         const siblingGap = 110;   // spacing between nodes sharing the same band
 
         // Group node ids by type, keeping their original order.
-        const bands = { us: [], ac: [] };
+        const bands = { us: [], ac: [], tc: [] };
         ELEMENTS.forEach(el => {
             const type = el.data && el.data.type;
             if (type && bands[type]) bands[type].push(el.data.id);
@@ -184,13 +200,18 @@
 
         const vertical = orientation === 'vertical';
         // Band anchor along the "reading" axis (X when horizontal, Y when
-        // vertical). Both bands sit a fixed BAND_GAP apart, centered on the
-        // container, so the diagram never spreads out with the viewport size.
+        // vertical). The three bands (US | AC | TC) sit a fixed BAND_GAP apart,
+        // centered on the container, so the diagram never spreads out with the
+        // viewport size.
         const centerX = width / 2;
         const centerY = height / 2;
-        const bandPos = vertical
-            ? { us: centerY - BAND_GAP / 2, ac: centerY + BAND_GAP / 2 }
-            : { us: centerX - BAND_GAP / 2, ac: centerX + BAND_GAP / 2 };
+        const order = ['us', 'ac', 'tc'];
+        // Center the ordered bands around the middle of the reading axis.
+        const bandPos = {};
+        order.forEach((type, i) => {
+            const offset = (i - (order.length - 1) / 2) * BAND_GAP;
+            bandPos[type] = (vertical ? centerY : centerX) + offset;
+        });
 
         const positions = {};
         Object.keys(bands).forEach(type => {

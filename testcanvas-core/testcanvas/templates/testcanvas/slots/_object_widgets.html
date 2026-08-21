@@ -1,0 +1,24 @@
+{% comment %}
+Shared slot: plugin-contributed UI widgets for a core object.
+
+Rendered by core templates for any entity (flow node, user story, ...). The
+ordered list of widgets is computed server-side by
+``testcanvas.plugins.collect_object_widgets`` and passed in through
+``{% include ... with widgets=plugin_widgets %}``.
+
+Each widget is a dict ``{"template": <core partial>, "data": <payload>}``. The
+core picked the partial from a fixed registry, so a plugin can only render the
+widget types the core understands (progress, text, divider, button). Widgets are
+rendered in list order, so the plugin controls the layout by ordering them.
+
+The slot self-hides when no plugin contributed anything, so it is safe to
+include even when no plugin is installed.
+{% endcomment %}
+{% if widgets %}
+    <div class="plugin-widgets">
+        {% for widget in widgets %}
+            {% include widget.template with data=widget.data %}
+        {% endfor %}
+    </div>
+{% endif %}
+

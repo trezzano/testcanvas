@@ -1,0 +1,13 @@
+{% comment %}
+Text widget: a short caption or note styled with a Bootstrap text utility.
+
+``data`` keys (already validated by testcanvas.plugins._normalize_text):
+    text     the content to show
+    icon     optional glyph shown before the text
+    context  Bootstrap text contextual token (text-{context})
+    strong   when true, render the text bold
+{% endcomment %}
+<div class="plugin-widget plugin-widget-text text-{{ data.context }}">
+    {% if data.icon %}<span class="plugin-widget-icon">{{ data.icon }}</span> {% endif %}{% if data.strong %}<strong>{{ data.text }}</strong>{% else %}{{ data.text }}{% endif %}
+</div>
+

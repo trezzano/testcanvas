@@ -1,0 +1,27 @@
+{% load i18n %}
+{# HTMX partial: direct children of a collection, used for lazy tree expansion. #}
+{% if children %}
+    <ul class="collection-tree">
+        {% for child in children %}
+            <li class="collection-tree-node">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="color-swatch" style="background-color: {{ child.background_color }};"
+                          title="{{ child.background_color }}"></span>
+                    <a href="{% url 'testcanvas:collection_edit' child.pk %}" class="fw-bold">{{ child.title }}</a>
+                    <span class="count-pill" title="{% translate 'Maps in this collection' %}">{{ child.maps.count }}</span>
+                    {% if child.children.exists %}
+                        {# Lazy-load this child's own children only when expanded. #}
+                        <button type="button" class="btn btn-secondary btn-sm"
+                                hx-get="{% url 'testcanvas:collection_children' child.pk %}"
+                                hx-target="closest li" hx-swap="beforeend">
+                            {% translate "Expand" %}
+                        </button>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <span class="muted">{% translate "No sub-collections." %}</span>
+{% endif %}
+

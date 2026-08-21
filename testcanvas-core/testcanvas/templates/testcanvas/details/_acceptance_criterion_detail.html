@@ -3,8 +3,8 @@
     Acceptance Criterion detail card (HTMX partial).
 
     Loaded into the shared detail sidebar by both traceability views. Read-only:
-    shows the criterion text, its nature and links to the edit form. Test
-    coverage is a plugin concern and is intentionally not shown here.
+    shows the criterion text, its nature and links to the edit form and test
+    case management.
 {% endcomment %}
 <div class="detail-card">
     <div class="detail-head">
@@ -51,6 +51,10 @@
         <span class="detail-label">{% translate "User Story" %}</span>
         <span>{{ criterion.user_story.code }} — {{ criterion.user_story.title }}</span>
     </div>
+    <div class="detail-field">
+        <span class="detail-label">{% translate "Test Cases" %}</span>
+        <span>{{ criterion.test_cases.count }}</span>
+    </div>
 
     {% if plugin_widgets %}
         {# Plugin extension slot: ordered widgets contributed by installed #}
@@ -64,7 +68,8 @@
     {% endif %}
 
     <div class="detail-actions">
-        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:acceptance_criterion_edit' criterion.pk %}">✎ {% translate "Edit Acceptance Criterion" %}</a>
-    </div>
+         <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:acceptance_criterion_edit' criterion.pk %}">✎ {% translate "Edit Acceptance Criterion" %}</a>
+         <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:test_case_manage' criterion.pk %}">🧪 {% translate "Manage Test Cases" %}</a>
+     </div>
 </div>
 

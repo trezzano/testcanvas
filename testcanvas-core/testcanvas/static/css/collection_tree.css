@@ -1,0 +1,85 @@
+/*
+ * Styles for the nested collections tree view (/collections/tree/).
+ * Loaded after the shared theme and traceability.css (which provides the
+ * detail sidebar + detail card styling reused here).
+ */
+
+/* Reset list styling and build the indentation/guide structure. */
+.collection-tree {
+    list-style: none;
+    margin: 0;
+    padding-left: 0;
+}
+
+/* Nested lists are indented and get a subtle vertical guide line. */
+.collection-tree .collection-tree {
+    margin-left: 1.1rem;
+    padding-left: 1rem;
+    border-left: 1px solid var(--tc-border, #e2e8f0);
+}
+
+.collection-tree-node {
+    margin: 0.25rem 0;
+}
+
+/* One clickable row per collection: swatch + title + maps count. */
+.collection-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.collection-row:hover {
+    background: #f8fafc;
+    border-color: var(--tc-border, #e2e8f0);
+}
+
+/* Color dot mirroring the collection's accent color. */
+.collection-row__color {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+/* Title link opening the detail sidebar. */
+.collection-row__title {
+    font-weight: 600;
+    color: var(--tc-ink, #1e293b);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.collection-row__title:hover {
+    color: var(--tc-primary, #4f46e5);
+    text-decoration: underline;
+}
+
+/* Small pill with the number of directly linked maps. */
+.collection-row__count {
+    margin-left: auto;
+    min-width: 1.4rem;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--tc-muted, #64748b);
+    background: #f1f5f9;
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+}
+
+/* Maps list inside the detail sidebar card. */
+.detail-card .collection-maps {
+    margin: 0.3rem 0 0;
+    padding-left: 1.1rem;
+}
+
+.detail-card .collection-maps li {
+    margin: 0.15rem 0;
+}
+

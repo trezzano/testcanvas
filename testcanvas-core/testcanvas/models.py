@@ -1,16 +1,13 @@
 import secrets
 import uuid
+from functools import partial
 
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 # Schema concettuale fondamentale :
-# UserStory  1 ──< N  AcceptanceCriterion
-#
-# Test execution artefacts (TestCase and the N:N link to AcceptanceCriterion)
-# live in the separate ``testcanvas_test_execution`` plugin, so the core stays
-# unaware of any execution/tooling concern.
+# UserStory  1 ──< N  AcceptanceCriterion  1 ──< N  TestCase
 
 # Base62 alphabet used to render a 128-bit UUID as a short, URL-safe token.
 _BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -61,8 +58,8 @@ def generate_compact_node_uid() -> str:
 _PREFIXED_UID_TOKEN_LENGTH = 13
 
 
-def generate_prefixed_uid(prefix: str) -> str:
-    """Return a short, human-friendlier, globally unique identifier.
+def generate_humanized_uid(prefix: str) -> str:
+    """Generate a prefixed human-friendly UID.
 
     Builds an identifier shaped like ``"<PREFIX>-<token>"`` (e.g.
     ``"ACU-4k9Fm2Xz8Qw1B"``) where ``token`` is a random Base62 string. The
@@ -84,25 +81,6 @@ def generate_prefixed_uid(prefix: str) -> str:
     return f"{prefix}-{token}"
 
 
-def generate_flow_uid() -> str:
-    """Return a prefixed unique identifier for an ``ApplicationMap`` (``AMU-``)."""
-    return generate_prefixed_uid("AMU")
-
-
-def generate_node_uid() -> str:
-    """Return a prefixed unique identifier for a ``FlowNode`` (``FNU-``)."""
-    return generate_prefixed_uid("FNU")
-
-
-def generate_user_story_uid() -> str:
-    """Return a prefixed unique identifier for a ``UserStory`` (``USU-``)."""
-    return generate_prefixed_uid("USU")
-
-
-def generate_ac_uid() -> str:
-    """Return a prefixed unique identifier for an ``AcceptanceCriterion`` (``ACU-``)."""
-    return generate_prefixed_uid("ACU")
-
 
 class ApplicationMapsCollection(models.Model):
     """Logical grouping layer that gathers several ``ApplicationMap`` records.
@@ -111,11 +89,17 @@ class ApplicationMapsCollection(models.Model):
     graph data itself, it only groups related application flows so they can be
     reasoned about together (e.g. all the flows of a given product area).
 
+    Collections can be nested to any depth, forming a folder/sub-folder tree:
+    each collection may reference a single ``parent`` collection and expose its
+    ``children`` through the reverse relation. Top-level (root) collections have
+    ``parent`` set to ``None``.
+
     Attributes:
         title: Human-readable name of the collection.
         description: Rich-text (HTML) description stored as produced by the
             front-end editor (Quill), mirroring ``ApplicationMap.description``.
         background_color: Hex color used as the collection's background accent.
+        parent: Optional parent collection, enabling a nested folder tree.
         created_at: Creation timestamp, set automatically.
     """
 
@@ -141,6 +125,21 @@ class ApplicationMapsCollection(models.Model):
         validators=[_HEX_COLOR_VALIDATOR],
         help_text=_("Background color as a hex value (e.g., #ffffff)."),
     )
+
+    # Self-referential hierarchy: a collection can be nested under another one,
+    # turning the flat grouping layer into an arbitrarily deep folder tree.
+    # CASCADE means deleting a folder also deletes the sub-folders it contains
+    # (the maps themselves survive because ApplicationMap.collection is SET_NULL).
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="children",
+        db_index=True,
+        help_text=_("Parent collection. Leave empty for a top-level (root) collection."),
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -151,6 +150,110 @@ class ApplicationMapsCollection(models.Model):
     def __str__(self) -> str:
         return self.title
 
+    def clean(self) -> None:
+        """Validate the hierarchy invariants before persisting.
+
+        Prevents the two ways a self-referential tree can become invalid:
+
+        * a collection pointing to itself as its own parent;
+        * a collection pointing to one of its own descendants, which would
+          create a cycle (a folder contained in one of its sub-folders).
+
+        Raises:
+            ValidationError: If the ``parent`` reference is self-referential or
+                would create a cycle.
+        """
+        from django.core.exceptions import ValidationError
+
+        if self.parent_id is None:
+            return
+
+        # A collection cannot be its own parent.
+        if self.parent_id == self.pk:
+            raise ValidationError(
+                {"parent": _("A collection cannot be its own parent.")}
+            )
+
+        # Walking up from the chosen parent must never lead back to this
+        # collection, otherwise the reference closes a loop.
+        ancestor = self.parent
+        while ancestor is not None:
+            if ancestor.pk == self.pk:
+                raise ValidationError(
+                    {"parent": _("A collection cannot be moved under its own descendants.")}
+                )
+            ancestor = ancestor.parent
+
+    def get_ancestors(self) -> list["ApplicationMapsCollection"]:
+        """Return the ancestors from the immediate parent up to the root.
+
+        Returns:
+            A list ordered from the closest parent to the top-level root. Empty
+            for a root collection.
+        """
+        ancestors: list["ApplicationMapsCollection"] = []
+        current = self.parent
+        while current is not None:
+            ancestors.append(current)
+            current = current.parent
+        return ancestors
+
+    def get_full_path(self, separator: str = " / ") -> str:
+        """Return the human-readable breadcrumb path of this collection.
+
+        Args:
+            separator: String placed between each level of the path.
+
+        Returns:
+            The hierarchical path, e.g. ``"Sales / Checkout / Payment"``.
+        """
+        titles = [ancestor.title for ancestor in reversed(self.get_ancestors())]
+        titles.append(self.title)
+        return separator.join(titles)
+
+    def get_descendants(self, include_self: bool = False) -> list["ApplicationMapsCollection"]:
+        """Return every nested collection below this one, recursively.
+
+        Args:
+            include_self: When ``True``, prepend this collection to the result.
+
+        Returns:
+            A depth-first list of all descendant collections.
+        """
+        descendants: list["ApplicationMapsCollection"] = []
+        if include_self:
+            descendants.append(self)
+        for child in self.children.all():
+            descendants.append(child)
+            descendants.extend(child.get_descendants())
+        return descendants
+
+    def is_descendant_of(self, other: "ApplicationMapsCollection") -> bool:
+        """Return whether this collection is nested (directly or not) under ``other``.
+
+        Args:
+            other: The candidate ancestor collection.
+
+        Returns:
+            ``True`` if ``other`` is one of this collection's ancestors.
+        """
+        return any(ancestor.pk == other.pk for ancestor in self.get_ancestors())
+
+    def move_to(self, new_parent: "ApplicationMapsCollection | None") -> None:
+        """Move this collection under ``new_parent`` (or make it a root).
+
+        Args:
+            new_parent: The target parent collection, or ``None`` to move the
+                collection to the top level.
+
+        Raises:
+            ValidationError: If the move is self-referential or would create a
+                cycle (validated through :meth:`clean`).
+        """
+        self.parent = new_parent
+        # full_clean runs clean(), enforcing the no-self / no-cycle invariants.
+        self.full_clean()
+        self.save(update_fields=["parent"])
 
 class ApplicationMap(models.Model):
     """
@@ -164,7 +267,7 @@ class ApplicationMap(models.Model):
     flow_uid = models.CharField(
         max_length=20,
         unique=True,
-        default=generate_flow_uid,
+        default=partial(generate_humanized_uid, prefix="AMU"),
         editable=False,
         db_index=True,
         help_text=_("Prefixed, globally unique flow identifier (e.g. AMU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
@@ -277,7 +380,7 @@ class FlowNode(models.Model):
     node_uid = models.CharField(
         max_length=20,
         unique=True,
-        default=generate_node_uid,
+        default=partial(generate_humanized_uid, prefix="FNU"),
         editable=False,
         db_index=True,
         help_text=_("Prefixed, globally unique node identifier (e.g. FNU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
@@ -402,7 +505,6 @@ class FlowNode(models.Model):
             )
         return False
 
-
 class UserStory(models.Model):
     """ISTQB / Agile: Stories associated with a specific step or state of the application flow."""
 
@@ -417,7 +519,7 @@ class UserStory(models.Model):
     user_story_uid = models.CharField(
         max_length=20,
         unique=True,
-        default=generate_user_story_uid,
+        default=partial(generate_humanized_uid, prefix="USU"),
         editable=False,
         db_index=True,
         help_text=_("Prefixed, globally unique identifier (e.g. USU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
@@ -493,7 +595,6 @@ class UserStory(models.Model):
             }
         return self.title
 
-
 class AcceptanceCriterion(models.Model):
     """
     ISTQB / BDD Acceptance Criteria Model:
@@ -527,7 +628,7 @@ class AcceptanceCriterion(models.Model):
     ac_uid = models.CharField(
         max_length=20,
         unique=True,
-        default=generate_ac_uid,
+        default=partial(generate_humanized_uid, prefix="ACU"),
         editable=False,
         db_index=True,
         help_text=_("Prefixed, globally unique identifier (e.g. ACU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
@@ -567,4 +668,67 @@ class AcceptanceCriterion(models.Model):
 
     def __str__(self):
         return f"{self.user_story.code} -> {self.code}"
+
+class TestCase(models.Model):
+    """ISTQB Test Case verifying a specific Acceptance Criterion.
+
+    A Test Case is the concrete, executable check derived from an
+    ``AcceptanceCriterion`` (the test basis). One criterion can be verified by
+    several test cases (e.g. positive, negative and boundary variations), so the
+    relationship is one criterion to many test cases.
+
+    Attributes:
+        acceptance_criterion: The criterion this test case verifies.
+        tc_uid: Prefixed, globally unique identifier usable as a stable LLM
+            reference (e.g. ``TCU-4k9Fm2Xz8Qw1B``).
+        code: Human-facing identifier ensuring ISTQB vertical traceability
+            (e.g. ``TC-01.1.1``).
+        description: Free-text body (steps, data, expected result, notes).
+    """
+
+    acceptance_criterion = models.ForeignKey(
+        'AcceptanceCriterion',
+        on_delete=models.CASCADE,
+        related_name='test_cases',
+        verbose_name=_("Acceptance Criterion"),
+    )
+
+    tc_uid = models.CharField(
+        max_length=20,
+        unique=True,
+        default=partial(generate_humanized_uid, prefix="TCU"),
+        editable=False,
+        db_index=True,
+        help_text=_("Prefixed, globally unique identifier (e.g. TCU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
+    )
+
+    code = models.CharField(
+        max_length=20,
+        help_text=_("E.g., TC-01.1.1"),
+        verbose_name=_("Code"),
+    )
+
+
+    description = models.TextField(
+        blank=True,
+        help_text=_("Steps, test data, expected result, or extra context"),
+        verbose_name=_("Description"),
+    )
+
+    class Meta:
+        verbose_name = _("Test Case")
+        verbose_name_plural = _("Test Cases")
+        ordering = ['acceptance_criterion', 'code']
+        constraints = [
+            # A test case code is unique within its acceptance criterion, keeping
+            # the vertical AC -> TC traceability unambiguous.
+            models.UniqueConstraint(
+                fields=['acceptance_criterion', 'code'],
+                name='unique_tc_code_per_acceptance_criterion',
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.acceptance_criterion.code} -> {self.code}"
+
 

@@ -15,8 +15,8 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from testcanvas.models import AcceptanceCriterion, ApplicationMap, ApplicationMapsCollection, FlowNode, UserStory
-from testcanvas.forms import AcceptanceCriterionForm, ApplicationMapsCollectionForm, UserStoryForm
+from testcanvas.models import AcceptanceCriterion, ApplicationMap, ApplicationMapsCollection, FlowNode, UserStory, TestCase
+from testcanvas.forms import AcceptanceCriterionForm, ApplicationMapsCollectionForm, UserStoryForm, TestCaseForm
 from testcanvas.context_processors import TRACEABILITY_SESSION_KEY, TRACEABILITY_URL_NAMES
 from testcanvas.plugins import collect_object_widgets
 
@@ -242,6 +242,83 @@ def acceptance_criterion_delete(request, pk):
     return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
 
 @login_required
+def test_case_manage(request, acceptance_criterion_id):
+    """List and create TestCases for a given AcceptanceCriterion.
+
+    Standard Django view: GET renders the list plus an empty create form,
+    POST validates the form and creates a new TestCase bound to the criterion.
+    Mirrors ``acceptance_criterion_manage``.
+    """
+    criterion = get_object_or_404(
+        AcceptanceCriterion.objects.select_related('user_story__flow_node__application_map'),
+        pk=acceptance_criterion_id,
+    )
+    user_story = criterion.user_story
+    flow_node = user_story.flow_node
+
+    if request.method == 'POST':
+        form = TestCaseForm(request.POST)
+        if form.is_valid():
+            test_case = form.save(commit=False)
+            test_case.acceptance_criterion = criterion
+            test_case.save()
+            messages.success(request, _("Test Case '%(code)s' created.") % {"code": test_case.code})
+            return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
+    else:
+        form = TestCaseForm()
+
+    test_cases = criterion.test_cases.order_by('code')
+    return render(request, 'testcanvas/test_case_manage.html', {
+        'flow_node': flow_node,
+        'application_map': flow_node.application_map,
+        'criterion': criterion,
+        'test_cases': test_cases,
+        'form': form,
+    })
+
+@login_required
+def test_case_edit(request, pk):
+    """Edit an existing TestCase following the AcceptanceCriterion edit pattern."""
+    test_case = get_object_or_404(
+        TestCase.objects.select_related('acceptance_criterion__user_story__flow_node__application_map'),
+        pk=pk,
+    )
+    criterion = test_case.acceptance_criterion
+    user_story = criterion.user_story
+    flow_node = user_story.flow_node
+
+    if request.method == 'POST':
+        form = TestCaseForm(request.POST, instance=test_case)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Test Case '%(code)s' updated.") % {"code": test_case.code})
+            return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
+    else:
+        form = TestCaseForm(instance=test_case)
+
+    return render(request, 'testcanvas/test_case_edit.html', {
+        'flow_node': flow_node,
+        'application_map': flow_node.application_map,
+        'criterion': criterion,
+        'test_case': test_case,
+        'form': form,
+    })
+
+@require_POST
+@login_required
+def test_case_delete(request, pk):
+    """Delete a TestCase, returning to its Acceptance Criterion manage page."""
+    test_case = get_object_or_404(
+        TestCase.objects.select_related('acceptance_criterion'),
+        pk=pk,
+    )
+    criterion = test_case.acceptance_criterion
+    code = test_case.code
+    test_case.delete()
+    messages.success(request, _("Test Case '%(code)s' deleted.") % {"code": code})
+    return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
+
+@login_required
 def node_acceptance_criteria(request, node_id):
     """List every Acceptance Criterion of a FlowNode, grouped by User Story.
 
@@ -278,15 +355,12 @@ def node_acceptance_criteria(request, node_id):
 def flow_node_traceability(request, node_id):
     """Render the ISTQB traceability graph for a single FlowNode.
 
-    Visualises the ``UserStory -> AcceptanceCriterion`` decomposition (the test
-    basis) with Cytoscape.js. All data shaping happens here: the view emits a
-    ready-to-use Cytoscape ``elements`` list (nodes + edges) with every display
-    value and edit URL already baked into each node's ``data``. The front-end
-    only feeds this list to Cytoscape and lays it out, so the JS stays thin.
-
-    Test execution artefacts (Test Cases and coverage) are intentionally NOT
-    shown here: they live in the ``testcanvas_test_execution`` plugin, keeping
-    the core unaware of any execution concern.
+    Visualises the complete ``UserStory -> AcceptanceCriterion -> TestCase``
+    decomposition (test basis + test cases) with Cytoscape.js. All data
+    shaping happens here: the view emits a ready-to-use Cytoscape ``elements``
+    list (nodes + edges) with every display value and edit URL already baked
+    into each node's ``data``. The front-end only feeds this list to Cytoscape
+    and lays it out, so the JS stays thin.
 
     Args:
         request: The incoming HTTP request.
@@ -302,7 +376,7 @@ def flow_node_traceability(request, node_id):
 
     user_stories = list(
         flow_node.user_stories
-        .prefetch_related('criteria')
+        .prefetch_related('criteria__test_cases')
         .all()
     )
 
@@ -310,9 +384,14 @@ def flow_node_traceability(request, node_id):
     nodes = []
     edges = []
     seen_ac = set()       # criterion.pk already added as a node (dedup across stories)
+    seen_tc = set()       # test_case.pk already added as a node (dedup across criteria)
 
     for story in user_stories:
         us_id = f"US_{story.pk}"
+        criteria = list(story.criteria.all())
+        # US is complete if it has AC and all AC are covered by TC.
+        us_complete = len(criteria) > 0 and all(c.test_cases.exists() for c in criteria)
+        
         # Only the data Cytoscape needs to draw and identify the node is sent.
         # The full detail (Agile fields, edit link, etc.) is fetched on demand
         # from the shared HTMX detail partial via ``detail_url``.
@@ -321,12 +400,15 @@ def flow_node_traceability(request, node_id):
             'label': story.code,
             'type': 'us',
             'code': story.code,
+            'is_complete': str(us_complete).lower(),
             # URL of the HTMX detail card opened when the node is tapped.
             'detail_url': reverse('testcanvas:user_story_detail', args=[story.pk]),
         }})
 
-        for criterion in story.criteria.all():
+        for criterion in criteria:
             ac_id = f"AC_{criterion.pk}"
+            # AC is complete if it has at least one TC.
+            ac_complete = criterion.test_cases.exists()
 
             # A criterion can belong to several stories: add the node once but
             # always draw the US -> AC decomposition edge.
@@ -337,14 +419,33 @@ def flow_node_traceability(request, node_id):
                     'label': criterion.code,
                     'type': 'ac',
                     'code': criterion.code,
+                    'is_complete': str(ac_complete).lower(),
                     'detail_url': reverse('testcanvas:acceptance_criterion_detail', args=[criterion.pk]),
                 }})
             edges.append({'data': {'id': f"e_{us_id}_{ac_id}", 'source': us_id, 'target': ac_id, 'kind': 'decompose'}})
+
+            # Test Cases hang off their Acceptance Criterion (AC -> TC). Each
+            # criterion is added once (dedup) but the verification edge is always
+            # drawn so the AC -> TC decomposition stays visible.
+            for test_case in criterion.test_cases.all():
+                tc_id = f"TC_{test_case.pk}"
+                if test_case.pk not in seen_tc:
+                    seen_tc.add(test_case.pk)
+                    nodes.append({'data': {
+                        'id': tc_id,
+                        'label': test_case.code,
+                        'type': 'tc',
+                        'code': test_case.code,
+                        'is_complete': 'true',
+                        'detail_url': reverse('testcanvas:test_case_detail', args=[test_case.pk]),
+                    }})
+                edges.append({'data': {'id': f"e_{ac_id}_{tc_id}", 'source': ac_id, 'target': tc_id, 'kind': 'verify'}})
 
     # --- Counters, computed server-side so the template (not JS) renders the
     # stats bar and the lane button states. ---
     us_count = len(user_stories)
     ac_count = len(seen_ac)
+    tc_count = len(seen_tc)
 
     context = {
         'flow_node': flow_node,
@@ -353,6 +454,7 @@ def flow_node_traceability(request, node_id):
         'elements_json': json.dumps(nodes + edges),
         'us_count': us_count,
         'ac_count': ac_count,
+        'tc_count': tc_count,
         # Plugin extension slot: widgets (progress, buttons, dividers, …) that
         # installed plugins contribute for this flow node. Empty when no plugin
         # is installed, so the template slot simply renders nothing.
@@ -362,15 +464,12 @@ def flow_node_traceability(request, node_id):
 
 @login_required
 def flow_node_traceability_matrix(request, node_id):
-    """Render the ISTQB Requirements Traceability list for a FlowNode.
+    """Render the ISTQB Requirements Traceability Matrix (RTM) for a FlowNode.
 
-    Table view of the same data as the graph, with no JavaScript: rows are the
-    Acceptance Criteria grouped under their User Story. All counts and edit URLs
-    are computed here so the template only unpacks plain objects with
-    ``{% for %}`` / ``{% if %}``.
-
-    Test execution artefacts (Test Cases and coverage cells) are intentionally
-    NOT shown here: they live in the ``testcanvas_test_execution`` plugin.
+    Table view of the complete traceability chain: Acceptance Criteria grouped
+    under their User Stories, with Test Cases shown as sub-rows under each AC.
+    All counts and edit URLs are computed here so the template only unpacks
+    plain objects with ``{% for %}`` / ``{% if %}``.
 
     Args:
         request: The incoming HTTP request.
@@ -386,7 +485,7 @@ def flow_node_traceability_matrix(request, node_id):
 
     user_stories = list(
         flow_node.user_stories
-        .prefetch_related('criteria')
+        .prefetch_related('criteria__test_cases')
         .order_by('code')
     )
 
@@ -397,8 +496,14 @@ def flow_node_traceability_matrix(request, node_id):
         rows = []
         for criterion in story.criteria.all():
             ac_count += 1
-            rows.append({'criterion': criterion})
+            rows.append({
+                'criterion': criterion,
+                'test_cases': list(criterion.test_cases.all())
+            })
         matrix_groups.append({'user_story': story, 'rows': rows})
+
+    # Count total test cases across all criteria
+    tc_count = sum(len(row['test_cases']) for group in matrix_groups for row in group['rows'])
 
     context = {
         'flow_node': flow_node,
@@ -408,6 +513,7 @@ def flow_node_traceability_matrix(request, node_id):
         # Stats bar, mirroring the graph view.
         'us_count': len(user_stories),
         'ac_count': ac_count,
+        'tc_count': tc_count,
         # Plugin extension slot: widgets (progress, buttons, dividers, …) that
         # installed plugins contribute for this flow node. Empty when no plugin
         # is installed, so the template slot simply renders nothing.
@@ -465,6 +571,29 @@ def acceptance_criterion_detail(request, pk):
         # the test cases that verify it, or a coverage widget). Empty when no
         # plugin is installed, so the template slot simply renders nothing.
         'plugin_widgets': collect_object_widgets('acceptance_criterion', criterion, request),
+    })
+
+@login_required
+def test_case_detail(request, pk):
+    """Render a Test Case detail card as an HTMX partial.
+
+    Displayed in the shared detail sidebar when a test case node is tapped in
+    the traceability graph or clicked in the matrix. Shows the test case
+    description and its owning Acceptance Criterion.
+
+    Args:
+        request: The incoming HTTP request (typically an hx-get).
+        pk: Primary key of the ``TestCase`` to display.
+
+    Returns:
+        An ``HttpResponse`` rendering the Test Case detail partial.
+    """
+    test_case = get_object_or_404(
+        TestCase.objects.select_related('acceptance_criterion'),
+        pk=pk,
+    )
+    return render(request, 'testcanvas/details/_test_case_detail.html', {
+        'test_case': test_case,
     })
 
 @require_POST
@@ -575,6 +704,27 @@ def map_editor(request, pk):
 
     # graph_data is already stored in Cytoscape format; hand it to the template as JSON.
     graph_data = application_map.graph_data or {}
+
+    # Ensure coverage colors are applied to all nodes based on their test basis
+    # completeness (US → AC → TC chain). This is also done on save, but we do it
+    # here at load time to ensure the UI always shows accurate colors even if the
+    # graph was modified externally (e.g., via API) or created without re-saving.
+    if graph_data and graph_data.get('elements') and graph_data['elements'].get('nodes'):
+        norm_nodes = graph_data['elements']['nodes']
+        # Prefetch all related data for efficient coverage calculation.
+        flow_by_id = {
+            fn.local_graph_id: fn
+            for fn in application_map.relational_nodes.prefetch_related(
+                'user_stories__criteria__test_cases'
+            ).all()
+        }
+        # Apply coverage colors to each node in the graph.
+        for node in norm_nodes:
+            data = node.get('data', {})
+            node_id = str(data.get('id', ''))
+            flow_node = flow_by_id.get(node_id)
+            if flow_node:
+                data['color'] = get_node_coverage_color(flow_node)
 
     # Maps that can be referenced as a sub-flow by a node of THIS map. We only
     # offer other maps; the single-level nesting / cycle rules are enforced by
@@ -704,6 +854,10 @@ def map_save(request, pk):
         with transaction.atomic():
             application_map.save()  # sync_flow_nodes() (re)creates FlowNode rows
             _apply_node_types(application_map, norm_nodes)
+            # Apply coverage colors: green if complete, yellow if incomplete.
+            _apply_coverage_colors(application_map, norm_nodes)
+            # Save again with updated colors.
+            application_map.save()
     except ValidationError as exc:
         return JsonResponse({'ok': False, 'error': '; '.join(exc.messages)}, status=400)
 
@@ -712,6 +866,34 @@ def map_save(request, pk):
         'graph_data': application_map.graph_data,
         'name': application_map.name,
     })
+
+def get_node_coverage_color(flow_node):
+    """Calculate the coverage color for a FlowNode.
+
+    Returns green (#10b981) if all UserStories have complete AcceptanceCriteria
+    coverage (each AC has at least one TestCase), or yellow (#fbbf24) if any
+    AC lacks a TestCase or if any UserStory lacks an AC.
+
+    Args:
+        flow_node: The ``FlowNode`` whose coverage should be evaluated.
+
+    Returns:
+        A color code (hex string) representing the coverage status.
+    """
+    # Iterate through all user stories linked to this node.
+    for user_story in flow_node.user_stories.all():
+        criteria = list(user_story.criteria.all())
+        # US must have at least one AC; if it has none, it's incomplete.
+        if not criteria:
+            return '#fbbf24'  # yellow
+        # All AC must have at least one TC; if any lacks a TC, it's incomplete.
+        for criterion in criteria:
+            if not criterion.test_cases.exists():
+                return '#fbbf24'  # yellow
+    
+    # All US have AC, and all AC have TC: complete coverage.
+    return '#10b981'  # green
+
 
 def _apply_node_types(application_map, norm_nodes):
     """Mirror ``node_type``/``sub_flow`` from graph nodes onto the FlowNode rows.
@@ -746,6 +928,47 @@ def _apply_node_types(application_map, norm_nodes):
         # nesting and cycle checks. Any problem aborts the surrounding transaction.
         flow_node.full_clean()
         flow_node.save(update_fields=['node_type', 'sub_flow'])
+
+
+def _apply_coverage_colors(application_map, norm_nodes):
+    """Apply coverage colors to nodes based on their test basis completeness.
+
+    A node is colored green (#10b981) if all its UserStories have complete
+    AcceptanceCriteria coverage (all AC have TestCases), or yellow (#fbbf24)
+    if coverage is incomplete or missing.
+
+    Args:
+        application_map: The map whose nodes should be colored.
+        norm_nodes: The normalised graph nodes (``[{'data': {...}}, ...]``).
+    """
+    # Prefetch all related data (US → AC → TC) for efficient coverage calculation.
+    flow_by_id = {
+        fn.local_graph_id: fn
+        for fn in application_map.relational_nodes.prefetch_related(
+            'user_stories__criteria__test_cases'
+        ).all()
+    }
+    
+    for node in norm_nodes:
+        data = node['data']
+        node_id = str(data.get('id'))
+        flow_node = flow_by_id.get(node_id)
+        
+        if flow_node is None:
+            # Node not yet synchronized to FlowNode table; skip color update.
+            continue
+        
+        # Calculate and apply the coverage color based on test case completeness.
+        # Yellow if any AC lacks a TC or any US lacks an AC; green otherwise.
+        data['color'] = get_node_coverage_color(flow_node)
+    
+    # Persist the updated graph with new colors.
+    application_map.graph_data = {
+        'data': application_map.graph_data.get('data', []),
+        'directed': True,
+        'multigraph': False,
+        'elements': {'nodes': norm_nodes, 'edges': application_map.graph_data.get('elements', {}).get('edges', [])},
+    }
 
 @login_required
 def node_user_stories(request, pk, node_id):
@@ -843,48 +1066,68 @@ def collection_create(request):
     """Create a new ApplicationMapsCollection.
 
     GET renders an empty form, POST validates it and creates the collection.
+    The ``next`` target (list or tree view) is preserved so the user returns to
+    the page they came from, both on save and on cancel.
 
     Args:
         request: The incoming HTTP request.
 
     Returns:
-        An ``HttpResponse`` rendering the form, or a redirect to the list on
+        An ``HttpResponse`` rendering the form, or a redirect to ``next`` on
         success.
     """
+    # Where to go back after save/cancel; falls back to the flat list view.
+    next_url = (
+        request.POST.get('next')
+        or request.GET.get('next')
+        or reverse('testcanvas:collection_list')
+    )
+
     if request.method == 'POST':
         form = ApplicationMapsCollectionForm(request.POST)
         if form.is_valid():
             collection = form.save()
             messages.success(request, _("Collection '%(title)s' created.") % {"title": collection.title})
-            return redirect('testcanvas:collection_list')
+            return redirect(next_url)
     else:
         form = ApplicationMapsCollectionForm()
 
     return render(request, 'testcanvas/collection_form.html', {
         'form': form,
         'is_edit': False,
+        'next_url': next_url,
     })
 
 @login_required
 def collection_edit(request, pk):
     """Edit an existing ApplicationMapsCollection.
 
+    The ``next`` target (list or tree view) is preserved so the user returns to
+    the page they came from, both on save and on cancel.
+
     Args:
         request: The incoming HTTP request.
         pk: Primary key of the collection to edit.
 
     Returns:
-        An ``HttpResponse`` rendering the form, or a redirect to the list on
+        An ``HttpResponse`` rendering the form, or a redirect to ``next`` on
         success.
     """
     collection = get_object_or_404(ApplicationMapsCollection, pk=pk)
+
+    # Where to go back after save/cancel; falls back to the flat list view.
+    next_url = (
+        request.POST.get('next')
+        or request.GET.get('next')
+        or reverse('testcanvas:collection_list')
+    )
 
     if request.method == 'POST':
         form = ApplicationMapsCollectionForm(request.POST, instance=collection)
         if form.is_valid():
             form.save()
             messages.success(request, _("Collection '%(title)s' updated.") % {"title": collection.title})
-            return redirect('testcanvas:collection_list')
+            return redirect(next_url)
     else:
         form = ApplicationMapsCollectionForm(instance=collection)
 
@@ -892,6 +1135,7 @@ def collection_edit(request, pk):
         'form': form,
         'collection': collection,
         'is_edit': True,
+        'next_url': next_url,
     })
 
 @require_POST

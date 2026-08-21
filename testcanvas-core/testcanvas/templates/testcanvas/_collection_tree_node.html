@@ -1,0 +1,22 @@
+{% load i18n %}
+{# Recursive tree node: color swatch + HTMX title link that opens the detail sidebar, then its nested children. #}
+<li class="collection-tree-node">
+    <div class="collection-row">
+        <span class="collection-row__color" style="background-color: {{ node.background_color }};"
+              title="{{ node.background_color }}"></span>
+        <a class="collection-row__title"
+           href="#"
+           hx-get="{% url 'testcanvas:collection_detail' node.id %}"
+           hx-target="#detail-sidebar-body"
+           hx-swap="innerHTML"
+           onclick="return false;">{{ node.title }}</a>
+        <span class="collection-row__count" title="{% translate 'Maps in this collection' %}">{{ node.maps_count }}</span>
+    </div>
+    {% if node.children %}
+        <ul class="collection-tree">
+            {% for child in node.children %}
+                {% include "testcanvas/_collection_tree_node.html" with node=child %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li>

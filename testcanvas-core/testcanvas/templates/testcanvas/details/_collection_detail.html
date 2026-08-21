@@ -1,0 +1,54 @@
+{% load i18n %}
+{% comment %}
+    Collection detail card (HTMX partial).
+
+    Loaded into the shared detail sidebar (#detail-sidebar-body) from the
+    collections tree view. Shows the linked maps and the edit / delete actions,
+    mirroring the User Story / AC / Test Case detail cards.
+{% endcomment %}
+<div class="detail-card">
+    <div class="detail-head">
+        <span class="detail-badge badge-collection"
+              style="background-color: {{ collection.background_color }}20; color: {{ collection.background_color }};">
+            {% translate "Collection" %}
+        </span>
+        <span class="color-swatch" style="background-color: {{ collection.background_color }};"
+              title="{{ collection.background_color }}"></span>
+    </div>
+
+    <h3 class="detail-title">{{ collection.title }}</h3>
+    <div class="detail-field">
+        <span class="detail-label">{% translate "Path" %}</span>
+        <span>{{ collection.get_full_path }}</span>
+    </div>
+
+    {% if collection.description %}
+        <div class="detail-field">
+            <span class="detail-label">{% translate "Description" %}</span>
+            <span>{{ collection.description|safe }}</span>
+        </div>
+    {% endif %}
+
+    <div class="detail-field">
+        <span class="detail-label">{% translate "Linked maps" %} ({{ maps|length }})</span>
+        {% if maps %}
+            <ul class="collection-maps">
+                {% for m in maps %}
+                    <li><a href="{% url 'testcanvas:map_editor' m.pk %}">{{ m.name }}</a></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <span class="muted">{% translate "No maps linked to this collection." %}</span>
+        {% endif %}
+    </div>
+
+    <div class="detail-actions">
+        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:collection_edit' collection.pk %}?next={% url 'testcanvas:collection_tree' %}">✎ {% translate "Edit collection" %}</a>
+        <form method="post" action="{% url 'testcanvas:collection_delete' collection.pk %}"
+              onsubmit="return confirm('{% blocktranslate with title=collection.title %}Delete collection {{ title }}? Its maps will be kept but ungrouped.{% endblocktranslate %}');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">🗑 {% translate "Delete" %}</button>
+        </form>
+    </div>
+</div>
+

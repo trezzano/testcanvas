@@ -7,7 +7,11 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="m-0">{% translate "Collections" %} <span class="count-pill">{{ collections|length }}</span></h2>
-    <a class="btn btn-primary" href="{% url 'testcanvas:collection_create' %}">+ {% translate "New collection" %}</a>
+    <div class="actions">
+        {# Switch to the nested (folder/sub-folder) tree view. #}
+        <a class="btn btn-secondary" href="{% url 'testcanvas:collection_tree' %}">{% translate "Tree view" %}</a>
+        <a class="btn btn-primary" href="{% url 'testcanvas:collection_create' %}?next={% url 'testcanvas:collection_list' %}">+ {% translate "New collection" %}</a>
+    </div>
 </div>
 
 {% if collections %}
@@ -24,6 +28,10 @@
                                   title="{{ c.background_color }}"></span>
                             <h3 class="card-title h5 m-0">{{ c.title }}</h3>
                         </div>
+                        {% if c.parent_id %}
+                            {# Breadcrumb path making the nesting visible in the flat card view. #}
+                            <div class="collection-path text-muted small mb-2">{{ c.get_full_path }}</div>
+                        {% endif %}
                         {% if c.description %}
                             <div class="card-text desc mb-3">{{ c.description|safe }}</div>
                         {% endif %}
@@ -40,7 +48,7 @@
                     </div>
                     <div class="card-footer bg-transparent">
                         <div class="actions">
-                            <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:collection_edit' c.pk %}">{% translate "Edit" %}</a>
+                            <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:collection_edit' c.pk %}?next={% url 'testcanvas:collection_list' %}">{% translate "Edit" %}</a>
                             <form method="post" action="{% url 'testcanvas:collection_delete' c.pk %}"
                                   onsubmit="return confirm('{% blocktranslate with title=c.title %}Delete collection {{ title }}? Its maps will be kept but ungrouped.{% endblocktranslate %}');">
                                 {% csrf_token %}

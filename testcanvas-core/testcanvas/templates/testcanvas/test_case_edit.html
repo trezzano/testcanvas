@@ -1,0 +1,30 @@
+{% extends "testcanvas/bases/base_page.html" %}
+{% load i18n %}
+{% block title %}{% blocktranslate with code=test_case.code %}Edit Test Case · {{ code }}{% endblocktranslate %}{% endblock %}
+{% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} · {{ user_story.code }} · {{ criterion.code }}</div>{% endblock %}
+{% block page_heading %}{% blocktranslate with code=test_case.code %}Edit Test Case · {{ code }}{% endblocktranslate %}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>{% translate "Edit details" %}</h2>
+    <form method="post" action="{% url 'testcanvas:test_case_edit' test_case.pk %}">
+        {% csrf_token %}
+        <div class="field">
+            <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
+            {{ form.code }}
+            {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.description.id_for_label }}">{% translate "Description" %}</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{% translate "Save changes" %}</button>
+            <a class="btn btn-secondary" href="{% url 'testcanvas:test_case_manage' criterion.pk %}">{% translate "Cancel" %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

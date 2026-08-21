@@ -41,6 +41,7 @@ def app_context(request):
     context.update(traceability_view(request))
     context.update(branding_settings(request))
     context.update(plugin_flags(request))
+    context.update(plugin_navbar(request))
     return context
 
 
@@ -89,6 +90,92 @@ def plugin_flags(request) -> dict[str, set[str]]:
         A context dict with ``installed_app_labels`` (the set of app labels).
     """
     return {"installed_app_labels": {config.label for config in apps.get_app_configs()}}
+
+
+
+
+def plugin_navbar(request) -> dict:
+    """Collect navbar links declared by every installed app.
+
+    Scans each ``AppConfig`` for a ``nav_items`` list or a
+    ``get_nav_items(request)`` method, resolves each ``url_name`` defensively,
+    computes the active state from the current URL namespace, and returns the
+    sorted list under ``nav_links``. Running on every render, it stays cheap:
+    it only calls ``reverse()`` on a handful of declared links.
+
+    Args:
+        request: The incoming HTTP request.
+
+    Returns:
+        A context dict with ``nav_links``: a list of
+        ``{"label", "url", "icon", "active"}`` dicts ready for the template.
+    """
+    # The navbar is only shown to authenticated users, so skip the work otherwise.
+    if not getattr(request, "user", None) or not request.user.is_authenticated:
+        return {"nav_links": []}
+
+    # Current namespace (e.g. "stats") used to highlight the active section.
+    match = getattr(request, "resolver_match", None)
+    current_namespace = match.namespace if match else ""
+
+    app_order_map = getattr(settings, "NAVBAR_APP_ORDER", {}) or {}
+
+    links: list[dict] = []
+    for config in apps.get_app_configs():
+        app_label = getattr(config, "label", "") or getattr(config, "name", "")
+        raw_items = _items_for_config(config, request)
+        for item in raw_items:
+            link = _normalize_item(item, app_label, request)
+            if link is not None:  # None => unresolved URL or missing permission
+                configured_order = app_order_map.get(app_label)
+                link["configured"] = isinstance(configured_order, int)
+                link["effective_order"] = configured_order if isinstance(configured_order, int) else None
+                link["app_label"] = app_label
+                namespace = link["url_name"].split(":", 1)[0] if ":" in link["url_name"] else ""
+                link["active"] = bool(namespace) and namespace == current_namespace
+                links.append(link)
+
+    # Stable ordering: settings overrides first, then alphabetical fallback.
+    links.sort(
+        key=lambda link: (
+            0 if link["configured"] else 1,
+            link["effective_order"] if link["effective_order"] is not None else 0,
+            link["app_label"].lower(),
+            link["label"].lower(),
+        )
+    )
+
+    return {
+        "nav_links": [
+            {
+                "label": link["label"],
+                "url": link["url"],
+                "icon": link["icon"],
+                "active": link["active"],
+            }
+            for link in links
+        ]
+    }
+
+
+def _items_for_config(config, request) -> list[dict]:
+    """Return the raw nav items a single app config declares.
+
+    A ``get_nav_items(request)`` method takes precedence over the static
+    ``nav_items`` attribute so a plugin can compute request-aware links.
+
+    Args:
+        config: The ``AppConfig`` being inspected.
+        request: The incoming HTTP request.
+
+    Returns:
+        The list of raw nav-item dicts (empty when the app declares none).
+    """
+    getter = getattr(config, "get_nav_items", None)
+    if callable(getter):
+        return getter(request) or []
+    return list(getattr(config, "nav_items", []) or [])
+
 
 
 def branding_settings(request):

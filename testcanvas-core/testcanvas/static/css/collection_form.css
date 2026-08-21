@@ -9,12 +9,46 @@
     background: #fff;
 }
 
-/* Native color input: make it a reasonably sized square swatch. */
-.field-color {
-    width: 64px;
-    height: 40px;
-    padding: 2px;
+/* Color palette: swatches rendered from RadioSelect options. */
+.color-palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Each swatch is a label wrapping a hidden radio and a colored dot. */
+.color-palette .swatch {
     cursor: pointer;
+    line-height: 0;
+}
+
+/* Hide the actual radio input; the dot below is the visual control. */
+.color-palette .swatch input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The visible colored circle. */
+.color-palette .swatch-dot {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+    transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.color-palette .swatch:hover .swatch-dot {
+    transform: scale(1.1);
+}
+
+/* Highlight the selected swatch with a ring. */
+.color-palette .swatch input[type="radio"]:checked + .swatch-dot {
+    border-color: #111827;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #111827;
 }
 
 /* Vertical spacing between form fields. */
@@ -28,4 +62,3 @@
     gap: 0.5rem;
     margin-top: 1rem;
 }
-

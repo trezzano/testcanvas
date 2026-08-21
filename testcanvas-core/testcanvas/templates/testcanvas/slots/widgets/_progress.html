@@ -1,0 +1,21 @@
+{% comment %}
+Progress-bar widget: a Bootstrap progress bar with an optional comment above it.
+
+``data`` keys (already validated by testcanvas.plugins._normalize_progress):
+    label       optional caption shown above the bar (the "comment")
+    pct         integer 0..100, the fill percentage
+    context     Bootstrap contextual token for the bar fill (bg-{context})
+    show_value  when true, print "{pct}%" inside the bar
+    title       optional tooltip on the whole widget
+{% endcomment %}
+<div class="plugin-widget plugin-widget-progress" {% if data.title %}title="{{ data.title }}"{% endif %}>
+    {% if data.label %}
+        <div class="plugin-widget-progress-label small text-muted">{{ data.label }}</div>
+    {% endif %}
+    <div class="progress" role="progressbar" aria-valuenow="{{ data.pct }}" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar bg-{{ data.context }}" style="width: {{ data.pct }}%;">
+            {% if data.show_value %}{{ data.pct }}%{% endif %}
+        </div>
+    </div>
+</div>
+
