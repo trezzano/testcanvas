@@ -15,6 +15,7 @@ from .views.standard_views import (
     # traceability page
     flow_node_traceability,
     flow_node_traceability_matrix,
+    flow_node_traceability_go,
     set_traceability_view,
     # shared HTMX detail cards (US / AC / TC), reused by graph and RTM table
     user_story_detail,
@@ -66,6 +67,8 @@ urlpatterns = [
     # traceability page
     path('flow-node/<int:node_id>/traceability/', flow_node_traceability, name='flow_node_traceability'),
     path('flow-node/<int:node_id>/traceability/matrix/', flow_node_traceability_matrix, name='flow_node_traceability_matrix'),
+    # single entry point: redirects to graph or matrix according to the session preference
+    path('flow-node/<int:node_id>/traceability/go/', flow_node_traceability_go, name='flow_node_traceability_go'),
     # single control point to pick the preferred traceability view (graph/matrix)
     path('traceability/view/', set_traceability_view, name='set_traceability_view'),
 

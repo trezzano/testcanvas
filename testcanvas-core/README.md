@@ -55,4 +55,4 @@ Full legal terms read the license file in the root directory.
 
 ## how install
 
-pip install git+https://github.com/trezzano/testcanvas.git@v1.0.0
+pip install "git+https://github.com/trezzano/testcanvas.git#subdirectory=testcanvas-core"

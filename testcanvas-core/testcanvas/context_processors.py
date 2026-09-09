@@ -81,7 +81,7 @@ def plugin_flags(request) -> dict[str, set[str]]:
     an optional plugin is installed (for example a plugin-provided sidebar).
     Exposing the raw set of installed app labels keeps the core plugin-agnostic:
     it never hardcodes a specific plugin name, while templates can still guard
-    with ``{% if "testcanvas_test_execution" in installed_app_labels %}``.
+    with ``{% if "my_optional_plugin" in installed_app_labels %}``.
 
     Args:
         request: The incoming HTTP request.

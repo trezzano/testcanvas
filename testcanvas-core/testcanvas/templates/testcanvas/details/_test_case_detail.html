@@ -39,6 +39,14 @@
 
     <div class="detail-actions">
          <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:test_case_edit' test_case.pk %}">✎ {% translate "Edit Test Case" %}</a>
+         {# Delete with a native confirmation dialog; the view redirects back to #}
+         {# the node's traceability in the user's preferred view (graph/matrix). #}
+         <form method="post"
+               action="{% url 'testcanvas:test_case_delete' test_case.pk %}"
+               onsubmit="return confirm('{% blocktranslate with code=test_case.code %}Delete test case {{ code }}?{% endblocktranslate %}');">
+             {% csrf_token %}
+             <button type="submit" class="btn btn-danger btn-sm">🗑 {% translate "Delete" %}</button>
+         </form>
      </div>
 </div>
 

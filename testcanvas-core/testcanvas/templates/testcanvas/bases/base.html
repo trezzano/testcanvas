@@ -31,12 +31,142 @@
             {% include "testcanvas/bases/_navbar.html" %}
         {% endif %}
     {% endblock %}
+    {% comment %}
+        Global flash messages rendered as top-right toasts for every user
+        (authenticated or not). Toasts overlay the page (position: fixed) so
+        they never shift the layout, auto-dismiss after a few seconds, and can
+        be closed manually via the "×" button.
+    {% endcomment %}
+    {% block messages %}
+        {% if messages %}
+            <ul class="messages" role="alert" aria-live="polite" aria-atomic="true">
+                {% for message in messages %}
+                    <li class="messages__toast {{ message.tags }}">
+                        <span class="messages__text">{{ message }}</span>
+                        <button type="button" class="messages__close"
+                                aria-label="{% translate 'Close' %}">&times;</button>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endblock %}
     {% block body %}{% endblock %}
+
+    {% comment %}
+        Global, non-blocking HTMX loading spinner. A single indicator pinned to
+        the bottom-right corner is toggled centrally on the HTMX request
+        lifecycle (see script below), so every hx-get / hx-post shows a
+        "waiting for data" hint without per-element markup. It stays
+        non-interactive so it never blocks the page.
+    {% endcomment %}
+    <div class="htmx-spinner" id="htmx-spinner" role="status" aria-live="polite" aria-hidden="true">
+        <span class="htmx-spinner__ring" aria-hidden="true"></span>
+        <span class="htmx-spinner__label">{% translate "Loading…" %}</span>
+    </div>
 
     <!-- Bootstrap bundle (Popper included) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- HTMX: progressive enhancement for partial page updates -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    {% comment %}
+        Centralized HTMX loading spinner controller.
+
+        Shows the global bottom-right spinner while any HTMX request is in
+        flight and hides it when the last pending request settles. A reference
+        counter handles overlapping requests, and a short show-delay prevents
+        the spinner from flickering on very fast responses. Any element (or one
+        of its ancestors) carrying the ``hx-no-spinner`` class opts out.
+    {% endcomment %}
+    <script>
+        (function () {
+            var SHOW_DELAY_MS = 150;   // Wait before showing to avoid flicker.
+            var spinner = document.getElementById('htmx-spinner');
+            if (!spinner) return;
+
+            var pending = 0;           // Count of in-flight HTMX requests.
+            var showTimer = null;      // Pending "show" timeout, if any.
+
+            /** Return true when the request source opted out of the spinner. */
+            function isOptedOut(event) {
+                var el = event && event.detail && event.detail.elt;
+                return !!(el && el.closest && el.closest('.hx-no-spinner'));
+            }
+
+            /** Reveal the spinner (called after the show-delay elapses). */
+            function reveal() {
+                showTimer = null;
+                if (pending > 0) {
+                    spinner.classList.add('is-active');
+                    spinner.setAttribute('aria-hidden', 'false');
+                }
+            }
+
+            /** Register a new in-flight request and arm the delayed reveal. */
+            function onStart(event) {
+                if (isOptedOut(event)) return;
+                pending += 1;
+                if (pending === 1 && showTimer === null) {
+                    showTimer = window.setTimeout(reveal, SHOW_DELAY_MS);
+                }
+            }
+
+            /** Mark a request as settled and hide the spinner when idle. */
+            function onEnd(event) {
+                if (isOptedOut(event)) return;
+                pending = Math.max(0, pending - 1);
+                if (pending === 0) {
+                    if (showTimer !== null) {
+                        window.clearTimeout(showTimer);
+                        showTimer = null;
+                    }
+                    spinner.classList.remove('is-active');
+                    spinner.setAttribute('aria-hidden', 'true');
+                }
+            }
+
+            // Delegated on the document body so it also covers HTMX-swapped
+            // content added after page load.
+            document.body.addEventListener('htmx:beforeRequest', onStart);
+            document.body.addEventListener('htmx:afterRequest', onEnd);
+            // Safety net: if a request errors before "afterRequest", still clear.
+            document.body.addEventListener('htmx:responseError', onEnd);
+            document.body.addEventListener('htmx:sendError', onEnd);
+            document.body.addEventListener('htmx:timeout', onEnd);
+        })();
+    </script>
+    {% comment %}
+        Toast behaviour: close on "×" click and auto-dismiss after a timeout.
+        A short fade-out (via the "is-hiding" class) runs before removal so the
+        disappearance is not abrupt.
+    {% endcomment %}
+    <script>
+        (function () {
+            var AUTO_DISMISS_MS = 4000;
+            var FADE_MS = 300;
+
+            function hideToast(toast) {
+                if (!toast || toast.classList.contains('is-hiding')) {
+                    return;
+                }
+                toast.classList.add('is-hiding');
+                window.setTimeout(function () {
+                    toast.remove();
+                }, FADE_MS);
+            }
+
+            document.querySelectorAll('.messages__toast').forEach(function (toast) {
+                var closeBtn = toast.querySelector('.messages__close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function () {
+                        hideToast(toast);
+                    });
+                }
+                window.setTimeout(function () {
+                    hideToast(toast);
+                }, AUTO_DISMISS_MS);
+            });
+        })();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

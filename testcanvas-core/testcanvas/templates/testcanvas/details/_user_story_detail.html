@@ -63,6 +63,14 @@
     <div class="detail-actions">
         <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:user_story_edit' user_story.flow_node.pk user_story.pk %}">✎ {% translate "Edit User Story" %}</a>
         <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">{% translate "Manage AC" %}</a>
+        {# Delete with a native confirmation dialog; the view redirects back to #}
+        {# the node's traceability in the user's preferred view (graph/matrix). #}
+        <form method="post"
+              action="{% url 'testcanvas:user_story_delete' user_story.flow_node.pk user_story.pk %}"
+              onsubmit="return confirm('{% blocktranslate with code=user_story.code %}Delete user story {{ code }}?{% endblocktranslate %}');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">🗑 {% translate "Delete" %}</button>
+        </form>
     </div>
 </div>
 

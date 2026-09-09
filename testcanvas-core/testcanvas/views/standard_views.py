@@ -17,7 +17,11 @@ from django.views.decorators.http import require_POST
 
 from testcanvas.models import AcceptanceCriterion, ApplicationMap, ApplicationMapsCollection, FlowNode, UserStory, TestCase
 from testcanvas.forms import AcceptanceCriterionForm, ApplicationMapsCollectionForm, UserStoryForm, TestCaseForm
-from testcanvas.context_processors import TRACEABILITY_SESSION_KEY, TRACEABILITY_URL_NAMES
+from testcanvas.context_processors import (
+    DEFAULT_TRACEABILITY_MODE,
+    TRACEABILITY_SESSION_KEY,
+    TRACEABILITY_URL_NAMES,
+)
 from testcanvas.plugins import collect_object_widgets
 
 
@@ -159,7 +163,8 @@ def user_story_delete(request, node_id, pk):
     code = user_story.code
     user_story.delete()
     messages.success(request, _("User Story '%(code)s' deleted.") % {"code": code})
-    return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
+    # Back to the node's traceability, in whichever view the user prefers.
+    return redirect('testcanvas:flow_node_traceability_go', node_id=flow_node.pk)
 
 @login_required
 def acceptance_criterion_manage(request, user_story_id):
@@ -230,16 +235,17 @@ def acceptance_criterion_edit(request, pk):
 @require_POST
 @login_required
 def acceptance_criterion_delete(request, pk):
-    """Delete an AcceptanceCriterion, returning to its UserStory manage page."""
+    """Delete an AcceptanceCriterion, returning to its node's traceability."""
     criterion = get_object_or_404(
-        AcceptanceCriterion.objects.select_related('user_story'),
+        AcceptanceCriterion.objects.select_related('user_story__flow_node'),
         pk=pk,
     )
-    user_story = criterion.user_story
+    flow_node = criterion.user_story.flow_node
     code = criterion.code
     criterion.delete()
     messages.success(request, _("Acceptance Criterion '%(code)s' deleted.") % {"code": code})
-    return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
+    # Back to the node's traceability, in whichever view the user prefers.
+    return redirect('testcanvas:flow_node_traceability_go', node_id=flow_node.pk)
 
 @login_required
 def test_case_manage(request, acceptance_criterion_id):
@@ -307,16 +313,19 @@ def test_case_edit(request, pk):
 @require_POST
 @login_required
 def test_case_delete(request, pk):
-    """Delete a TestCase, returning to its Acceptance Criterion manage page."""
+    """Delete a TestCase, returning to its node's traceability."""
     test_case = get_object_or_404(
-        TestCase.objects.select_related('acceptance_criterion'),
+        TestCase.objects.select_related(
+            'acceptance_criterion__user_story__flow_node',
+        ),
         pk=pk,
     )
-    criterion = test_case.acceptance_criterion
+    flow_node = test_case.acceptance_criterion.user_story.flow_node
     code = test_case.code
     test_case.delete()
     messages.success(request, _("Test Case '%(code)s' deleted.") % {"code": code})
-    return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
+    # Back to the node's traceability, in whichever view the user prefers.
+    return redirect('testcanvas:flow_node_traceability_go', node_id=flow_node.pk)
 
 @login_required
 def node_acceptance_criteria(request, node_id):
@@ -619,6 +628,34 @@ def set_traceability_view(request):
 
     # Redirect back where the toggle was pressed; fall back to the flow list.
     return redirect(request.POST.get('next') or 'testcanvas:map_list')
+
+
+@login_required
+def flow_node_traceability_go(request, node_id):
+    """Redirect to the traceability page of a node in the preferred view.
+
+    Single entry point for "go to traceability": instead of every caller having
+    to know whether the user prefers the graph or the matrix, they all point
+    here and this view dispatches to the right page. The preference lives in the
+    session (written by ``set_traceability_view``) so the whole app stays in
+    sync with a single source of truth.
+
+    Args:
+        request: The incoming HTTP request.
+        node_id: Primary key of the ``FlowNode`` to open the traceability for.
+
+    Returns:
+        A redirect to either the graph or the matrix traceability view for the
+        given flow node, according to the session preference.
+    """
+    # Read the preferred mode from the session, falling back to the default.
+    mode = request.session.get(TRACEABILITY_SESSION_KEY, DEFAULT_TRACEABILITY_MODE)
+    # Map the mode to its URL name, guarding against stale/invalid session values.
+    url_name = TRACEABILITY_URL_NAMES.get(
+        mode, TRACEABILITY_URL_NAMES[DEFAULT_TRACEABILITY_MODE]
+    )
+    return redirect(url_name, node_id=node_id)
+
 
 @login_required
 def map_list(request):

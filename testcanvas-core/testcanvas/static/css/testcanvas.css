@@ -603,19 +603,59 @@ tr:hover td {
 }
 
 /* ==========================================================================
-   Flash messages
+   Flash messages (top-right toast stack)
+   Rendered globally in base.html. Toasts are fixed-position overlays so they
+   never shift the page layout; they auto-dismiss and can be closed manually.
    ========================================================================== */
 .messages {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1080; /* above navbar and Bootstrap components */
     list-style: none;
     padding: 0;
-    margin: 0 0 1.5rem;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    width: min(360px, calc(100vw - 2rem));
+    pointer-events: none; /* let clicks pass through the container gaps */
 }
-.messages li {
+.messages__toast {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
     padding: .75rem 1.1rem;
     border-radius: 4px; /* professional squared */
-    margin-bottom: .6rem;
     font-size: .88rem;
     font-weight: 500;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    pointer-events: auto; /* toasts themselves remain interactive */
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity .3s ease, transform .3s ease;
+}
+.messages__toast.is-hiding {
+    opacity: 0;
+    transform: translateX(1rem);
+}
+.messages__text {
+    flex: 1 1 auto;
+}
+.messages__close {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+    opacity: .65;
+}
+.messages__close:hover {
+    opacity: 1;
 }
 .messages .success {
     background: var(--tc-success-bg);
@@ -626,6 +666,16 @@ tr:hover td {
     background: var(--tc-error-bg);
     color: var(--tc-error-fg);
     border: 1px solid rgba(190, 18, 60, 0.1);
+}
+.messages .info {
+    background: #eff6ff; /* Pastel sky blue */
+    color: #1d4ed8;
+    border: 1px solid rgba(29, 78, 216, 0.1);
+}
+.messages .warning {
+    background: #fffbeb; /* Pastel amber */
+    color: #b45309;
+    border: 1px solid rgba(180, 83, 9, 0.1);
 }
 
 /* ==========================================================================
@@ -923,6 +973,70 @@ tr:hover td {
 }
 .plugin-widget-progress-label {
     margin-bottom: 0.15rem;
+}
+
+/* ==========================================================================
+   Global HTMX loading spinner
+   --------------------------------------------------------------------------
+   A single, non-blocking indicator pinned to the bottom-right corner. It is
+   toggled centrally (see base.html) on the HTMX request lifecycle so every
+   ``hx-get`` / ``hx-post`` in the app shows a "waiting for data" hint without
+   per-element markup. Elements can opt out with the ``hx-no-spinner`` class.
+   ========================================================================== */
+.htmx-spinner {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 1080; /* above drawers/sidebars, below toasts if any */
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.95rem;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--tc-border);
+    border-radius: 999px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+    color: var(--tc-ink);
+    font-size: 0.85rem;
+    font-weight: 600;
+    /* Hidden by default; fade in only when a request is in flight. The panel
+       stays non-interactive so it never blocks clicks on the page. */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(0.4rem);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
+}
+/* Shown while at least one HTMX request is pending (toggled from JS). */
+.htmx-spinner.is-active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s;
+}
+/* The rotating ring. */
+.htmx-spinner__ring {
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 50%;
+    border: 2px solid var(--tc-primary-soft);
+    border-top-color: var(--tc-primary);
+    animation: htmx-spinner-rotate 0.7s linear infinite;
+}
+.htmx-spinner__label {
+    white-space: nowrap;
+}
+@keyframes htmx-spinner-rotate {
+    to { transform: rotate(360deg); }
+}
+/* Respect users who prefer reduced motion: keep the ring visible, drop the
+   spin so nothing flashes or rotates for them. */
+@media (prefers-reduced-motion: reduce) {
+    .htmx-spinner__ring {
+        animation: none;
+    }
 }
 
 

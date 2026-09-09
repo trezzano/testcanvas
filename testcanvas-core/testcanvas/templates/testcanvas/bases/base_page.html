@@ -1,7 +1,10 @@
 {% extends "testcanvas/bases/base.html" %}
 {% comment %}
     Standard page layout: page header (page-specific only) + centered content
-    area with flash messages. Used by list / manage / edit pages.
+    area. Used by list / manage / edit pages.
+
+    Flash messages are rendered globally as top-right toasts in base.html, so
+    this template no longer includes a messages block.
 
     The global logout / branding lives in the shared navbar (see base.html), so
     this header must contain ONLY page-specific elements.
@@ -21,13 +24,6 @@
     {% block header_link %}{% endblock %}
 </header>
 <div class="wrap {% block wrap_class %}{% endblock %}">
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li class="{{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
     {% block content %}{% endblock %}
 </div>
 {% endblock %}

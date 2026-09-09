@@ -128,10 +128,10 @@ URL) and can hide the button behind a permission.
 ```python
 {
     "type": "button",
-    "label": "Manage Test Cases",
-    "url_name": "testcanvas_test_execution:test_case_manage",
+    "label": "Open in My Plugin",
+    "url_name": "my_plugin:object_detail",
     "args": [obj.pk],
-    "icon": "🧪",
+    "icon": "🔗",
     "class_type": "primary",
 }
 ```
@@ -172,8 +172,8 @@ class MyPluginConfig(AppConfig):
             {"type": "divider"},
             {
                 "type": "button",
-                "label": "Open details",
-                "url_name": "my_plugin:details",
+                "label": "Open in My Plugin",
+                "url_name": "my_plugin:object_detail",
                 "args": [obj.pk],
                 "class_type": "primary",
             },
@@ -187,23 +187,23 @@ file needs to change.
 
 ## 4. A complete real example
 
-The bundled **Test Execution** plugin contributes a coverage bar and a
-"Manage Test Cases" button to each flow node, and a coverage bar to the whole
-map. This is what its `get_object_widgets` produces for a flow node:
+A **stats** plugin contributes a coverage bar and a "View report" button to each
+flow node, and a coverage bar to the whole map. This is what its
+`get_object_widgets` produces for a flow node:
 
 ```mermaid
 flowchart TB
     subgraph Node["Flow node page"]
         P["progress — Test coverage 7/10 (green)"]
         D["divider"]
-        B["button — 🧪 Manage Test Cases"]
+        B["button — 📊 View report"]
     end
     P --> D --> B
 ```
 
 The colour of the bar changes with the value: green at ≥ 80%, yellow at ≥ 50%,
 red below. The button only appears on flow nodes, because maps have no per-node
-test-case page.
+report page.
 
 ---
 
@@ -242,4 +242,5 @@ flowchart TD
 - [ ] `class_type` uses a Bootstrap colour token only.
 - [ ] Widgets are ordered the way you want them to appear.
 - [ ] Your app is listed in `INSTALLED_APPS`.
+
 

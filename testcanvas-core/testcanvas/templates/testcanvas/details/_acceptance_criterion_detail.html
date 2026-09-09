@@ -70,6 +70,14 @@
     <div class="detail-actions">
          <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:acceptance_criterion_edit' criterion.pk %}">✎ {% translate "Edit Acceptance Criterion" %}</a>
          <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:test_case_manage' criterion.pk %}">🧪 {% translate "Manage Test Cases" %}</a>
+         {# Delete with a native confirmation dialog; the view redirects back to #}
+         {# the node's traceability in the user's preferred view (graph/matrix). #}
+         <form method="post"
+               action="{% url 'testcanvas:acceptance_criterion_delete' criterion.pk %}"
+               onsubmit="return confirm('{% blocktranslate with code=criterion.code %}Delete acceptance criterion {{ code }}?{% endblocktranslate %}');">
+             {% csrf_token %}
+             <button type="submit" class="btn btn-danger btn-sm">🗑 {% translate "Delete" %}</button>
+         </form>
      </div>
 </div>
 
