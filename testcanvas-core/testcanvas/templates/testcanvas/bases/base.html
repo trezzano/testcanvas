@@ -72,66 +72,111 @@
         Centralized HTMX loading spinner controller.
 
         Shows the global bottom-right spinner while any HTMX request is in
-        flight and hides it when the last pending request settles. A reference
-        counter handles overlapping requests, and a short show-delay prevents
-        the spinner from flickering on very fast responses. Any element (or one
-        of its ancestors) carrying the ``hx-no-spinner`` class opts out.
+        flight and hides it once every request has settled.
+
+        Robustness notes (why this is not a plain +1/-1 counter):
+          * In-flight requests are tracked in a Set keyed by each request's XHR
+            (falling back to the source element), so overlapping requests are
+            counted correctly and a stray "settle" event can never drive the
+            count negative or desync the indicator.
+          * Events are bound on ``document`` and cover HTMX-swapped content.
+          * A short show-delay suppresses flicker on very fast (localhost)
+            responses, while a minimum-visible window keeps the spinner
+            perceivable once it does appear.
+          * A safety timeout force-clears the indicator if an expected settle
+            event is ever missed (e.g. the triggering element was swapped out
+            of the DOM, so its ``htmx:afterRequest`` never reached us), so the
+            spinner can never get stuck on screen.
+          * Any element (or one of its ancestors) carrying the
+            ``hx-no-spinner`` class opts out.
     {% endcomment %}
     <script>
         (function () {
-            var SHOW_DELAY_MS = 150;   // Wait before showing to avoid flicker.
+            var SHOW_DELAY_MS = 120;    // Delay before showing (anti-flicker).
+            var MIN_VISIBLE_MS = 350;   // Keep visible at least this long.
+            var SAFETY_MS = 15000;      // Force-clear if a settle is ever lost.
+
             var spinner = document.getElementById('htmx-spinner');
             if (!spinner) return;
 
-            var pending = 0;           // Count of in-flight HTMX requests.
-            var showTimer = null;      // Pending "show" timeout, if any.
+            var inFlight = new Set();   // Active request tokens (XHR or element).
+            var showTimer = null;       // Pending delayed "show", if any.
+            var hideTimer = null;       // Pending "hide" honouring min-visible.
+            var safetyTimer = null;     // Watchdog against a lost settle event.
+            var shownAt = 0;            // Timestamp the spinner became visible.
 
             /** Return true when the request source opted out of the spinner. */
-            function isOptedOut(event) {
+            function optedOut(event) {
                 var el = event && event.detail && event.detail.elt;
                 return !!(el && el.closest && el.closest('.hx-no-spinner'));
             }
 
+            /** Stable per-request key: prefer the XHR, fall back to element. */
+            function tokenOf(event) {
+                var detail = event && event.detail;
+                return (detail && (detail.xhr || detail.elt)) || event;
+            }
+
             /** Reveal the spinner (called after the show-delay elapses). */
-            function reveal() {
+            function show() {
                 showTimer = null;
-                if (pending > 0) {
-                    spinner.classList.add('is-active');
-                    spinner.setAttribute('aria-hidden', 'false');
-                }
+                if (inFlight.size === 0) return;          // Already settled.
+                if (hideTimer) { window.clearTimeout(hideTimer); hideTimer = null; }
+                spinner.classList.add('is-active');
+                spinner.setAttribute('aria-hidden', 'false');
+                shownAt = Date.now();
+            }
+
+            /** Immediately hide the spinner. */
+            function hideNow() {
+                hideTimer = null;
+                spinner.classList.remove('is-active');
+                spinner.setAttribute('aria-hidden', 'true');
+            }
+
+            /** Hide once idle, honouring the minimum-visible window. */
+            function scheduleHide() {
+                if (inFlight.size > 0) return;             // Still busy.
+                if (showTimer) { window.clearTimeout(showTimer); showTimer = null; }
+                if (!spinner.classList.contains('is-active')) { hideNow(); return; }
+                var remaining = MIN_VISIBLE_MS - (Date.now() - shownAt);
+                if (hideTimer) window.clearTimeout(hideTimer);
+                hideTimer = window.setTimeout(hideNow, Math.max(0, remaining));
             }
 
             /** Register a new in-flight request and arm the delayed reveal. */
             function onStart(event) {
-                if (isOptedOut(event)) return;
-                pending += 1;
-                if (pending === 1 && showTimer === null) {
-                    showTimer = window.setTimeout(reveal, SHOW_DELAY_MS);
+                if (optedOut(event)) return;
+                inFlight.add(tokenOf(event));
+                if (inFlight.size === 1) {
+                    if (showTimer) window.clearTimeout(showTimer);
+                    showTimer = window.setTimeout(show, SHOW_DELAY_MS);
+                    if (safetyTimer) window.clearTimeout(safetyTimer);
+                    safetyTimer = window.setTimeout(function () {
+                        // A settle event was lost; recover instead of hanging.
+                        inFlight.clear();
+                        scheduleHide();
+                    }, SAFETY_MS);
                 }
             }
 
             /** Mark a request as settled and hide the spinner when idle. */
             function onEnd(event) {
-                if (isOptedOut(event)) return;
-                pending = Math.max(0, pending - 1);
-                if (pending === 0) {
-                    if (showTimer !== null) {
-                        window.clearTimeout(showTimer);
-                        showTimer = null;
-                    }
-                    spinner.classList.remove('is-active');
-                    spinner.setAttribute('aria-hidden', 'true');
+                inFlight.delete(tokenOf(event));
+                if (inFlight.size === 0) {
+                    if (safetyTimer) { window.clearTimeout(safetyTimer); safetyTimer = null; }
+                    scheduleHide();
                 }
             }
 
-            // Delegated on the document body so it also covers HTMX-swapped
-            // content added after page load.
-            document.body.addEventListener('htmx:beforeRequest', onStart);
-            document.body.addEventListener('htmx:afterRequest', onEnd);
-            // Safety net: if a request errors before "afterRequest", still clear.
-            document.body.addEventListener('htmx:responseError', onEnd);
-            document.body.addEventListener('htmx:sendError', onEnd);
-            document.body.addEventListener('htmx:timeout', onEnd);
+            // Bind on `document` so HTMX-swapped content is covered too.
+            document.addEventListener('htmx:beforeRequest', onStart);
+            document.addEventListener('htmx:afterRequest', onEnd);
+            // Safety net: if a request fails before "afterRequest", still clear.
+            document.addEventListener('htmx:responseError', onEnd);
+            document.addEventListener('htmx:sendError', onEnd);
+            document.addEventListener('htmx:timeout', onEnd);
+            document.addEventListener('htmx:abort', onEnd);
         })();
     </script>
     {% comment %}
