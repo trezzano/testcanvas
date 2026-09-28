@@ -57,6 +57,10 @@
             {{ form.additional_notes }}
             {% if form.additional_notes.errors %}<div class="errors">{{ form.additional_notes.errors|striptags }}</div>{% endif %}
         </div>
+
+        {# Project-enabled optional fields (rendered only when turned on). #}
+        {% include "testcanvas/slots/_optional_form_fields.html" with form=form %}
+
         <button type="submit" class="btn btn-primary">+ {% translate "Add User Story" %}</button>
     </form>
 </div>

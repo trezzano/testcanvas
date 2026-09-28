@@ -6,54 +6,9 @@
 {% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block wrap_class %}wrap-narrow{% endblock %}
 {% block content %}
+{# Reuse the HTMX detail partial so form markup is defined only once. The #}
+{# partial hx-posts to the detail URL and swaps itself in place on save. #}
 <div class="card">
-    <h2>{% translate "Edit details" %}</h2>
-    <form method="post" action="{% url 'testcanvas:user_story_edit' flow_node.pk user_story.pk %}">
-        {% csrf_token %}
-        <div class="field">
-            <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
-            {{ form.code }}
-            {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="field">
-            <label for="{{ form.title.id_for_label }}">{% translate "Title" %}</label>
-            {{ form.title }}
-            {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="field">
-            <label for="{{ form.priority.id_for_label }}">{% translate "Priority" %}</label>
-            {{ form.priority }}
-            {% if form.priority.errors %}<div class="errors">{{ form.priority.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="field">
-            <label for="{{ form.description.id_for_label }}">{% translate "Description" %}</label>
-            {{ form.description }}
-            {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="field">
-            <label for="{{ form.as_a.id_for_label }}">{% translate "As a..." %}</label>
-            {{ form.as_a }}
-            {% if form.as_a.errors %}<div class="errors">{{ form.as_a.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="field">
-            <label for="{{ form.i_want_to.id_for_label }}">{% translate "I want to..." %}</label>
-            {{ form.i_want_to }}
-            {% if form.i_want_to.errors %}<div class="errors">{{ form.i_want_to.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="field">
-            <label for="{{ form.so_that.id_for_label }}">{% translate "So that..." %}</label>
-            {{ form.so_that }}
-            {% if form.so_that.errors %}<div class="errors">{{ form.so_that.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="field">
-            <label for="{{ form.additional_notes.id_for_label }}">{% translate "Additional notes" %}</label>
-            {{ form.additional_notes }}
-            {% if form.additional_notes.errors %}<div class="errors">{{ form.additional_notes.errors|striptags }}</div>{% endif %}
-        </div>
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">{% translate "Save changes" %}</button>
-            <a class="btn btn-secondary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">{% translate "Cancel" %}</a>
-        </div>
-    </form>
+    {% include "testcanvas/details/_user_story_detail.html" %}
 </div>
 {% endblock %}

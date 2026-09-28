@@ -1,0 +1,50 @@
+{% extends "testcanvas/bases/base_page.html" %}
+{% load i18n %}
+{% block title %}{% translate "Field settings" %}{% endblock %}
+{% block page_heading %}{% translate "Field settings" %}{% endblock %}
+{% block header_link %}<a class="header-link" href="{% url 'testcanvas:map_list' %}">← {% translate "Back to flows" %}</a>{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="m-0">{% translate "Optional fields" %}</h2>
+</div>
+
+<p class="text-muted">
+    {% blocktranslate %}
+    The system starts clean: every optional field is hidden. Turn on the
+    fields you want to use — they will appear in the related forms and detail
+    pages. Core fields are always shown and are not listed here.
+    {% endblocktranslate %}
+</p>
+
+<form method="post" action="{% url 'testcanvas:project_field_settings' %}">
+    {% csrf_token %}
+
+    {% for section in sections %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="h5 m-0">{{ section.model_name }}</h3>
+            </div>
+            <div class="card-body">
+                {% for field in section.fields %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox"
+                               name="visible_fields" value="{{ field.key }}"
+                               id="chk-{{ field.key }}"
+                               {% if field.is_visible %}checked{% endif %}>
+                        <label class="form-check-label" for="chk-{{ field.key }}">
+                            {{ field.label }}
+                        </label>
+                    </div>
+                {% empty %}
+                    <p class="text-muted m-0">{% translate "No optional fields available." %}</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="actions">
+        <button type="submit" class="btn btn-primary">{% translate "Save preferences" %}</button>
+    </div>
+</form>
+{% endblock %}
+

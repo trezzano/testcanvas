@@ -43,12 +43,13 @@
                                                     hx-target="#subflow-usage-sidebar"
                                                     hx-swap="innerHTML">{% translate "Info subflow use" %}</button>
                                         {% endif %}
-                                        <form method="post" action="{% url 'testcanvas:map_delete' m.pk %}"
-                                              class="btn-group m-0"
-                                              onsubmit="return confirm('{% translate "Delete this flow?" %}');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
-                                        </form>
+                                        {% comment %}
+                                            Deletion is a two-step process handled by the dedicated
+                                            confirm page (map_delete), so no inline form / JS confirm
+                                            dialog is needed here anymore.
+                                        {% endcomment %}
+                                        <a class="btn btn-danger btn-sm"
+                                           href="{% url 'testcanvas:map_delete' m.pk %}">{% translate "Delete…" %}</a>
                                     </div>
                                 </td>
                             </tr>

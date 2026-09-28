@@ -1,11 +1,12 @@
 {% load i18n %}
 {% comment %}
-    Test Case detail card (HTMX partial).
+    Test Case detail card (HTMX partial, editable).
 
-    Loaded into the shared detail sidebar by both traceability views. Read-only:
-    shows the test case description, its owning Acceptance Criterion and a link
-    to the edit form. Mirrors the Acceptance Criterion detail card, including the
-    copyable stable UID.
+    Loaded into the shared detail sidebar by both traceability views and also
+    included by the full-page edit template so field markup lives in one place.
+    Renders an editable ModelForm bound to the test case; saving hx-posts to
+    the same detail URL and swaps the response in place, showing a "Saved"
+    flash on success or field errors on failure.
 {% endcomment %}
 <div class="detail-card">
     <div class="detail-head">
@@ -28,17 +29,50 @@
         </div>
     {% endif %}
 
-    <div class="detail-field">
-        <span class="detail-label">{% translate "Description" %}</span>
-        <span>{% if test_case.description %}{{ test_case.description }}{% else %}—{% endif %}</span>
-    </div>
+    <form class="detail-form"
+          method="post"
+          action="{% url 'testcanvas:test_case_detail' test_case.pk %}"
+          hx-post="{% url 'testcanvas:test_case_detail' test_case.pk %}"
+          hx-target="closest .detail-card"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+
+        {% if saved %}
+            <div class="detail-flash detail-flash-success" role="status">
+                ✔ {% translate "Saved." %}
+            </div>
+        {% endif %}
+
+        <div class="field">
+            <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
+            {{ form.code }}
+            {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.description.id_for_label }}">{% translate "Description" %}</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.additional_notes.id_for_label }}">{% translate "Additional notes" %}</label>
+            {{ form.additional_notes }}
+            {% if form.additional_notes.errors %}<div class="errors">{{ form.additional_notes.errors|striptags }}</div>{% endif %}
+        </div>
+
+        {# Project-enabled optional fields (rendered only when turned on). #}
+        {% include "testcanvas/slots/_optional_form_fields.html" with form=form %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-sm">{% translate "Save changes" %}</button>
+        </div>
+    </form>
+
     <div class="detail-field">
         <span class="detail-label">{% translate "Acceptance Criterion" %}</span>
         <span>{{ test_case.acceptance_criterion.code }}</span>
     </div>
 
     <div class="detail-actions">
-         <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:test_case_edit' test_case.pk %}">✎ {% translate "Edit Test Case" %}</a>
          {# Delete with a native confirmation dialog; the view redirects back to #}
          {# the node's traceability in the user's preferred view (graph/matrix). #}
          <form method="post"
@@ -49,4 +83,3 @@
          </form>
      </div>
 </div>
-

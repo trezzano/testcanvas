@@ -1,10 +1,12 @@
 {% load i18n %}
 {% comment %}
-    Acceptance Criterion detail card (HTMX partial).
+    Acceptance Criterion detail card (HTMX partial, editable).
 
-    Loaded into the shared detail sidebar by both traceability views. Read-only:
-    shows the criterion text, its nature and links to the edit form and test
-    case management.
+    Loaded into the shared detail sidebar by both traceability views and also
+    included by the full-page edit template so field markup lives in one place.
+    Renders an editable ModelForm bound to the criterion; saving hx-posts to
+    the same detail URL and swaps the response in place, showing a "Saved"
+    flash on success or field errors on failure.
 {% endcomment %}
 <div class="detail-card">
     <div class="detail-head">
@@ -27,26 +29,68 @@
         </div>
     {% endif %}
 
-    <div class="detail-field"><span class="detail-label">{% translate "Description" %}</span><span>{{ criterion.description }}</span></div>
-    <div class="detail-field">
-        <span class="detail-label">{% translate "Type" %}</span>
-        <span>{{ criterion.get_criterion_type_display }}</span>
-    </div>
-    <div class="detail-field">
-        <div class="detail-field-head">
-            <span class="detail-label">{% translate "Gherkin" %}</span>
-            {% if criterion.gherkin_text %}
-                <button type="button"
-                        class="btn btn-sm btn-secondary detail-copy-btn"
-                        data-copy-text="{{ criterion.gherkin_text }}"
-                        data-copy-label="📋"
-                        data-copy-success-label="✔"
-                        title="{% translate 'Copy Gherkin content' %}"
-                        aria-label="{% translate 'Copy Gherkin content' %}">📋</button>
-            {% endif %}
+    <form class="detail-form"
+          method="post"
+          action="{% url 'testcanvas:acceptance_criterion_detail' criterion.pk %}"
+          hx-post="{% url 'testcanvas:acceptance_criterion_detail' criterion.pk %}"
+          hx-target="closest .detail-card"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+
+        {% if saved %}
+            <div class="detail-flash detail-flash-success" role="status">
+                ✔ {% translate "Saved." %}
+            </div>
+        {% endif %}
+
+        <div class="field">
+            <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
+            {{ form.code }}
+            {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
         </div>
-        <span>{% if criterion.gherkin_text %}<pre class="gherkin-preview mb-0">{{ criterion.gherkin_text }}</pre>{% else %}—{% endif %}</span>
-    </div>
+        <div class="field">
+            <label for="{{ form.description.id_for_label }}">{% translate "Description" %}</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field field-gherkin">
+            <div class="detail-field-head">
+                <label for="{{ form.gherkin_text.id_for_label }}">{% translate "Gherkin scenario (optional)" %}</label>
+                {% if criterion.gherkin_text %}
+                    <button type="button"
+                            class="btn btn-sm btn-secondary detail-copy-btn"
+                            data-copy-text="{{ criterion.gherkin_text }}"
+                            data-copy-label="📋"
+                            data-copy-success-label="✔"
+                            title="{% translate 'Copy Gherkin content' %}"
+                            aria-label="{% translate 'Copy Gherkin content' %}">📋</button>
+                {% endif %}
+            </div>
+            <div class="gherkin-editor-wrap">{{ form.gherkin_text }}</div>
+            <div class="field-hint">
+                {% translate "Paste a pure Gherkin scenario generated externally. Markdown code fences are removed automatically, but introductory prose and bullet lists are rejected." %}
+            </div>
+            {% if form.gherkin_text.errors %}<div class="errors">{{ form.gherkin_text.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.criterion_type.id_for_label }}">{% translate "Criterion type" %}</label>
+            {{ form.criterion_type }}
+            {% if form.criterion_type.errors %}<div class="errors">{{ form.criterion_type.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.additional_notes.id_for_label }}">{% translate "Additional notes" %}</label>
+            {{ form.additional_notes }}
+            {% if form.additional_notes.errors %}<div class="errors">{{ form.additional_notes.errors|striptags }}</div>{% endif %}
+        </div>
+
+        {# Project-enabled optional fields (rendered only when turned on). #}
+        {% include "testcanvas/slots/_optional_form_fields.html" with form=form %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-sm">{% translate "Save changes" %}</button>
+        </div>
+    </form>
+
     <div class="detail-field">
         <span class="detail-label">{% translate "User Story" %}</span>
         <span>{{ criterion.user_story.code }} — {{ criterion.user_story.title }}</span>
@@ -68,7 +112,6 @@
     {% endif %}
 
     <div class="detail-actions">
-         <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:acceptance_criterion_edit' criterion.pk %}">✎ {% translate "Edit Acceptance Criterion" %}</a>
          <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:test_case_manage' criterion.pk %}">🧪 {% translate "Manage Test Cases" %}</a>
          {# Delete with a native confirmation dialog; the view redirects back to #}
          {# the node's traceability in the user's preferred view (graph/matrix). #}
@@ -80,4 +123,3 @@
          </form>
      </div>
 </div>
-

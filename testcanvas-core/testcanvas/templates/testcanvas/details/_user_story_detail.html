@@ -1,10 +1,15 @@
 {% load i18n %}
 {% comment %}
-    User Story detail card (HTMX partial).
+    User Story detail card (HTMX partial, editable).
 
     Loaded into the shared detail sidebar (#detail-sidebar-body) by both the
-    traceability graph and the RTM table. Read-only: it shows the full Agile
-    narrative and links to the existing edit form. All values come from the view.
+    traceability graph and the RTM table, and also included by the full-page
+    edit template (user_story_edit.html) so field markup lives in one place.
+
+    Renders an editable ModelForm bound to the story instance. Saving hx-posts
+    to the same detail URL and swaps the response in place. On success a small
+    "Saved" flash is shown; on validation error field errors are rendered
+    inline.
 {% endcomment %}
 <div class="detail-card">
     <div class="detail-head">
@@ -12,7 +17,6 @@
     </div>
 
     <div class="detail-code">{{ user_story.code }}</div>
-    <h3 class="detail-title">{{ user_story.title }}</h3>
 
     {% if user_story.user_story_uid %}
         <div class="detail-uid">
@@ -28,26 +32,69 @@
         </div>
     {% endif %}
 
-    <div class="detail-field">
-        <span class="detail-label">{% translate "Statement" %}</span>
-        <span>{{ user_story.full_statement }}</span>
-    </div>
-    {% if user_story.as_a %}
-        <div class="detail-field"><span class="detail-label">{% translate "As a" %}</span><span>{{ user_story.as_a }}</span></div>
-    {% endif %}
-    {% if user_story.i_want_to %}
-        <div class="detail-field"><span class="detail-label">{% translate "I want to" %}</span><span>{{ user_story.i_want_to }}</span></div>
-    {% endif %}
-    {% if user_story.so_that %}
-        <div class="detail-field"><span class="detail-label">{% translate "So that" %}</span><span>{{ user_story.so_that }}</span></div>
-    {% endif %}
-    <div class="detail-field"><span class="detail-label">{% translate "Priority" %}</span><span>{{ user_story.get_priority_display }}</span></div>
-    {% if user_story.description %}
-        <div class="detail-field"><span class="detail-label">{% translate "Description" %}</span><span>{{ user_story.description }}</span></div>
-    {% endif %}
-    {% if user_story.additional_notes %}
-        <div class="detail-field"><span class="detail-label">{% translate "Notes" %}</span><span>{{ user_story.additional_notes }}</span></div>
-    {% endif %}
+    <form class="detail-form"
+          method="post"
+          action="{% url 'testcanvas:user_story_detail' user_story.pk %}"
+          hx-post="{% url 'testcanvas:user_story_detail' user_story.pk %}"
+          hx-target="closest .detail-card"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+
+        {% if saved %}
+            {# In-partial flash shown right after a successful HTMX save. #}
+            <div class="detail-flash detail-flash-success" role="status">
+                ✔ {% translate "Saved." %}
+            </div>
+        {% endif %}
+
+        <div class="field">
+            <label for="{{ form.code.id_for_label }}">{% translate "Code" %}</label>
+            {{ form.code }}
+            {% if form.code.errors %}<div class="errors">{{ form.code.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.title.id_for_label }}">{% translate "Title" %}</label>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="errors">{{ form.title.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.priority.id_for_label }}">{% translate "Priority" %}</label>
+            {{ form.priority }}
+            {% if form.priority.errors %}<div class="errors">{{ form.priority.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.as_a.id_for_label }}">{% translate "As a" %}</label>
+            {{ form.as_a }}
+            {% if form.as_a.errors %}<div class="errors">{{ form.as_a.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.i_want_to.id_for_label }}">{% translate "I want to" %}</label>
+            {{ form.i_want_to }}
+            {% if form.i_want_to.errors %}<div class="errors">{{ form.i_want_to.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.so_that.id_for_label }}">{% translate "So that" %}</label>
+            {{ form.so_that }}
+            {% if form.so_that.errors %}<div class="errors">{{ form.so_that.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.description.id_for_label }}">{% translate "Description" %}</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="field">
+            <label for="{{ form.additional_notes.id_for_label }}">{% translate "Notes" %}</label>
+            {{ form.additional_notes }}
+            {% if form.additional_notes.errors %}<div class="errors">{{ form.additional_notes.errors|striptags }}</div>{% endif %}
+        </div>
+
+        {# Project-enabled optional fields (rendered only when turned on). #}
+        {% include "testcanvas/slots/_optional_form_fields.html" with form=form %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-sm">{% translate "Save changes" %}</button>
+        </div>
+    </form>
 
     {% if plugin_widgets %}
         {# Plugin extension slot: ordered widgets contributed by installed #}
@@ -61,7 +108,6 @@
     {% endif %}
 
     <div class="detail-actions">
-        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:user_story_edit' user_story.flow_node.pk user_story.pk %}">✎ {% translate "Edit User Story" %}</a>
         <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">{% translate "Manage AC" %}</a>
         {# Delete with a native confirmation dialog; the view redirects back to #}
         {# the node's traceability in the user's preferred view (graph/matrix). #}
@@ -73,4 +119,3 @@
         </form>
     </div>
 </div>
-

@@ -28,6 +28,10 @@
         {% endfor %}
     </div>
     <div class="app-navbar__actions">
+        {# Field settings #}
+        <a class="nav-link" href="{% url 'testcanvas:project_field_settings' %}">
+            {% translate 'Field settings' %}
+        </a>
         {# Language switcher: POSTs to set_language and reloads the current page. #}
         <form action="{% url 'set_language' %}" method="post" class="lang-form">
             {% csrf_token %}

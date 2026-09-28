@@ -40,6 +40,8 @@ from .views.standard_views import (
     collection_create,
     collection_edit,
     collection_delete,
+    # settings (field visibility)
+    project_field_settings,
 )
 from .views.collection_hierarchy_views import (
     # nested (folder/sub-folder) hierarchy operations
@@ -106,5 +108,8 @@ urlpatterns = [
     path('collections/<int:pk>/children/', collection_children, name='collection_children'),
     path('collections/<int:pk>/move/', collection_move, name='collection_move'),
     path('collections/<int:pk>/detail/', collection_detail, name='collection_detail'),
+
+    # settings — optional field visibility
+    path('settings/fields/', project_field_settings, name='project_field_settings'),
 ]
 

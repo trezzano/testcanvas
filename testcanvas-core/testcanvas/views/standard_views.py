@@ -23,6 +23,7 @@ from testcanvas.context_processors import (
     TRACEABILITY_URL_NAMES,
 )
 from testcanvas.plugins import collect_object_widgets
+from testcanvas.utilities.optional_fields import resolve_project_for
 
 
 DEFAULT_LOGIN_LOGO_STATIC_PATH = 'images/white_small_logo_trasparent.png'
@@ -108,8 +109,11 @@ def user_story_manage(request, node_id):
         pk=node_id,
     )
 
+    # Optional fields shown depend on global preferences.
+    project = resolve_project_for(flow_node)
+
     if request.method == 'POST':
-        form = UserStoryForm(request.POST)
+        form = UserStoryForm(request.POST, project=project)
         if form.is_valid():
             user_story = form.save(commit=False)
             user_story.flow_node = flow_node
@@ -117,7 +121,7 @@ def user_story_manage(request, node_id):
             messages.success(request, _("User Story '%(code)s' created.") % {"code": user_story.code})
             return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
     else:
-        form = UserStoryForm()
+        form = UserStoryForm(project=project)
 
     user_stories = flow_node.user_stories.order_by('code')
     return render(request, 'testcanvas/user_story_manage.html', {
@@ -138,14 +142,17 @@ def user_story_edit(request, node_id, pk):
     )
     user_story = get_object_or_404(UserStory, pk=pk, flow_node=flow_node)
 
+    # Optional fields shown depend on global preferences.
+    project = resolve_project_for(user_story)
+
     if request.method == 'POST':
-        form = UserStoryForm(request.POST, instance=user_story)
+        form = UserStoryForm(request.POST, instance=user_story, project=project)
         if form.is_valid():
             form.save()
             messages.success(request, _("User Story '%(code)s' updated.") % {"code": user_story.code})
             return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
     else:
-        form = UserStoryForm(instance=user_story)
+        form = UserStoryForm(instance=user_story, project=project)
 
     return render(request, 'testcanvas/user_story_edit.html', {
         'flow_node': flow_node,
@@ -180,8 +187,11 @@ def acceptance_criterion_manage(request, user_story_id):
     )
     flow_node = user_story.flow_node
 
+    # Optional fields shown depend on global preferences.
+    project = resolve_project_for(user_story)
+
     if request.method == 'POST':
-        form = AcceptanceCriterionForm(request.POST)
+        form = AcceptanceCriterionForm(request.POST, project=project)
         if form.is_valid():
             criterion = form.save(commit=False)
             criterion.user_story = user_story
@@ -189,7 +199,7 @@ def acceptance_criterion_manage(request, user_story_id):
             messages.success(request, _("Acceptance Criterion '%(code)s' created.") % {"code": criterion.code})
             return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
     else:
-        form = AcceptanceCriterionForm()
+        form = AcceptanceCriterionForm(project=project)
 
     criteria = user_story.criteria.order_by('code')
     return render(request, 'testcanvas/acceptance_criterion_manage.html', {
@@ -215,14 +225,17 @@ def acceptance_criterion_edit(request, pk):
     user_story = criterion.user_story
     flow_node = user_story.flow_node
 
+    # Optional fields shown depend on global preferences.
+    project = resolve_project_for(criterion)
+
     if request.method == 'POST':
-        form = AcceptanceCriterionForm(request.POST, instance=criterion)
+        form = AcceptanceCriterionForm(request.POST, instance=criterion, project=project)
         if form.is_valid():
             form.save()
             messages.success(request, _("Acceptance Criterion '%(code)s' updated.") % {"code": criterion.code})
             return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
     else:
-        form = AcceptanceCriterionForm(instance=criterion)
+        form = AcceptanceCriterionForm(instance=criterion, project=project)
 
     return render(request, 'testcanvas/acceptance_criterion_edit.html', {
         'flow_node': flow_node,
@@ -262,8 +275,11 @@ def test_case_manage(request, acceptance_criterion_id):
     user_story = criterion.user_story
     flow_node = user_story.flow_node
 
+    # Optional TestCase fields shown depend on global preferences.
+    project = resolve_project_for(criterion)
+
     if request.method == 'POST':
-        form = TestCaseForm(request.POST)
+        form = TestCaseForm(request.POST, project=project)
         if form.is_valid():
             test_case = form.save(commit=False)
             test_case.acceptance_criterion = criterion
@@ -271,7 +287,7 @@ def test_case_manage(request, acceptance_criterion_id):
             messages.success(request, _("Test Case '%(code)s' created.") % {"code": test_case.code})
             return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
     else:
-        form = TestCaseForm()
+        form = TestCaseForm(project=project)
 
     test_cases = criterion.test_cases.order_by('code')
     return render(request, 'testcanvas/test_case_manage.html', {
@@ -293,14 +309,17 @@ def test_case_edit(request, pk):
     user_story = criterion.user_story
     flow_node = user_story.flow_node
 
+    # Optional TestCase fields shown depend on global preferences.
+    project = resolve_project_for(test_case)
+
     if request.method == 'POST':
-        form = TestCaseForm(request.POST, instance=test_case)
+        form = TestCaseForm(request.POST, instance=test_case, project=project)
         if form.is_valid():
             form.save()
             messages.success(request, _("Test Case '%(code)s' updated.") % {"code": test_case.code})
             return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
     else:
-        form = TestCaseForm(instance=test_case)
+        form = TestCaseForm(instance=test_case, project=project)
 
     return render(request, 'testcanvas/test_case_edit.html', {
         'flow_node': flow_node,
@@ -532,15 +551,19 @@ def flow_node_traceability_matrix(request, node_id):
 
 @login_required
 def user_story_detail(request, pk):
-    """Render a User Story detail card as an HTMX partial.
+    """Render a User Story detail card as an editable HTMX partial.
 
-    Read-only card reused by both traceability views (graph and RTM table): it
-    shows the full Agile narrative and links to the existing edit form. All data
-    is shaped here so the template only unpacks a real object.
+    Editable card reused by both traceability views (graph and RTM table) and by
+    the full-page edit template. On GET renders the partial with an unbound
+    ``UserStoryForm`` prefilled from the instance; on POST validates the form
+    and saves in place, re-rendering the same partial (with a ``saved`` flash
+    on success, or field errors on failure). Always returns HTTP 200 so HTMX
+    can swap the response into the sidebar.
 
     Args:
-        request: The incoming HTTP request (typically an hx-get).
-        pk: Primary key of the ``UserStory`` to display.
+        request: The incoming HTTP request (hx-get on first load, hx-post on
+            inline save).
+        pk: Primary key of the ``UserStory`` to display or update.
 
     Returns:
         An ``HttpResponse`` rendering the User Story detail partial.
@@ -548,8 +571,25 @@ def user_story_detail(request, pk):
     user_story = get_object_or_404(
         UserStory.objects.select_related('flow_node'), pk=pk,
     )
+
+    # POST → save inline; GET → show the current values as an editable form.
+    saved = False
+    project = resolve_project_for(user_story)
+    if request.method == 'POST':
+        form = UserStoryForm(request.POST, instance=user_story, project=project)
+        if form.is_valid():
+            user_story = form.save()
+            saved = True
+            # Rebuild an unbound form from the freshly-saved instance so the
+            # partial re-renders with the canonical values and no "dirty" state.
+            form = UserStoryForm(instance=user_story, project=project)
+    else:
+        form = UserStoryForm(instance=user_story, project=project)
+
     return render(request, 'testcanvas/details/_user_story_detail.html', {
         'user_story': user_story,
+        'form': form,
+        'saved': saved,
         # Plugin extension slot for this user story (e.g. test-case shortcuts
         # or coverage widgets). Empty when no plugin is installed, so the
         # template slot simply renders nothing.
@@ -558,14 +598,18 @@ def user_story_detail(request, pk):
 
 @login_required
 def acceptance_criterion_detail(request, pk):
-    """Render an Acceptance Criterion detail card as an HTMX partial.
+    """Render an Acceptance Criterion detail card as an editable HTMX partial.
 
-    Reused by both traceability views. The card is a plain, logic-free view of
-    the criterion (test coverage is a plugin concern and is not shown here).
+    Reused by both traceability views and by the full-page edit template. On
+    GET renders the partial with an unbound ``AcceptanceCriterionForm``
+    prefilled from the instance; on POST validates and saves in place,
+    re-rendering the same partial (with a ``saved`` flash on success or field
+    errors on failure).
 
     Args:
-        request: The incoming HTTP request (typically an hx-get).
-        pk: Primary key of the ``AcceptanceCriterion`` to display.
+        request: The incoming HTTP request (hx-get on first load, hx-post on
+            inline save).
+        pk: Primary key of the ``AcceptanceCriterion`` to display or update.
 
     Returns:
         An ``HttpResponse`` rendering the Acceptance Criterion detail partial.
@@ -574,8 +618,22 @@ def acceptance_criterion_detail(request, pk):
         AcceptanceCriterion.objects.select_related('user_story'),
         pk=pk,
     )
+
+    saved = False
+    project = resolve_project_for(criterion)
+    if request.method == 'POST':
+        form = AcceptanceCriterionForm(request.POST, instance=criterion, project=project)
+        if form.is_valid():
+            criterion = form.save()
+            saved = True
+            form = AcceptanceCriterionForm(instance=criterion, project=project)
+    else:
+        form = AcceptanceCriterionForm(instance=criterion, project=project)
+
     return render(request, 'testcanvas/details/_acceptance_criterion_detail.html', {
         'criterion': criterion,
+        'form': form,
+        'saved': saved,
         # Plugin extension slot for this acceptance criterion (e.g. links to
         # the test cases that verify it, or a coverage widget). Empty when no
         # plugin is installed, so the template slot simply renders nothing.
@@ -584,15 +642,18 @@ def acceptance_criterion_detail(request, pk):
 
 @login_required
 def test_case_detail(request, pk):
-    """Render a Test Case detail card as an HTMX partial.
+    """Render a Test Case detail card as an editable HTMX partial.
 
     Displayed in the shared detail sidebar when a test case node is tapped in
-    the traceability graph or clicked in the matrix. Shows the test case
-    description and its owning Acceptance Criterion.
+    the traceability graph or clicked in the matrix, and reused by the
+    full-page edit template. On GET renders the partial with an unbound
+    ``TestCaseForm`` prefilled from the instance; on POST validates and saves
+    in place.
 
     Args:
-        request: The incoming HTTP request (typically an hx-get).
-        pk: Primary key of the ``TestCase`` to display.
+        request: The incoming HTTP request (hx-get on first load, hx-post on
+            inline save).
+        pk: Primary key of the ``TestCase`` to display or update.
 
     Returns:
         An ``HttpResponse`` rendering the Test Case detail partial.
@@ -601,8 +662,22 @@ def test_case_detail(request, pk):
         TestCase.objects.select_related('acceptance_criterion'),
         pk=pk,
     )
+
+    saved = False
+    project = resolve_project_for(test_case)
+    if request.method == 'POST':
+        form = TestCaseForm(request.POST, instance=test_case, project=project)
+        if form.is_valid():
+            test_case = form.save()
+            saved = True
+            form = TestCaseForm(instance=test_case, project=project)
+    else:
+        form = TestCaseForm(instance=test_case, project=project)
+
     return render(request, 'testcanvas/details/_test_case_detail.html', {
         'test_case': test_case,
+        'form': form,
+        'saved': saved,
     })
 
 @require_POST
@@ -1025,36 +1100,48 @@ def node_user_stories(request, pk, node_id):
         'is_subflow': is_subflow,
     })
 
-@require_POST
 @login_required
 def map_delete(request, pk):
-    """Delete an ApplicationMap, unless it is referenced as a sub-flow.
+    """Delete an ApplicationMap through a dedicated confirmation page.
+
+    To prevent accidental removal of an entire flow (with its FlowNodes,
+    UserStories, AcceptanceCriteria and TestCases), deletion is a two-step
+    process:
+
+    * ``GET`` renders a confirmation page showing what will be destroyed and
+      asks the user to type the exact flow name as a confirmation phrase.
+    * ``POST`` performs the deletion only if the typed phrase matches the
+      current flow name (case-sensitive, trimmed).
 
     A map used as a sub-flow by one or more ``FlowNode`` instances must not be
-    deleted: doing so would leave those nodes as orphan references. In that case
-    the deletion is blocked and the user is told exactly which maps/nodes still
-    reference it, so the references can be removed first.
+    deleted: doing so would leave those nodes as orphan references. In that
+    case the deletion is blocked and the user is told exactly which maps/nodes
+    still reference it, so the references can be removed first.
 
     Args:
-        request: The HTTP request (POST only).
+        request: The HTTP request (GET renders the page, POST performs the
+            deletion after phrase validation).
         pk: Primary key of the ApplicationMap to delete.
 
     Returns:
-        An HTTP redirect back to the flow list.
+        An ``HttpResponse`` rendering the confirmation page, or a redirect
+        back to the flow list on success / when deletion is blocked.
     """
     application_map = get_object_or_404(ApplicationMap, pk=pk)
     name = application_map.name
 
-    # Nodes (in other maps) that reference this map as a sub-flow.
-    referencing_nodes = (
+    # Nodes (in other maps) that reference this map as a sub-flow. Deleting
+    # such a map would leave dangling sub-flow references, so we forbid it and
+    # show the exact list of usages both on the confirm page and via a flash
+    # message on POST.
+    referencing_nodes = list(
         application_map.referencing_nodes
         .select_related('application_map')
         .all()
     )
 
-    if referencing_nodes:
-        # Build a human-readable list of "MapName (nodeId — nodeTitle)" usages
-        # so the user knows exactly where the sub-flow is still in use.
+    def _blocked_response():
+        """Return the "cannot delete" redirect with a descriptive message."""
         usages = ", ".join(
             f"{node.application_map.name} ({node.local_graph_id} — {node.title})"
             for node in referencing_nodes
@@ -1068,9 +1155,40 @@ def map_delete(request, pk):
         )
         return redirect('testcanvas:map_list')
 
-    application_map.delete()
-    messages.success(request, _("Flow '%(name)s' deleted.") % {"name": name})
-    return redirect('testcanvas:map_list')
+    if request.method == 'POST':
+        # Sub-flow references win over the phrase check: even a matching phrase
+        # must not be able to break the referential integrity of other maps.
+        if referencing_nodes:
+            return _blocked_response()
+
+        typed_phrase = (request.POST.get('confirmation') or '').strip()
+        if typed_phrase != name:
+            # Re-render the confirmation page with an inline error so the user
+            # can retry without losing context.
+            return render(request, 'testcanvas/map_delete_confirm.html', {
+                'application_map': application_map,
+                'referencing_nodes': referencing_nodes,
+                'expected_phrase': name,
+                'typed_phrase': typed_phrase,
+                'error': _(
+                    "The confirmation phrase does not match the flow name. "
+                    "Type the flow name exactly to confirm deletion."
+                ),
+            })
+
+        application_map.delete()
+        messages.success(request, _("Flow '%(name)s' deleted.") % {"name": name})
+        return redirect('testcanvas:map_list')
+
+    # GET: render the confirmation page (blocked or not — we still let the user
+    # see the referencing nodes so they know what to fix).
+    return render(request, 'testcanvas/map_delete_confirm.html', {
+        'application_map': application_map,
+        'referencing_nodes': referencing_nodes,
+        'expected_phrase': name,
+        'typed_phrase': '',
+        'error': None,
+    })
 
 # --------------------------------------------------------------------------- #
 # ApplicationMapsCollection management (logical grouping layer)
@@ -1195,4 +1313,63 @@ def collection_delete(request, pk):
     collection.delete()
     messages.success(request, _("Collection '%(title)s' deleted.") % {"title": title})
     return redirect('testcanvas:collection_list')
+
+
+@login_required
+def project_field_settings(request):
+    """Show and update which optional fields are visible globally.
+
+    Simple settings page that lists every optional field declared in the
+    catalogue (grouped by model) with an on/off checkbox reflecting the current
+    global preferences. Saving performs a bulk ``update_or_create`` so fields
+    can be personalised in one place.
+
+    Args:
+        request: The incoming HTTP request (GET renders, POST saves).
+
+    Returns:
+        An ``HttpResponse`` rendering the settings page, or a redirect back to it
+        after a successful save.
+    """
+    from testcanvas.models import FieldVisibilityPreference
+    from testcanvas.utilities.optional_fields import OPTIONAL_FIELDS
+
+    if request.method == 'POST':
+        # Checkboxes submit "<model>:<field>" for every enabled field.
+        enabled = set(request.POST.getlist('visible_fields'))
+        for model_name, specs in OPTIONAL_FIELDS.items():
+            for spec in specs:
+                key = f"{model_name}:{spec.name}"
+                FieldVisibilityPreference.objects.update_or_create(
+                    target_model=model_name,
+                    field_name=spec.name,
+                    defaults={'is_visible': key in enabled},
+                )
+        messages.success(request, _("Field visibility preferences saved."))
+        return redirect('testcanvas:project_field_settings')
+
+    # Build the display structure: one section per model, each field carrying
+    # its current visibility state (default off when no preference row exists).
+    current = {
+        (pref.target_model, pref.field_name): pref.is_visible
+        for pref in FieldVisibilityPreference.objects.all()
+    }
+    sections = []
+    for model_name, specs in OPTIONAL_FIELDS.items():
+        fields = [
+            {
+                'key': f"{model_name}:{spec.name}",
+                'label': spec.label,
+                'is_visible': current.get((model_name, spec.name), False),
+            }
+            for spec in specs
+        ]
+        sections.append({'model_name': model_name, 'fields': fields})
+
+    return render(request, 'testcanvas/project_field_settings.html', {
+        'sections': sections,
+    })
+
+
+
 

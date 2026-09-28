@@ -4,6 +4,7 @@ from .models import (
     AcceptanceCriterion,
     ApplicationMap,
     ApplicationMapsCollection,
+    FieldVisibilityPreference,
     FlowNode,
     TestCase,
     UserStory,
@@ -44,31 +45,15 @@ class TestCaseInline(admin.TabularInline):
     show_change_link = True
 
 
-
-class ApplicationMapInline(admin.TabularInline):
-    """Inline listing the maps that belong to a collection."""
-
-    model = ApplicationMap
-    extra = 0
-    fields = ("name", "created_at")
-    readonly_fields = ("created_at",)
-    show_change_link = True
-
-
 @admin.register(ApplicationMapsCollection)
 class ApplicationMapsCollectionAdmin(admin.ModelAdmin):
     """Admin for the logical grouping layer over ApplicationMap."""
 
-    list_display = ("id", "title", "background_color", "map_count", "created_at")
+    list_display = ("id", "title", "background_color", "created_at")
     search_fields = ("title", "description")
     date_hierarchy = "created_at"
     ordering = ("title",)
     readonly_fields = ("created_at",)
-    inlines = (ApplicationMapInline,)
-
-    @admin.display(description="Maps")
-    def map_count(self, obj):
-        return obj.maps.count()
 
 
 @admin.register(ApplicationMap)
@@ -130,3 +115,11 @@ class TestCaseAdmin(admin.ModelAdmin):
     autocomplete_fields = ("acceptance_criterion",)
 
 
+@admin.register(FieldVisibilityPreference)
+class FieldVisibilityPreferenceAdmin(admin.ModelAdmin):
+    """Admin for global optional field visibility toggles."""
+
+    list_display = ("id", "target_model", "field_name", "is_visible", "order")
+    list_filter = ("target_model", "is_visible")
+    list_editable = ("is_visible", "order")
+    search_fields = ("field_name", "target_model")

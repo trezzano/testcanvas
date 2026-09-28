@@ -1,0 +1,18 @@
+{% load i18n %}
+{% comment %}
+    Renders the optional (globally-enabled) fields of a core object as a compact
+    definition list. Produces no markup when there are no visible fields, so it
+    is safe to include unconditionally on any detail page:
+
+        {% load testcanvas_fields %}
+        {% render_optional_fields test_case %}
+{% endcomment %}
+{% if rows %}
+<dl class="optional-fields row g-2 mb-0">
+    {% for row in rows %}
+        <dt class="col-5 text-muted">{{ row.label }}</dt>
+        <dd class="col-7 m-0">{{ row.value|default:"—" }}</dd>
+    {% endfor %}
+</dl>
+{% endif %}
+

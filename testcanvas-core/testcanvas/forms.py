@@ -7,6 +7,74 @@ from .models import (
     TestCase,
     UserStory,
 )
+from .utilities.optional_fields import (
+    get_optional_field_specs,
+    get_visible_optional_field_names,
+)
+
+
+class DynamicOptionalFieldsMixin:
+    """Show only the optional model fields that are enabled globally.
+
+    A ``ModelForm`` mixed with this class must list **every** optional field of
+    its model in ``Meta.fields`` (alongside the core fields). At construction
+    time the mixin inspects the global visibility preferences and removes the
+    optional fields that are disabled, so they are neither rendered nor
+    overwritten on save. The remaining visible fields are styled like the rest
+    of the form.
+
+    The optional fields are declared in ``utilities/optional_fields.py``.
+    """
+
+    def __init__(self, *args, project=None, **kwargs):
+        """Drop the optional fields disabled globally.
+
+        Args:
+            project: Deprecated parameter, ignored (kept for backward compatibility).
+        """
+        super().__init__(*args, **kwargs)
+        self._project = project
+        # Names of the optional fields kept in the form, in catalogue order, so
+        # templates can render them generically via the ``optional_fields``
+        # property (core fields keep their explicit, hand-written markup).
+        self._optional_field_names: list[str] = []
+
+        model_name = self._meta.model.__name__
+        specs = get_optional_field_specs(model_name)
+        if not specs:
+            return
+
+        visible = set(get_visible_optional_field_names(model_name))
+        for spec in specs:
+            if spec.name not in self.fields:
+                continue
+            if spec.name in visible:
+                # Keep it: style it and use the catalogue label.
+                field = self.fields[spec.name]
+                field.required = False
+                field.label = _(spec.label)
+                widget = field.widget
+                classes = widget.attrs.get("class", "")
+                widget.attrs["class"] = (classes + " field-input").strip()
+                self._optional_field_names.append(spec.name)
+            else:
+                # Hidden globally: remove so it is not shown nor saved.
+                del self.fields[spec.name]
+
+    @property
+    def optional_fields(self):
+        """Yield the bound fields of the visible optional fields, in order.
+
+        Templates iterate over this to render the globally-enabled optional
+        fields generically, right after the hand-written core fields.
+
+        Returns:
+            A list of ``BoundField`` objects for the optional fields still in
+            the form (empty when no fields are enabled globally).
+        """
+        return [self[name] for name in self._optional_field_names if name in self.fields]
+
+
 
 
 class ApplicationMapsCollectionForm(forms.ModelForm):
@@ -112,13 +180,14 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
         return parent
 
 
-class UserStoryForm(forms.ModelForm):
+class UserStoryForm(DynamicOptionalFieldsMixin, forms.ModelForm):
     """ModelForm to create/edit a UserStory bound to a FlowNode.
 
     Exposes the full ISTQB/Agile UserStory model: the identifier fields
     (``code``/``title``), the free-text ``description``, the Agile breakdown
     (``as_a``/``i_want_to``/``so_that``), ``additional_notes`` and the
-    risk-based ``priority`` level.
+    risk-based ``priority`` level, plus the optional fields declared in
+    ``utilities/optional_fields.py`` (kept only when enabled globally).
     """
 
     class Meta:
@@ -132,6 +201,10 @@ class UserStoryForm(forms.ModelForm):
             "i_want_to",
             "so_that",
             "additional_notes",
+            # Optional (globally-enabled) fields — declared in the catalogue.
+            "story_points",
+            "risk_level",
+            "status",
         )
         widgets = {
             "code": forms.TextInput(attrs={
@@ -170,11 +243,13 @@ class UserStoryForm(forms.ModelForm):
         }
 
 
-class AcceptanceCriterionForm(forms.ModelForm):
+class AcceptanceCriterionForm(DynamicOptionalFieldsMixin, forms.ModelForm):
     """ModelForm to create/edit an AcceptanceCriterion bound to a UserStory.
 
     Exposes the new split between business description and optional BDD text,
-    plus the full ISTQB/ISO 25010 criterion type taxonomy.
+    plus the full ISTQB/ISO 25010 criterion type taxonomy and the optional
+    fields declared in ``utilities/optional_fields.py`` (kept only when enabled
+    globally).
 
     The optional ``gherkin_text`` field is designed for content pasted from an
     external LLM/editor. The form stays permissive and only performs lightweight
@@ -184,7 +259,16 @@ class AcceptanceCriterionForm(forms.ModelForm):
 
     class Meta:
         model = AcceptanceCriterion
-        fields = ("code", "description", "gherkin_text", "criterion_type")
+        fields = (
+            "code",
+            "description",
+            "gherkin_text",
+            "criterion_type",
+            "additional_notes",
+            # Optional (globally-enabled) fields — declared in the catalogue.
+            "moscow_priority",
+            "verification_method",
+        )
         widgets = {
             "code": forms.TextInput(attrs={
                 "class": "field-input",
@@ -210,11 +294,17 @@ class AcceptanceCriterionForm(forms.ModelForm):
                 ),
             }),
             "criterion_type": forms.Select(attrs={"class": "field-input"}),
+            "additional_notes": forms.Textarea(attrs={
+                "class": "field-input",
+                "rows": 3,
+                "placeholder": _("Notes, extra context, or technical constraints"),
+            }),
         }
         labels = {
             "description": _("Description"),
             "gherkin_text": _("Gherkin scenario (optional)"),
             "criterion_type": _("Criterion type"),
+            "additional_notes": _("Additional notes"),
         }
 
     def _normalize_gherkin_text(self, value: str) -> str:
@@ -266,17 +356,29 @@ class AcceptanceCriterionForm(forms.ModelForm):
         )
 
 
-class TestCaseForm(forms.ModelForm):
+class TestCaseForm(DynamicOptionalFieldsMixin, forms.ModelForm):
     """ModelForm to create/edit a TestCase bound to an AcceptanceCriterion.
 
-    Exposes the minimal Test Case model: a traceability ``code`` and a free-text
-    ``description`` holding steps, data and expected result. Mirrors
-    ``AcceptanceCriterionForm`` for a consistent authoring UX.
+    Exposes the core Test Case model (a traceability ``code`` and a free-text
+    ``description`` holding steps, data and expected result) plus the optional
+    fields declared in ``utilities/optional_fields.py``. The optional fields are
+    listed in ``Meta.fields`` but only those enabled globally are kept by
+    :class:`DynamicOptionalFieldsMixin`; the rest are removed at runtime.
     """
 
     class Meta:
         model = TestCase
-        fields = ("code", "description")
+        fields = (
+            "code",
+            "description",
+            "additional_notes",
+            # Optional (globally-enabled) fields — declared in the catalogue.
+            "execution_type",
+            "automation_status",
+            "test_level",
+            "test_type",
+            "estimated_duration_minutes",
+        )
         widgets = {
             "code": forms.TextInput(attrs={
                 "class": "field-input",
@@ -287,9 +389,16 @@ class TestCaseForm(forms.ModelForm):
                 "rows": 6,
                 "placeholder": _("Steps, test data, expected result, or extra context"),
             }),
+            "additional_notes": forms.Textarea(attrs={
+                "class": "field-input",
+                "rows": 3,
+                "placeholder": _("Notes, extra context, or technical constraints"),
+            }),
         }
         labels = {
             "code": _("Code"),
             "description": _("Description"),
+            "additional_notes": _("Additional notes"),
         }
+
 

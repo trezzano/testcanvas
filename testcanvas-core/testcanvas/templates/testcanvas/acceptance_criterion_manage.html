@@ -41,6 +41,10 @@
             {{ form.criterion_type }}
             {% if form.criterion_type.errors %}<div class="errors">{{ form.criterion_type.errors|striptags }}</div>{% endif %}
         </div>
+
+        {# Project-enabled optional fields (rendered only when turned on). #}
+        {% include "testcanvas/slots/_optional_form_fields.html" with form=form %}
+
         <button type="submit" class="btn btn-primary">+ {% translate "Add Acceptance Criterion" %}</button>
     </form>
 </div>

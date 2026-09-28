@@ -57,7 +57,6 @@ def generate_compact_node_uid() -> str:
 # a stable reference for an LLM and as a signature for Gherkin scenarios.
 _PREFIXED_UID_TOKEN_LENGTH = 13
 
-
 def generate_humanized_uid(prefix: str) -> str:
     """Generate a prefixed human-friendly UID.
 
@@ -79,8 +78,6 @@ def generate_humanized_uid(prefix: str) -> str:
         for _ in range(_PREFIXED_UID_TOKEN_LENGTH)
     )
     return f"{prefix}-{token}"
-
-
 
 class ApplicationMapsCollection(models.Model):
     """Logical grouping layer that gathers several ``ApplicationMap`` records.
@@ -139,6 +136,8 @@ class ApplicationMapsCollection(models.Model):
         db_index=True,
         help_text=_("Parent collection. Leave empty for a top-level (root) collection."),
     )
+
+
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -255,6 +254,8 @@ class ApplicationMapsCollection(models.Model):
         self.full_clean()
         self.save(update_fields=["parent"])
 
+
+
 class ApplicationMap(models.Model):
     """
     Main container for the application flow graph. 
@@ -283,6 +284,7 @@ class ApplicationMap(models.Model):
         related_name="maps",
         help_text=_("Optional collection this map belongs to."),
     )
+
 
     # JSON field where NetworkX saves the entire structure (nodes, edges, and visual styles)
     # in cytoscape format
@@ -514,6 +516,22 @@ class UserStory(models.Model):
         MEDIUM = 'MEDIUM', _('Medium')
         LOW = 'LOW', _('Low')
 
+    # Optional (user-toggleable) enumerations — see utilities/optional_fields.py.
+    class RiskLevel(models.TextChoices):
+        """Risk level associated with the story."""
+
+        HIGH = 'HIGH', _('High')
+        MEDIUM = 'MEDIUM', _('Medium')
+        LOW = 'LOW', _('Low')
+
+    class Status(models.TextChoices):
+        """Lifecycle status of the story."""
+
+        DRAFT = 'DRAFT', _('Draft')
+        READY = 'READY', _('Ready')
+        IN_PROGRESS = 'IN_PROGRESS', _('In progress')
+        DONE = 'DONE', _('Done')
+
     description = models.TextField(blank=True)
 
     user_story_uid = models.CharField(
@@ -576,6 +594,28 @@ class UserStory(models.Model):
         verbose_name=_("Priority")
     )
 
+    # --- Optional (project-toggleable) fields — declared in the catalogue. ---
+    story_points = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Agile estimation in story points."),
+        verbose_name=_("Story Points"),
+    )
+    risk_level = models.CharField(
+        max_length=10,
+        choices=RiskLevel.choices,
+        blank=True,
+        help_text=_("Risk level used for risk-based testing."),
+        verbose_name=_("Risk Level"),
+    )
+    status = models.CharField(
+        max_length=15,
+        choices=Status.choices,
+        blank=True,
+        help_text=_("Lifecycle status of the story."),
+        verbose_name=_("Status"),
+    )
+
     class Meta:
         verbose_name = _("User Story")
         verbose_name_plural = _("User Stories")
@@ -634,6 +674,15 @@ class AcceptanceCriterion(models.Model):
         help_text=_("Prefixed, globally unique identifier (e.g. ACU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
     )
 
+    # Free-form notes: extra context, business rules, technical constraints,
+    # links to specs or anything that doesn't fit into `description` or the
+    # pure Gherkin scenario. Kept optional to preserve authoring flexibility.
+    additional_notes = models.TextField(
+        blank=True,
+        help_text=_("Notes, extra context, or technical constraints for this AC."),
+        verbose_name=_("Additional Notes"),
+    )
+
     # Categoria ISTQB / ISO 25010
     CRITERION_TYPE_CHOICES = [
         ('FUNCTIONAL', _('Functional (Behavior/Rules)')),
@@ -647,6 +696,38 @@ class AcceptanceCriterion(models.Model):
         max_length=25,
         choices=CRITERION_TYPE_CHOICES,
         default='FUNCTIONAL',
+    )
+
+    # --- Optional (project-toggleable) fields — declared in the catalogue. ---
+    class MoscowPriority(models.TextChoices):
+        """MoSCoW prioritisation of the criterion."""
+
+        MUST = 'MUST', _('Must have')
+        SHOULD = 'SHOULD', _('Should have')
+        COULD = 'COULD', _('Could have')
+        WONT = 'WONT', _("Won't have")
+
+    class VerificationMethod(models.TextChoices):
+        """How the criterion is verified."""
+
+        TEST = 'TEST', _('Test')
+        INSPECTION = 'INSPECTION', _('Inspection')
+        DEMONSTRATION = 'DEMONSTRATION', _('Demonstration')
+        ANALYSIS = 'ANALYSIS', _('Analysis')
+
+    moscow_priority = models.CharField(
+        max_length=10,
+        choices=MoscowPriority.choices,
+        blank=True,
+        help_text=_("MoSCoW prioritisation of the criterion."),
+        verbose_name=_("MoSCoW Priority"),
+    )
+    verification_method = models.CharField(
+        max_length=20,
+        choices=VerificationMethod.choices,
+        blank=True,
+        help_text=_("Method used to verify the criterion."),
+        verbose_name=_("Verification Method"),
     )
 
     class Meta:
@@ -693,6 +774,82 @@ class TestCase(models.Model):
         verbose_name=_("Acceptance Criterion"),
     )
 
+    # --------------------------------------------------------------------- #
+    # Optional (user-toggleable) fields.
+    #
+    # These are real, nullable columns that a project can turn on or off from
+    # the project settings page. They are declared in the explicit catalogue
+    # ``utilities/optional_fields.py`` (Option A): a field is "optional" only if
+    # listed there, everything else is a always-visible core field.
+    # --------------------------------------------------------------------- #
+
+    class ExecutionType(models.TextChoices):
+        """How the test case is executed."""
+
+        MANUAL = "MANUAL", _("Manual")
+        AUTOMATED = "AUTOMATED", _("Automated")
+        SEMI_AUTOMATED = "SEMI_AUTOMATED", _("Semi-automated")
+
+    class AutomationStatus(models.TextChoices):
+        """Progress of the test case along the automation roadmap."""
+
+        NOT_AUTOMATED = "NOT_AUTOMATED", _("Not automated")
+        PLANNED = "PLANNED", _("Planned")
+        IN_PROGRESS = "IN_PROGRESS", _("In progress")
+        AUTOMATED = "AUTOMATED", _("Automated")
+
+    class TestLevel(models.TextChoices):
+        """ISTQB test level the case belongs to."""
+
+        UNIT = "UNIT", _("Unit")
+        INTEGRATION = "INTEGRATION", _("Integration")
+        SYSTEM = "SYSTEM", _("System")
+        ACCEPTANCE = "ACCEPTANCE", _("Acceptance")
+
+    class TestType(models.TextChoices):
+        """ISTQB test type of the case."""
+
+        FUNCTIONAL = "FUNCTIONAL", _("Functional")
+        NON_FUNCTIONAL = "NON_FUNCTIONAL", _("Non-functional")
+        STRUCTURAL = "STRUCTURAL", _("Structural")
+        CONFIRMATION = "CONFIRMATION", _("Confirmation")
+        REGRESSION = "REGRESSION", _("Regression")
+
+    execution_type = models.CharField(
+        max_length=20,
+        choices=ExecutionType.choices,
+        blank=True,
+        help_text=_("Whether the test case is manual, automated or semi-automated."),
+        verbose_name=_("Execution Type"),
+    )
+    automation_status = models.CharField(
+        max_length=20,
+        choices=AutomationStatus.choices,
+        blank=True,
+        help_text=_("Automation roadmap status of the test case."),
+        verbose_name=_("Automation Status"),
+    )
+    test_level = models.CharField(
+        max_length=20,
+        choices=TestLevel.choices,
+        blank=True,
+        help_text=_("ISTQB test level (unit, integration, system, acceptance)."),
+        verbose_name=_("Test Level"),
+    )
+    test_type = models.CharField(
+        max_length=20,
+        choices=TestType.choices,
+        blank=True,
+        help_text=_("ISTQB test type (functional, non-functional, ...)."),
+        verbose_name=_("Test Type"),
+    )
+    estimated_duration_minutes = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Estimated execution time in minutes."),
+        verbose_name=_("Estimated Duration (minutes)"),
+    )
+
     tc_uid = models.CharField(
         max_length=20,
         unique=True,
@@ -715,6 +872,15 @@ class TestCase(models.Model):
         verbose_name=_("Description"),
     )
 
+    # Free-form notes tied to the Test Case (setup caveats, environment
+    # prerequisites, links to external assets). Optional to keep the model
+    # minimal for authors who only need steps + expected result.
+    additional_notes = models.TextField(
+        blank=True,
+        help_text=_("Notes, extra context, or technical constraints for this Test Case."),
+        verbose_name=_("Additional Notes"),
+    )
+
     class Meta:
         verbose_name = _("Test Case")
         verbose_name_plural = _("Test Cases")
@@ -730,5 +896,57 @@ class TestCase(models.Model):
 
     def __str__(self):
         return f"{self.acceptance_criterion.code} -> {self.code}"
+
+
+class FieldVisibilityPreference(models.Model):
+    """Global visibility flag for a single optional field.
+
+    Each row records whether one optional field of a target model is shown in
+    forms and detail pages. The **absence** of a row means the field is hidden:
+    the system therefore starts "clean" and the user turns fields on from the
+    settings page.
+
+    The set of fields that can be toggled is defined by the explicit catalogue
+    in ``utilities/optional_fields.py`` (Option A). ``target_model`` stores the
+    model class name (e.g. ``"TestCase"``) and ``field_name`` the model field.
+
+    Attributes:
+        target_model: The model class name the field lives on.
+        field_name: The optional field name being toggled.
+        is_visible: Whether the field is shown globally.
+        order: Display order among the visible optional fields.
+    """
+
+    target_model = models.CharField(
+        max_length=50,
+        help_text=_("Model class name the field belongs to (e.g. 'TestCase')."),
+    )
+    field_name = models.CharField(
+        max_length=50,
+        help_text=_("Optional field name being toggled (e.g. 'execution_type')."),
+    )
+    is_visible = models.BooleanField(
+        default=False,
+        help_text=_("Whether the field is shown globally."),
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Display order among the visible optional fields."),
+    )
+
+    class Meta:
+        verbose_name = _("Field Visibility Preference")
+        verbose_name_plural = _("Field Visibility Preferences")
+        ordering = ("target_model", "order", "field_name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["target_model", "field_name"],
+                name="unique_field_visibility_global",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.target_model}.{self.field_name} = {self.is_visible}"
+
 
 

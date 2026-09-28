@@ -1,0 +1,86 @@
+{% extends "testcanvas/bases/base_page.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Delete flow" %} — {{ application_map.name }}{% endblock %}
+{% block page_heading %}{% blocktranslate with name=application_map.name %}Delete flow "{{ name }}"{% endblocktranslate %}{% endblock %}
+{% block wrap_class %}wrap-wide{% endblock %}
+
+{% block content %}
+<div class="card">
+    {# High-visibility warning: this action is destructive and cascades. #}
+    <div class="alert alert-danger" role="alert">
+        <strong>{% translate "Warning: this action cannot be undone." %}</strong>
+        <p class="mb-0">
+            {% blocktranslate with name=application_map.name %}
+            Deleting the flow "<strong>{{ name }}</strong>" will permanently remove
+            the entire application map together with every related artifact:
+            {% endblocktranslate %}
+        </p>
+        <ul>
+            <li>{% translate "all Flow Nodes belonging to this map" %}</li>
+            <li>{% translate "all User Stories, Acceptance Criteria and Test Cases attached to those nodes" %}</li>
+            <li>{% translate "the entire Cytoscape graph stored in this map" %}</li>
+        </ul>
+    </div>
+
+    <dl>
+        <dt>{% translate "Flow name" %}</dt>
+        <dd>{{ application_map.name }}</dd>
+        <dt>{% translate "Flow UID" %}</dt>
+        <dd><code>{{ application_map.flow_uid }}</code></dd>
+        <dt>{% translate "Created" %}</dt>
+        <dd class="muted">{{ application_map.created_at|date:"Y-m-d H:i" }}</dd>
+    </dl>
+
+    {% if referencing_nodes %}
+        {# The map is used as a sub-flow: deletion is blocked entirely. #}
+        <div class="alert alert-warning" role="alert">
+            <strong>{% translate "Deletion is currently blocked." %}</strong>
+            <p>
+                {% translate "This flow is referenced as a sub-flow by the following nodes. Remove these references first, then come back to delete the flow." %}
+            </p>
+            <ul>
+                {% for node in referencing_nodes %}
+                    <li>
+                        <strong>{{ node.application_map.name }}</strong>
+                        — {{ node.local_graph_id }} · {{ node.title }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="btn-group" role="group">
+            <a class="btn btn-secondary" href="{% url 'testcanvas:map_list' %}">{% translate "Back to flows" %}</a>
+        </div>
+    {% else %}
+        {% if error %}
+            <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="{% url 'testcanvas:map_delete' application_map.pk %}" class="stacked-form">
+            {% csrf_token %}
+            <p>
+                {% blocktranslate with name=application_map.name %}
+                To confirm, type the exact flow name <strong>{{ name }}</strong> in
+                the field below and press <em>Delete flow</em>.
+                {% endblocktranslate %}
+            </p>
+            <label for="confirmation-input" class="form-label">
+                {% translate "Confirmation phrase" %}
+            </label>
+            <input id="confirmation-input"
+                   type="text"
+                   name="confirmation"
+                   value="{{ typed_phrase }}"
+                   autocomplete="off"
+                   autofocus
+                   required
+                   placeholder="{{ expected_phrase }}">
+            <div class="btn-group mt-2" role="group">
+                <a class="btn btn-secondary" href="{% url 'testcanvas:map_list' %}">{% translate "Cancel" %}</a>
+                <button type="submit" class="btn btn-danger">{% translate "Delete flow" %}</button>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}
+

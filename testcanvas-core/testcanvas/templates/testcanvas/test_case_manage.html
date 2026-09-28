@@ -24,6 +24,10 @@
             {{ form.description }}
             {% if form.description.errors %}<div class="errors">{{ form.description.errors|striptags }}</div>{% endif %}
         </div>
+
+        {# Project-enabled optional fields (rendered only when turned on). #}
+        {% include "testcanvas/slots/_optional_form_fields.html" with form=form %}
+
         <button type="submit" class="btn btn-primary">+ {% translate "Add Test Case" %}</button>
     </form>
 </div>
