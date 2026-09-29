@@ -1,0 +1,21 @@
+{% load i18n %}
+{% comment %}
+    Renders the globally-enabled optional fields of a form generically.
+
+    The form must expose an ``optional_fields`` property (see
+    ``DynamicOptionalFieldsMixin``). Core fields keep their explicit markup in
+    each template; this partial only appends the optional ones, so enabling a
+    field in the field settings makes it appear here automatically.
+
+    Usage:
+        {% include "testcanvas/slots/_optional_form_fields.html" with form=form %}
+{% endcomment %}
+{% for field in form.optional_fields %}
+    <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="field-help text-muted small">{{ field.help_text }}</div>{% endif %}
+        {% if field.errors %}<div class="errors">{{ field.errors|striptags }}</div>{% endif %}
+    </div>
+{% endfor %}
+
