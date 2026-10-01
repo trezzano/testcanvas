@@ -2,15 +2,15 @@
 {% load i18n %}
 {% block title %}{% translate "Application Maps Collections" %}{% endblock %}
 {% block page_heading %}{% translate "Application Maps Collections" %}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url 'testcanvas:map_list' %}">← {% translate "Back to flows" %}</a>{% endblock %}
+{% block header_link %}<a class="header-link full-page-spinner" href="{% url 'testcanvas:map_list' %}">← {% translate "Back to flows" %}</a>{% endblock %}
 {% block wrap_class %}wrap-wide{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="m-0">{% translate "Collections" %} <span class="count-pill">{{ collections|length }}</span></h2>
     <div class="actions">
         {# Switch to the nested (folder/sub-folder) tree view. #}
-        <a class="btn btn-secondary" href="{% url 'testcanvas:collection_tree' %}">{% translate "Tree view" %}</a>
-        <a class="btn btn-primary" href="{% url 'testcanvas:collection_create' %}?next={% url 'testcanvas:collection_list' %}">+ {% translate "New collection" %}</a>
+        <a class="btn btn-secondary full-page-spinner" href="{% url 'testcanvas:collection_tree' %}">{% translate "Tree view" %}</a>
+        <a class="btn btn-primary full-page-spinner" href="{% url 'testcanvas:collection_create' %}?next={% url 'testcanvas:collection_list' %}">+ {% translate "New collection" %}</a>
     </div>
 </div>
 
@@ -39,7 +39,7 @@
                         {% if c.maps.all %}
                             <ul class="collection-maps mb-0">
                                 {% for m in c.maps.all %}
-                                    <li><a href="{% url 'testcanvas:map_editor' m.pk %}">{{ m.name }}</a></li>
+                                    <li><a class="full-page-spinner" href="{% url 'testcanvas:map_editor' m.pk %}">{{ m.name }}</a></li>
                                 {% endfor %}
                             </ul>
                         {% else %}
@@ -48,7 +48,7 @@
                     </div>
                     <div class="card-footer bg-transparent">
                         <div class="actions">
-                            <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:collection_edit' c.pk %}?next={% url 'testcanvas:collection_list' %}">{% translate "Edit" %}</a>
+                            <a class="btn btn-secondary btn-sm full-page-spinner" href="{% url 'testcanvas:collection_edit' c.pk %}?next={% url 'testcanvas:collection_list' %}">{% translate "Edit" %}</a>
                             <form method="post" action="{% url 'testcanvas:collection_delete' c.pk %}"
                                   onsubmit="return confirm('{% blocktranslate with title=c.title %}Delete collection {{ title }}? Its maps will be kept but ungrouped.{% endblocktranslate %}');">
                                 {% csrf_token %}

@@ -108,7 +108,7 @@
     {% endif %}
 
     <div class="detail-actions">
-        <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">{% translate "Manage AC" %}</a>
+        <a class="btn btn-secondary btn-sm full-page-spinner" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">{% translate "Manage AC" %}</a>
         {# Delete with a native confirmation dialog; the view redirects back to #}
         {# the node's traceability in the user's preferred view (graph/matrix). #}
         <form method="post"

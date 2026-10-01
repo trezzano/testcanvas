@@ -1,0 +1,118 @@
+/* ==========================================================================
+   Full-Page Blocking Spinner
+
+   A full-page overlay spinner that blocks user interaction during page
+   navigation. Used for links that trigger page-level navigation and may take
+   time to load (e.g. form submissions, data-heavy page transitions).
+
+   To use: add class "full-page-spinner" to a link:
+     <a href="/path" class="full-page-spinner">Navigate to page</a>
+
+   The overlay covers the entire viewport with a semi-transparent backdrop,
+   disables all clicks/scrolls, and shows a centered animated spinner.
+   A safety timeout (30s) will auto-hide it if navigation stalls.
+
+   Keep this SEPARATE from the HTMX corner spinner (.htmx-spinner), which
+   handles partial page updates from async requests.
+   ========================================================================== */
+
+/* Full-page overlay: covers entire viewport, blocks interaction */
+#page-spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;  /* Top-most layer to block everything */
+
+    display: flex;  /* Always flex layout (centers spinner when shown) */
+    align-items: center;
+    justify-content: center;
+
+    /* Hidden by default: no backdrop, no interaction, not visible.
+       IMPORTANT: background and backdrop-filter are applied ONLY in the
+       .is-active state. Keeping backdrop-filter here would blur the page
+       content even while hidden (known browser rendering behavior). */
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    overflow: hidden;
+
+    /* Soft, gentle fade. A longer ease avoids an abrupt color change between
+       one page and the next. */
+    transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+
+/* Shown when page is loading: apply a soft light veil, block interaction. */
+#page-spinner-overlay.is-active {
+    /* Light, airy veil in tune with the app background (--tc-bg) instead of a
+       dark overlay, so the transition between pages feels calm rather than a
+       harsh dim. A very subtle blur hints the page is busy without hiding it. */
+    background: rgba(250, 250, 249, 0.55);
+    backdrop-filter: blur(2px) saturate(0.98);
+    -webkit-backdrop-filter: blur(2px) saturate(0.98);
+
+    pointer-events: auto;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+
+/* Centered spinner container */
+.page-spinner__container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* Animated rotating ring (same style as HTMX spinner for consistency) */
+.page-spinner__ring {
+    width: 2.5rem;  /* Compact and minimal, less visually heavy */
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 2.5px solid rgba(99, 102, 241, 0.18);  /* Light iris, low alpha */
+    border-top-color: #6366f1;  /* Solid iris for rotation effect */
+    border-right-color: #6366f1;
+    animation: page-spinner-rotate 0.8s linear infinite;
+}
+
+/* Loading text: kept in the DOM for screen readers but visually hidden so the
+   overlay stays clean (just the ring). This is the standard .sr-only pattern. */
+.page-spinner__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Rotation keyframe animation */
+@keyframes page-spinner-rotate {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Respect prefers-reduced-motion: drop the fade transitions AND the spin so
+   nothing animates for users who asked for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+    #page-spinner-overlay,
+    #page-spinner-overlay.is-active {
+        transition: none;
+    }
+    .page-spinner__ring {
+        animation: none;
+        border-top-color: transparent;
+        border-right-color: transparent;
+    }
+}
+
+/* Disable body scroll when overlay is active */
+body.page-spinner-active {
+    overflow: hidden;
+}

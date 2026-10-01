@@ -15,13 +15,13 @@
 {% endcomment %}
 <nav class="app-navbar navbar navbar-expand-lg">
     {# Brand: logo + application name, linking back to the flows home page. #}
-    <a class="app-navbar__brand" href="{% url 'testcanvas:map_list' %}">
+    <a class="app-navbar__brand full-page-spinner" href="{% url 'testcanvas:map_list' %}">
 
         <span class="app-navbar__name">{{ navbar_logo_text|default:"Test Canvas" }}</span>
     </a>
     <div class="app-navbar__links nav nav-pills gap-2">
         {% for link in nav_links %}
-            <a class="app-navbar__link nav-link {% if link.active %}is-active{% endif %}" href="{{ link.url }}">
+            <a class="app-navbar__link nav-link full-page-spinner {% if link.active %}is-active{% endif %}" href="{{ link.url }}">
                 {% if link.icon %}<span class="app-navbar__icon">{{ link.icon }}</span>{% endif %}
                 {{ link.label }}
             </a>
@@ -29,7 +29,7 @@
     </div>
     <div class="app-navbar__actions">
         {# Field settings #}
-        <a class="nav-link" href="{% url 'testcanvas:project_field_settings' %}">
+        <a class="nav-link full-page-spinner" href="{% url 'testcanvas:project_field_settings' %}">
             {% translate 'Field settings' %}
         </a>
         {# Language switcher: POSTs to set_language and reloads the current page. #}

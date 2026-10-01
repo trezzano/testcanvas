@@ -10,8 +10,9 @@ from .views.standard_views import (
     map_save,
     map_delete,
     map_editor,
-    map_editor_by_uid,
     map_subflow_usage,
+    # resolver
+    dynamic_show_by_uid,
     # traceability page
     flow_node_traceability,
     flow_node_traceability_matrix,
@@ -57,14 +58,17 @@ urlpatterns = [
     # index / authentication
     path('', index, name='index'),
     path('logout/', logout_view, name='logout'),
+
     # main map page
     path('map_list/', map_list, name='map_list'),
     path('create/', map_create, name='map_create'),
     path('<int:pk>/save/', map_save, name='map_save'),
     path('<int:pk>/delete/', map_delete, name='map_delete'),
     path('<int:pk>/subflow-usage/', map_subflow_usage, name='map_subflow_usage'),
-    path('flow/<str:flow_uid>/', map_editor_by_uid, name='map_editor_by_uid'),
     path('<int:pk>/', map_editor, name='map_editor'),
+
+    # smart page resolver from uid
+    path('dynamic_show_by_uid/<str:uid>', dynamic_show_by_uid, name='dynamic_show_by_uid'),
 
     # traceability page
     path('flow-node/<int:node_id>/traceability/', flow_node_traceability, name='flow_node_traceability'),
@@ -80,7 +84,9 @@ urlpatterns = [
     path('test-cases/<int:pk>/detail/', test_case_detail, name='test_case_detail'),
 
     # user story
+    # - barra htmx partials
     path('<int:pk>/node/<str:node_id>/user-stories/', node_user_stories, name='node_user_stories'),
+    # il resto
     path('flow-node/<int:node_id>/user-stories/manage/', user_story_manage, name='user_story_manage'),
     path('flow-node/<int:node_id>/user-stories/<int:pk>/edit/', user_story_edit, name='user_story_edit'),
     path('flow-node/<int:node_id>/user-stories/<int:pk>/delete/', user_story_delete, name='user_story_delete'),

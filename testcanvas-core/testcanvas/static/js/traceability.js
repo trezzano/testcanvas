@@ -83,6 +83,10 @@
             }},
             { selector: '.faded', style: { 'opacity': 0.45 } },
             { selector: '.highlighted', style: { 'opacity': 1 } },
+            // Transient UID-highlight style, centralised in cytoscape_highlight.js
+            // so this graph and the map editor look identical. Kept LAST so it
+            // wins over the type/coverage rules on specificity ties.
+            TestCanvasGraph.HIGHLIGHT_STYLE,
         ],
         // Preset layout: we assign each node an explicit position (see
         // `withColumnPositions`) so the graph reads as US | AC | TC columns.
@@ -100,6 +104,13 @@
     // Restore the previous zoom/pan if the user already navigated this graph,
     // otherwise fit the whole graph into view on the first visit.
     persistViewport(cy);
+
+    // Transiently highlight a node requested via a UID deep-link (e.g. a US/AC/TC
+    // UID opening its traceability node). Delegated to the shared helper so the
+    // look and behaviour match the map editor; it is a safe no-op when no
+    // highlight id is provided. Runs after `persistViewport` so the centring is
+    // the last viewport change the user sees.
+    TestCanvasGraph.highlightNode(cy, CONFIG.highlightNodeId);
 
     wireInteractions(cy);
     wireOrientationToggle(cy);

@@ -3,7 +3,7 @@
 {% block title %}{% translate "Acceptance Criteria" %} · {{ flow_node.title }}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {% translate "Flow Node" %}</div>{% endblock %}
 {% block page_heading %}{% translate "Acceptance Criteria" %} · {{ flow_node.local_graph_id }} — {{ flow_node.title }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
+{% block header_link %}<a class="header-link full-page-spinner" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block content %}
 {# Acceptance Criteria belong to a specific User Story, so this page lists each #}
 {# story of the flow node with its criteria and a link to add/manage them. #}
@@ -32,7 +32,7 @@
                                 <td>{{ ac.get_criterion_type_display }}</td>
                                 <td>
                                     <div class="actions">
-                                        <a class="btn btn-secondary btn-sm"
+                                        <a class="btn btn-secondary btn-sm full-page-spinner"
                                            href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% translate "Edit" %}</a>
                                         <form method="post"
                                               action="{% url 'testcanvas:acceptance_criterion_delete' ac.pk %}"
@@ -49,7 +49,7 @@
             {% else %}
                 <p class="muted">{% translate "No acceptance criteria for this user story yet." %}</p>
             {% endif %}
-            <a class="btn btn-primary" href="{% url 'testcanvas:acceptance_criterion_manage' us.pk %}">
+            <a class="btn btn-primary full-page-spinner" href="{% url 'testcanvas:acceptance_criterion_manage' us.pk %}">
                 + {% blocktranslate with code=us.code %}Add / manage criteria for {{ code }}{% endblocktranslate %}
             </a>
         </div>
@@ -57,7 +57,7 @@
 {% else %}
     <div class="card">
         <p class="muted">{% translate "This flow node has no user stories yet, so it cannot hold acceptance criteria." %}</p>
-        <a class="btn btn-primary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">+ {% translate "Add a User Story first" %}</a>
+        <a class="btn btn-primary full-page-spinner" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">+ {% translate "Add a User Story first" %}</a>
     </div>
 {% endif %}
 {% endblock %}

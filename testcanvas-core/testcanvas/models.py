@@ -254,8 +254,6 @@ class ApplicationMapsCollection(models.Model):
         self.full_clean()
         self.save(update_fields=["parent"])
 
-
-
 class ApplicationMap(models.Model):
     """
     Main container for the application flow graph. 
@@ -896,7 +894,6 @@ class TestCase(models.Model):
 
     def __str__(self):
         return f"{self.acceptance_criterion.code} -> {self.code}"
-
 
 class FieldVisibilityPreference(models.Model):
     """Global visibility flag for a single optional field.

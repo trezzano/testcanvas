@@ -3,7 +3,7 @@
 {% block title %}{% blocktranslate with code=user_story.code %}Manage Acceptance Criteria · {{ code }}{% endblocktranslate %}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} — {{ flow_node.title }}</div>{% endblock %}
 {% block page_heading %}{% translate "Acceptance Criteria" %} · {{ user_story.code }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
+{% block header_link %}<a class="header-link full-page-spinner" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block wrap_class %}wrap-wide{% endblock %}
 {% block content %}
 <div class="story-summary">
@@ -76,9 +76,9 @@
                         <td>{{ ac.get_criterion_type_display }}</td>
                          <td>
                              <div class="actions">
-                                 <a class="btn btn-secondary btn-sm"
+                                 <a class="btn btn-secondary btn-sm full-page-spinner"
                                     href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% translate "Edit" %}</a>
-                                 <a class="btn btn-secondary btn-sm"
+                                 <a class="btn btn-secondary btn-sm full-page-spinner"
                                     href="{% url 'testcanvas:test_case_manage' ac.pk %}">🧪 {% translate "Test Cases" %} <span class="count-pill">{{ ac.test_cases.count }}</span></a>
                                 <form method="post"
                                       action="{% url 'testcanvas:acceptance_criterion_delete' ac.pk %}"

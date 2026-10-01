@@ -37,7 +37,7 @@
         </div>
         <div class="app-header__actions">
             {# Page-specific action only; global logout lives in the shared navbar. #}
-            <a class="header-link" href="{% url 'testcanvas:map_list' %}">← {% translate "Back to list" %}</a>
+            <a class="header-link full-page-spinner" href="{% url 'testcanvas:map_list' %}">← {% translate "Back to list" %}</a>
         </div>
     </header>
     {% if plugin_widgets %}
@@ -203,9 +203,12 @@
             userStoriesUrl: "{% url 'testcanvas:node_user_stories' application_map.pk '__NODE_ID__' %}",
             subflows: {{ subflows_json|safe }},
             nodeUids: {{ node_uids_json|safe }},
-            mapEditorUrl: "{% url 'testcanvas:map_editor' 0 %}"
+            mapEditorUrl: "{% url 'testcanvas:map_editor' 0 %}",
+            highlightNodeId: "{{ highlight_node_id|escapejs }}"
         };
     </script>
+    {# Shared Cytoscape highlight helper (used by the editor and the traceability graph). #}
+    <script src="{% static 'js/cytoscape_highlight.js' %}?v={% now 'U' %}"></script>
     {# Cache-buster (?v=...) forces the browser to reload the script after edits during development. #}
     <script src="{% static 'js/map_editor.js' %}?v={% now 'U' %}"></script>
 {% endblock %}

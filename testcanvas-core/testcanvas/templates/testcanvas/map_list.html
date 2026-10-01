@@ -3,7 +3,7 @@
 {% block title %}{% translate "TestCanvas App" %}{% endblock %}
 {% block page_heading %}{% translate "Application flows" %}{% endblock %}
 {% block wrap_class %}wrap-wide{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url 'testcanvas:collection_list' %}">🗂 {% translate "Manage collections" %}</a>{% endblock %}
+{% block header_link %}<a class="header-link full-page-spinner" href="{% url 'testcanvas:collection_list' %}">🗂 {% translate "Manage collections" %}</a>{% endblock %}
 {% block content %}
 <div class="map-list-layout">
     <div class="map-list-main">
@@ -35,7 +35,7 @@
                                 <td>
                                     {# Bootstrap button group keeps every action the same height. #}
                                     <div class="btn-group" role="group" aria-label="{% translate 'Flow actions' %}">
-                                        <a class="btn btn-secondary btn-sm" href="{% url 'testcanvas:map_editor' m.pk %}">{% translate "Open editor" %}</a>
+                                        <a class="btn btn-secondary btn-sm full-page-spinner" href="{% url 'testcanvas:map_editor' m.pk %}">{% translate "Open editor" %}</a>
                                         {% if m.referencing_nodes.all %}
                                             {# HTMX: load the usage list into the sidebar without a full reload. #}
                                             <button type="button" class="btn btn-info btn-sm"
@@ -48,7 +48,7 @@
                                             confirm page (map_delete), so no inline form / JS confirm
                                             dialog is needed here anymore.
                                         {% endcomment %}
-                                        <a class="btn btn-danger btn-sm"
+                                        <a class="btn btn-danger btn-sm full-page-spinner"
                                            href="{% url 'testcanvas:map_delete' m.pk %}">{% translate "Delete…" %}</a>
                                     </div>
                                 </td>

@@ -82,6 +82,18 @@
     // immediately replaced by the top-down auto layout for brand-new graphs.
     const INITIAL_LAYOUT = HAS_SAVED_POSITIONS ? 'preset' : 'grid';
 
+    // Calculate text color (black or white) based on background luminosity for optimal contrast.
+    // Uses the relative luminance formula (WCAG). If luminosity > 0.5, background is light
+    // (return black text); otherwise return white text.
+    function getContrastTextColor(hexColor) {
+        if (!hexColor) return '#ffffff';
+        const r = parseInt(hexColor.slice(1, 3), 16);
+        const g = parseInt(hexColor.slice(3, 5), 16);
+        const b = parseInt(hexColor.slice(5, 7), 16);
+        const luminosity = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminosity > 0.5 ? '#000000' : '#ffffff';
+    }
+
     const cy = cytoscape({
         container: document.getElementById('cy'),
         elements: buildElements(GRAPH_DATA),
@@ -92,7 +104,7 @@
                     'background-color': ele => ele.data('color') || NODE_DEFAULT_COLOR,
                     'shape': ele => cyShapeFor(ele.data('shape')),
                     'label': 'data(name)',
-                    'color': '#fff',
+                    'color': ele => getContrastTextColor(ele.data('color') || NODE_DEFAULT_COLOR),
                     'text-valign': 'center',
                     'text-halign': 'center',
                     'font-size': '11px',
@@ -143,7 +155,12 @@
             {
                 selector: 'edge:selected',
                 style: { 'line-color': '#f59e0b', 'target-arrow-color': '#f59e0b', 'source-arrow-color': '#f59e0b' }
-            }
+            },
+            // Transient UID-highlight style, centralised in cytoscape_highlight.js
+            // so the editor and the traceability graph look identical. It is a
+            // runtime-only class (never part of graph_data) and is kept LAST so it
+            // wins over the type / sub-flow rules on specificity ties.
+            TestCanvasGraph.HIGHLIGHT_STYLE
         ],
         // `fit: false` prevents Cytoscape from auto-zooming the initial layout.
         // A bare 'fit' would blow a single (small) node up to fill the whole
@@ -222,6 +239,12 @@
     } else if (cy.nodes().length) {
         smartFit(30);
     }
+
+    // Transiently highlight the node requested through a UID deep-link (see
+    // `dynamic_show_by_uid`). Delegated to the shared helper so the look and
+    // behaviour match the traceability graph; it is a safe no-op when no
+    // highlight id is provided or the node is not in this graph.
+    TestCanvasGraph.highlightNode(cy, CONFIG.highlightNodeId);
 
     // Toolbar buttons: re-run the automatic layout on demand.
     document.getElementById('btn-layout-td').addEventListener('click', () => runAutoLayout('td'));

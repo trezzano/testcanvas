@@ -3,7 +3,7 @@
 {% load i18n %}
 {% block title %}{% translate "Collections tree" %}{% endblock %}
 {% block page_heading %}{% translate "Collections tree" %}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url 'testcanvas:collection_list' %}">← {% translate "Back to collections" %}</a>{% endblock %}
+{% block header_link %}<a class="header-link full-page-spinner" href="{% url 'testcanvas:collection_list' %}">← {% translate "Back to collections" %}</a>{% endblock %}
 {% block wrap_class %}wrap-wide{% endblock %}
 {% block extra_css %}
     {# Reused for the shared detail sidebar + detail card styles. #}
@@ -15,8 +15,8 @@
     <h2 class="m-0">{% translate "Nested collections" %}</h2>
     <div class="actions">
         {# Switch back to the flat card list view. #}
-        <a class="btn btn-secondary" href="{% url 'testcanvas:collection_list' %}">☰ {% translate "List view" %}</a>
-        <a class="btn btn-primary" href="{% url 'testcanvas:collection_create' %}?next={% url 'testcanvas:collection_tree' %}">+ {% translate "New collection" %}</a>
+        <a class="btn btn-secondary full-page-spinner" href="{% url 'testcanvas:collection_list' %}">☰ {% translate "List view" %}</a>
+        <a class="btn btn-primary full-page-spinner" href="{% url 'testcanvas:collection_create' %}?next={% url 'testcanvas:collection_tree' %}">+ {% translate "New collection" %}</a>
     </div>
 </div>
 

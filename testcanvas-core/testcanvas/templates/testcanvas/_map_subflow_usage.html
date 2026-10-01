@@ -20,7 +20,7 @@
         <ul class="subflow-usage-list">
             {% for node in referencing_nodes %}
                 <li>
-                    <a href="{% url 'testcanvas:map_editor' node.application_map.pk %}">
+                    <a class="full-page-spinner" href="{% url 'testcanvas:map_editor' node.application_map.pk %}">
                         {{ node.application_map.name }}
                     </a>
                     <span class="muted"><span class="code">{{ node.local_graph_id }}</span> — {{ node.title }}</span>

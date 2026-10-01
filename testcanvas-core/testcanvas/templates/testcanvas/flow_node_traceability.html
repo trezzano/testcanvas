@@ -39,7 +39,7 @@
 
         {# RIGHT: single, isolated action to leave the traceability view. #}
         <div class="header-right">
-            <a class="header-link back-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← {% translate "Back to editor" %}</a>
+            <a class="header-link back-link full-page-spinner" href="{% url 'testcanvas:map_editor' application_map.pk %}">← {% translate "Back to editor" %}</a>
         </div>
     </header>
     {% if plugin_widgets %}
@@ -57,7 +57,7 @@
 
         {# Edit shortcuts live top-right next to the numbers. Their enabled state is decided server-side: AC needs a User Story. #}
         <div class="stat-actions">
-            <a class="stat-edit us" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="{% translate 'Manage User Stories' %}">
+            <a class="stat-edit us full-page-spinner" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="{% translate 'Manage User Stories' %}">
                 <i>✎</i> {% translate "User Stories" %}
             </a>
             {% if us_count == 0 %}
@@ -65,7 +65,7 @@
                     <i>✎</i> {% translate "Acceptance Criteria" %}
                 </span>
             {% else %}
-                <a class="stat-edit ac" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="{% translate 'Manage Acceptance Criteria' %}">
+                <a class="stat-edit ac full-page-spinner" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="{% translate 'Manage Acceptance Criteria' %}">
                     <i>✎</i> {% translate "Acceptance Criteria" %}
                 </a>
             {% endif %}
@@ -79,7 +79,7 @@
             {% if not elements_json or elements_json == '[]' %}
                 <div id="empty-state" style="display:flex;">
                     <div>{% translate "No relationship to show for this Flow Node." %}</div>
-                    <a class="empty-cta" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
+                    <a class="empty-cta full-page-spinner" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
                         <i style="font-style:normal;">＋</i> {% translate "Add a User Story" %}
                     </a>
                 </div>
@@ -104,9 +104,14 @@
             elements: {{ elements_json|safe }},
             // Flow Node id: used to key the saved viewport (zoom + pan) so each
             // node keeps its own graph position across page navigations.
-            node_id: {{ flow_node.pk }}
+            node_id: {{ flow_node.pk }},
+            // Optional node to transiently highlight when the page is opened via
+            // a UID deep-link (empty = nothing to highlight). Mirrors map_editor.
+            highlightNodeId: "{{ highlight_node_id|escapejs }}"
         };
     </script>
+    {# Shared Cytoscape highlight helper (used by the editor and the traceability graph). #}
+    <script src="{% static 'js/cytoscape_highlight.js' %}?v=20261001b"></script>
     {# Shared controller for the detail sidebar (open/close + HTMX auto-open). #}
     <script src="{% static 'js/detail_sidebar.js' %}?v=20260807a"></script>
     <script src="{% static 'js/traceability.js' %}?v=20260821a"></script>

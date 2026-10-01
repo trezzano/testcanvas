@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
@@ -483,6 +483,10 @@ def flow_node_traceability(request, node_id):
         'us_count': us_count,
         'ac_count': ac_count,
         'tc_count': tc_count,
+        # Transient highlight marker for a UID deep-link (empty = none). It is
+        # purely presentational and never persisted; the front-end matches it
+        # against a Cytoscape node id (e.g. ``AC_12``). Mirrors ``map_editor``.
+        'highlight_node_id': request.GET.get('highlight', ''),
         # Plugin extension slot: widgets (progress, buttons, dividers, …) that
         # installed plugins contribute for this flow node. Empty when no plugin
         # is installed, so the template slot simply renders nothing.
@@ -791,23 +795,69 @@ def map_create(request):
     return redirect('testcanvas:map_editor', pk=application_map.pk)
 
 @login_required
-def map_editor_by_uid(request, flow_uid):
-    """Resolve a compact flow UID to the canonical PK-based editor URL.
+def dynamic_show_by_uid(request, uid):
+    """Resolve any artefact UID and open its flow editor with the node highlighted.
 
-    This endpoint is an ingress route for external callers that only know the
-    stable ``flow_uid``. After lookup, it redirects to the existing
-    ``map_editor`` route so all internal navigation and JS configuration keep
-    using the current PK-based URLs without any further changes.
+    Given the UID of any artefact in the ISTQB chain (ApplicationMap, FlowNode,
+    UserStory, AcceptanceCriterion, TestCase), this view finds the owning
+    ``ApplicationMap`` and redirects to its editor. For every artefact that lives
+    *inside* a flow node (FlowNode and its descendants) the containing
+    ``FlowNode`` is resolved and its ``local_graph_id`` is passed as the
+    ``highlight`` query parameter, so the editor can transiently highlight the
+    matching Cytoscape node. The highlight is purely presentational and is never
+    persisted into ``graph_data``.
 
     Args:
         request: The incoming HTTP request.
-        flow_uid: Compact, globally unique flow identifier.
+        uid: Any artefact UID (e.g. ``"ACU-4k9Fm2Xz8Qw1B"``).
 
     Returns:
-        An HTTP redirect to the canonical ``map_editor`` URL.
+        A redirect to the flow editor, optionally carrying ``?highlight=<id>``.
+
+    Raises:
+        Http404: If no artefact matches ``uid``.
     """
-    application_map = get_object_or_404(ApplicationMap, flow_uid=flow_uid)
-    return redirect('testcanvas:map_editor', pk=application_map.pk)
+    from testcanvas.utilities.other_support import find_model_object_by_uid
+
+    model_obj = find_model_object_by_uid(uid)
+    if model_obj is None:
+        raise Http404(f"Nothing found for uid: {uid}")
+
+    # An ApplicationMap UID opens its editor directly: there is no single node
+    # to highlight, so no ``highlight`` parameter is added.
+    if isinstance(model_obj, ApplicationMap):
+        return redirect('testcanvas:map_editor', pk=model_obj.pk)
+
+    # Every other artefact ultimately belongs to a FlowNode. Climb the ISTQB
+    # chain (TestCase -> AC -> UserStory -> FlowNode) to the containing node so
+    # the editor can highlight it via its Cytoscape id (local_graph_id).
+    if isinstance(model_obj, FlowNode):
+        flow_node = model_obj
+        page_url = reverse('testcanvas:map_editor', args=[flow_node.application_map_id])
+        return redirect(f"{page_url}?highlight={flow_node.local_graph_id}")
+    elif isinstance(model_obj, UserStory):
+        user_story = model_obj
+        # retrieve the flownode
+        flow_node_pk = user_story.flow_node.pk
+        page_url = reverse('testcanvas:flow_node_traceability', args=[flow_node_pk])
+        return redirect(f"{page_url}?highlight=US_{user_story.pk}")
+    elif isinstance(model_obj, AcceptanceCriterion):
+        acceptance_criterion = model_obj
+        # retrieve the flownode
+        flow_node_pk = acceptance_criterion.user_story.flow_node.pk
+        page_url = reverse('testcanvas:flow_node_traceability', args=[flow_node_pk])
+        return redirect(f"{page_url}?highlight=AC_{acceptance_criterion.pk}")
+    elif isinstance(model_obj, TestCase):
+        test_case = model_obj
+        # retrieve the flownode
+        flow_node_pk = test_case.acceptance_criterion.user_story.flow_node.pk
+        page_url = reverse('testcanvas:flow_node_traceability', args=[flow_node_pk])
+        return redirect(f"{page_url}?highlight=TC_{test_case.pk}")
+    else:
+        raise Http404(f"No page suitable for show the uid: {uid}")
+
+
+
 
 @login_required
 def map_editor(request, pk):
@@ -859,12 +909,20 @@ def map_editor(request, pk):
     # letting the user (re)group this map on the next Save.
     collections = ApplicationMapsCollection.objects.all()
 
+    # Transient highlight marker: the Cytoscape id (local_graph_id) of a node to
+    # visually emphasise when the editor is opened via a UID deep-link (see
+    # ``dynamic_show_by_uid``). It is purely presentational and never persisted
+    # into ``graph_data``; an empty string means "no node to highlight".
+    highlight_node_id = request.GET.get('highlight', '')
+
     context = {
         'application_map': application_map,
         'graph_data_json': json.dumps(graph_data),
         'subflows_json': json.dumps(subflows),
         'node_uids_json': json.dumps(node_uids),
         'collections': collections,
+        # Node to transiently highlight (empty when the editor is opened normally).
+        'highlight_node_id': highlight_node_id,
         # Plugin extension slot for the whole map (e.g. aggregate coverage).
         # Empty when no plugin is installed, so the header slot renders nothing.
         'plugin_widgets': collect_object_widgets('application_map', application_map, request),
@@ -993,18 +1051,22 @@ def get_node_coverage_color(flow_node):
         A color code (hex string) representing the coverage status.
     """
     # Iterate through all user stories linked to this node.
+    yellow_color = "#fbbf24"
+    blue_color = "#93c5fd"
+    green_color = "#86efac"
     for user_story in flow_node.user_stories.all():
         criteria = list(user_story.criteria.all())
         # US must have at least one AC; if it has none, it's incomplete.
         if not criteria:
-            return '#fbbf24'  # yellow
+            return yellow_color
         # All AC must have at least one TC; if any lacks a TC, it's incomplete.
         for criterion in criteria:
             if not criterion.test_cases.exists():
-                return '#fbbf24'  # yellow
-    
+                return yellow_color
+        # all TC complete
+        return blue_color
     # All US have AC, and all AC have TC: complete coverage.
-    return '#10b981'  # green
+    return green_color
 
 
 def _apply_node_types(application_map, norm_nodes):

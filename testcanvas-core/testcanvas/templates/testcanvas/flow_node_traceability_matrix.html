@@ -33,7 +33,7 @@
 
         {# RIGHT: single, isolated action to leave the traceability view. #}
         <div class="header-right">
-            <a class="header-link back-link" href="{% url 'testcanvas:map_editor' application_map.pk %}">← {% translate "Back to editor" %}</a>
+            <a class="header-link back-link full-page-spinner" href="{% url 'testcanvas:map_editor' application_map.pk %}">← {% translate "Back to editor" %}</a>
         </div>
     </header>
 
@@ -52,7 +52,7 @@
 
         {# Edit shortcuts, mirroring the graph view. Their enabled state is decided server-side. #}
         <div class="stat-actions">
-            <a class="stat-edit us" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="{% translate 'Manage User Stories' %}">
+            <a class="stat-edit us full-page-spinner" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}" title="{% translate 'Manage User Stories' %}">
                 <i>✎</i> {% translate "User Stories" %}
             </a>
             {% if us_count == 0 %}
@@ -60,7 +60,7 @@
                     <i>✎</i> {% translate "Acceptance Criteria" %}
                 </span>
             {% else %}
-                <a class="stat-edit ac" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="{% translate 'Manage Acceptance Criteria' %}">
+                <a class="stat-edit ac full-page-spinner" href="{% url 'testcanvas:node_acceptance_criteria' flow_node.pk %}" title="{% translate 'Manage Acceptance Criteria' %}">
                     <i>✎</i> {% translate "Acceptance Criteria" %}
                 </a>
             {% endif %}
@@ -72,7 +72,7 @@
             {# Empty state: nothing to trace yet for this Flow Node. #}
             <div class="rtm-empty">
                 <div>{% translate "No Acceptance Criteria to show for this Flow Node." %}</div>
-                <a class="btn btn-primary" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">＋ {% translate "Add a User Story" %}</a>
+                <a class="btn btn-primary full-page-spinner" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">＋ {% translate "Add a User Story" %}</a>
             </div>
         {% else %}
             <table class="rtm-table">

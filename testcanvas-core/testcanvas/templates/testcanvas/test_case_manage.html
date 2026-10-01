@@ -3,7 +3,7 @@
 {% block title %}{% blocktranslate with code=criterion.code %}Manage Test Cases · {{ code }}{% endblocktranslate %}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {{ flow_node.local_graph_id }} · {{ user_story.code }}</div>{% endblock %}
 {% block page_heading %}{% translate "Test Cases" %} · {{ criterion.code }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
+{% block header_link %}<a class="header-link full-page-spinner" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block wrap_class %}wrap-wide{% endblock %}
 {% block content %}
 <div class="story-summary">
@@ -49,7 +49,7 @@
                         <td><div class="desc">{{ tc.description }}</div></td>
                         <td>
                             <div class="actions">
-                                <a class="btn btn-secondary btn-sm"
+                                <a class="btn btn-secondary btn-sm full-page-spinner"
                                    href="{% url 'testcanvas:test_case_edit' tc.pk %}">{% translate "Edit" %}</a>
                                 <form method="post"
                                       action="{% url 'testcanvas:test_case_delete' tc.pk %}"

@@ -34,7 +34,7 @@
         {% if maps %}
             <ul class="collection-maps">
                 {% for m in maps %}
-                    <li><a href="{% url 'testcanvas:map_editor' m.pk %}">{{ m.name }}</a></li>
+                    <li><a class="full-page-spinner" href="{% url 'testcanvas:map_editor' m.pk %}">{{ m.name }}</a></li>
                 {% endfor %}
             </ul>
         {% else %}
@@ -43,7 +43,7 @@
     </div>
 
     <div class="detail-actions">
-        <a class="btn btn-primary btn-sm" href="{% url 'testcanvas:collection_edit' collection.pk %}?next={% url 'testcanvas:collection_tree' %}">✎ {% translate "Edit collection" %}</a>
+        <a class="btn btn-primary btn-sm full-page-spinner" href="{% url 'testcanvas:collection_edit' collection.pk %}?next={% url 'testcanvas:collection_tree' %}">✎ {% translate "Edit collection" %}</a>
         <form method="post" action="{% url 'testcanvas:collection_delete' collection.pk %}"
               onsubmit="return confirm('{% blocktranslate with title=collection.title %}Delete collection {{ title }}? Its maps will be kept but ungrouped.{% endblocktranslate %}');">
             {% csrf_token %}

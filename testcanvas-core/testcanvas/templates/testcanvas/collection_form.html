@@ -3,7 +3,7 @@
 {% load i18n %}
 {% block title %}{% if is_edit %}{% blocktranslate with title=collection.title %}Edit collection · {{ title }}{% endblocktranslate %}{% else %}{% translate "New collection" %}{% endif %}{% endblock %}
 {% block page_heading %}{% if is_edit %}{% translate "Edit collection" %}{% else %}{% translate "New collection" %}{% endif %}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url 'testcanvas:collection_list' %}">← {% translate "Back to collections" %}</a>{% endblock %}
+{% block header_link %}<a class="header-link full-page-spinner" href="{% url 'testcanvas:collection_list' %}">← {% translate "Back to collections" %}</a>{% endblock %}
 {% block extra_css %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
     <link rel="stylesheet" href="{% static 'css/collection_form.css' %}?v={% now 'U' %}">
@@ -55,7 +55,7 @@
 
         <div class="actions">
             <button type="submit" class="btn btn-primary">{% if is_edit %}💾 {% translate "Save changes" %}{% else %}+ {% translate "Create collection" %}{% endif %}</button>
-            <a class="btn btn-secondary" href="{{ next_url }}">{% translate "Cancel" %}</a>
+            <a class="btn btn-secondary full-page-spinner" href="{{ next_url }}">{% translate "Cancel" %}</a>
         </div>
     </form>
 </div>

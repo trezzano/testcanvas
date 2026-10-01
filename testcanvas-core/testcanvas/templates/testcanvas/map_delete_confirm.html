@@ -49,7 +49,7 @@
             </ul>
         </div>
         <div class="btn-group" role="group">
-            <a class="btn btn-secondary" href="{% url 'testcanvas:map_list' %}">{% translate "Back to flows" %}</a>
+            <a class="btn btn-secondary full-page-spinner" href="{% url 'testcanvas:map_list' %}">{% translate "Back to flows" %}</a>
         </div>
     {% else %}
         {% if error %}
@@ -76,7 +76,7 @@
                    required
                    placeholder="{{ expected_phrase }}">
             <div class="btn-group mt-2" role="group">
-                <a class="btn btn-secondary" href="{% url 'testcanvas:map_list' %}">{% translate "Cancel" %}</a>
+                <a class="btn btn-secondary full-page-spinner" href="{% url 'testcanvas:map_list' %}">{% translate "Cancel" %}</a>
                 <button type="submit" class="btn btn-danger">{% translate "Delete flow" %}</button>
             </div>
         </form>

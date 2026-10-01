@@ -3,7 +3,7 @@
 {% block title %}{% blocktranslate with title=flow_node.title %}Manage User Stories · {{ title }}{% endblocktranslate %}{% endblock %}
 {% block crumbs %}<div class="crumbs"><strong>{{ application_map.name }}</strong> · {% translate "Flow Node" %}</div>{% endblock %}
 {% block page_heading %}{% translate "User Stories" %} · {{ flow_node.local_graph_id }} — {{ flow_node.title }}{% endblock %}
-{% block header_link %}<a class="header-link" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
+{% block header_link %}<a class="header-link full-page-spinner" href="{% url traceability_url_name flow_node.pk %}">← {% translate "Back to traceability" %}</a>{% endblock %}
 {% block content %}
 {# Plugin extension slot for this flow node (ordered widgets). #}
 <div class="plugin-slotbar">
@@ -86,9 +86,9 @@
                         </td>
                         <td>
                             <div class="actions">
-                                <a class="btn btn-secondary btn-sm"
+                                <a class="btn btn-secondary btn-sm full-page-spinner"
                                    href="{% url 'testcanvas:user_story_edit' flow_node.pk us.pk %}">{% translate "Edit" %}</a>
-                                <a class="btn btn-secondary btn-sm"
+                                <a class="btn btn-secondary btn-sm full-page-spinner"
                                    href="{% url 'testcanvas:acceptance_criterion_manage' us.pk %}">{% translate "Criteria" %}</a>
                                 <form method="post"
                                       action="{% url 'testcanvas:user_story_delete' flow_node.pk us.pk %}"

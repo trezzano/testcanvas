@@ -9,9 +9,9 @@
     {% else %}
         <h2>{% translate "User Story" %} · {{ flow_node.title }}</h2>
 
-        <a href="{% url traceability_url_name flow_node.pk %}" target="_blank"
-           class="btn btn-primary stories-trace-link">
-            🔗 {% translate "Traceability matrix (US → AC → TC)" %}
+        <a href="{% url traceability_url_name flow_node.pk %}"
+           class="btn btn-primary stories-trace-link full-page-spinner">
+            {% translate "Traceability matrix (US → AC → TC)" %}
         </a>
         {% for us in user_stories %}
             <div class="story-card">

@@ -18,6 +18,9 @@
     <!-- Shared site theme (must load after Bootstrap) -->
     <link rel="stylesheet" href="{% static 'css/testcanvas.css' %}">
 
+    <!-- Full-page blocking spinner for page navigation -->
+    <link rel="stylesheet" href="{% static 'css/page-spinner.css' %}">
+
     {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -50,7 +53,26 @@
             </ul>
         {% endif %}
     {% endblock %}
+
+
+    {# Main body content #}
     {% block body %}{% endblock %}
+
+    {% comment %}
+        Full-page blocking spinner overlay. Covers entire viewport with a
+        semi-transparent backdrop and centered loading indicator. Shows only
+        when a link with class "full-page-spinner" is clicked, blocking all
+        user interaction until the page finishes loading.
+
+        Separate from the HTMX corner spinner (.htmx-spinner) which handles
+        partial page updates from async requests.
+    {% endcomment %}
+    <div id="page-spinner-overlay" role="status" aria-live="polite" aria-hidden="true">
+        <div class="page-spinner__container">
+            <div class="page-spinner__ring" aria-hidden="true"></div>
+            <div class="page-spinner__label">{% translate "Loading…" %}</div>
+        </div>
+    </div>
 
     {% comment %}
         Global, non-blocking HTMX loading spinner. A single indicator pinned to
@@ -68,6 +90,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- HTMX: progressive enhancement for partial page updates -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <!-- Full-page blocking spinner controller -->
+    <script src="{% static 'js/page-spinner.js' %}"></script>
     {% comment %}
         Centralized HTMX loading spinner controller.
 
