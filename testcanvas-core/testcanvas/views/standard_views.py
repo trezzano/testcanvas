@@ -830,7 +830,7 @@ def dynamic_show_by_uid(request, uid):
 
     # Every other artefact ultimately belongs to a FlowNode. Climb the ISTQB
     # chain (TestCase -> AC -> UserStory -> FlowNode) to the containing node so
-    # the editor can highlight it via its Cytoscape id (local_graph_id).
+    # the editor can highlight it via its Cytoscape id.
     if isinstance(model_obj, FlowNode):
         flow_node = model_obj
         page_url = reverse('testcanvas:map_editor', args=[flow_node.application_map_id])
