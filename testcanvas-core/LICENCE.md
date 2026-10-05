@@ -1,4 +1,5 @@
 # Test Canvas — SOFTWARE LICENSE
+
 ### (Adapted from the Elastic License 2.0 — ELv2)
 
 **Copyright (C) 2026 Maurizio Gorenszach ("Licensor"). All rights reserved.**
@@ -29,6 +30,8 @@ You may not, without separate commercial agreement with the Licensor:
 
 **(d) Misrepresent origin.** You may not state or imply that you are the original author or creator of the Software, or of the core technology underlying a derivative or integrated product.
 
+**(e) Reverse engineering or cloning of commercial plugins.** You may not use information derived from the architecture or interfaces of the Software to develop, commission to third parties, or distribute competing modules, extensions, or plugins that replicate, in whole or in part, the proprietary functionalities made available by the Licensor exclusively through the Commercial Plugins (Section 7).
+
 All other uses — internal use, modification, redistribution of modified or unmodified copies, commercial use inside your own products (excluding the competing-service case above), and integration into client projects — are permitted without restriction and **without any obligation to publish or share your modifications' source code** (no copyleft).
 
 ---
@@ -39,7 +42,7 @@ This section is the core condition of the free license grant.
 
 **3.1.** Any public-facing deployment, product, or service that incorporates the Software (in original or modified form) must display a visible and legible attribution notice reading substantially:
 
-> "Powered by Test Canvas — https://github.com/trezzano/testcanvas "
+> "Powered by Test Canvas — https://github.com/trezzano/testcanvas"
 
 **3.2.** The attribution must appear in at least one of the following locations, at Licensee's choice, and must remain reachable without requiring login: application footer, "About"/"Credits" page, public documentation, or API/developer documentation landing page.
 
@@ -75,7 +78,11 @@ The Licensor grants you a license, under any patent claims the Licensor can lice
 
 ## 7. Dual Licensing — Core vs. Plugins
 
-The Software as licensed under this Agreement refers to the core project available at [repository URL]. Additional modules, extensions, or plugins may be distributed separately by the Licensor under a distinct, proprietary commercial license (the "Plugin License"), which is **not** covered by this Agreement and does not grant redistribution, modification, or sublicensing rights unless explicitly stated therein. Consulting services related to implementation, customization, or integration of the Software and its plugins are likewise governed by separate commercial agreements.
+The Software as licensed under this Agreement refers to the core project available at "https://github.com/trezzano/testcanvas". Additional modules, extensions, or plugins may be distributed separately by the Licensor under a distinct, proprietary commercial license (the "Plugin License"), which is **not** covered by this Agreement and does not grant redistribution, modification, or sublicensing rights unless explicitly stated therein.
+
+**The provision of the Core does not imply any grant of rights over the source code of the Commercial Plugins, nor does it authorize the creation of third-party extensions intended to replace said proprietary modules for commercial or resale purposes.**
+
+Consulting services related to implementation, customization, or integration of the Software and its plugins are likewise governed by separate commercial agreements.
 
 ---
 
@@ -98,7 +105,3 @@ This Agreement shall be governed by and construed in accordance with the laws of
 **"You" / "Licensee"** means the individual or entity exercising the rights granted under this Agreement.
 
 **"Competing service"** has the meaning given in Section 2(a).
-
----
-
-*This document is a template adapted from the structure of the Elastic License 2.0, customized with additional attribution and dual-licensing provisions. It is provided for drafting purposes and does not constitute legal advice.*
