@@ -21,7 +21,7 @@
     {# Recursive folder-like tree rendered server-side from the serialized nodes. #}
     <ul class="collection-tree">
         {% for node in tree %}
-            {% include "testcanvas/_collection_tree_node.html" with node=node %}
+            {% include "testcanvas/collections/_tree_node.html" with node=node %}
         {% endfor %}
     </ul>
 {% else %}

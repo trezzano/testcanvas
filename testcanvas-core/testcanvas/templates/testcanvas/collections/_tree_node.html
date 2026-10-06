@@ -7,18 +7,18 @@
         <details open>
             <summary class="collection-row{% if node.is_highlighted %} collection-row--highlighted{% endif %}">
                 <span class="collection-row__chevron" aria-hidden="true">›</span>
-                {% include "testcanvas/_collection_tree_row.html" with node=node %}
+                {% include "testcanvas/collections/_tree_row.html" with node=node %}
             </summary>
             <ul class="collection-tree" role="group">
                 {% for child in node.children %}
-                    {% include "testcanvas/_collection_tree_node.html" with node=child %}
+                    {% include "testcanvas/collections/_tree_node.html" with node=child %}
                 {% endfor %}
             </ul>
         </details>
     {% else %}
         <div class="collection-row{% if node.is_highlighted %} collection-row--highlighted{% endif %}">
             <span class="collection-row__chevron" aria-hidden="true"></span>
-            {% include "testcanvas/_collection_tree_row.html" with node=node %}
+            {% include "testcanvas/collections/_tree_row.html" with node=node %}
         </div>
     {% endif %}
 </li>

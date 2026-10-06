@@ -108,7 +108,7 @@ def collection_children(request, pk):
     """
     collection = get_object_or_404(ApplicationMapsCollection, pk=pk)
     children = collection.children.order_by("title").prefetch_related("maps", "children")
-    return render(request, "testcanvas/_collection_children.html", {
+    return render(request, "testcanvas/collections/_children.html", {
         "collection": collection,
         "children": children,
     })
@@ -134,7 +134,7 @@ def collection_detail(request, pk):
         ApplicationMapsCollection.objects.prefetch_related("maps"),
         pk=pk,
     )
-    return render(request, "testcanvas/details/_collection_detail.html", {
+    return render(request, "testcanvas/collections/_detail.html", {
         "collection": collection,
         "maps": collection.maps.order_by("name"),
     })
