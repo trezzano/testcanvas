@@ -100,3 +100,55 @@
     font-weight: 700;
 }
 
+/* --- Collapsible branches (native <details>/<summary>) --- */
+
+/* Hide the browser's default disclosure marker; we draw our own chevron. */
+summary.collection-row {
+    list-style: none;
+    cursor: pointer;
+}
+
+summary.collection-row::-webkit-details-marker {
+    display: none;
+}
+
+/* Fixed-width chevron slot so leaf and branch titles stay aligned. */
+.collection-row__chevron {
+    flex: 0 0 1rem;
+    text-align: center;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--tc-muted, #64748b);
+    transition: transform 0.15s ease;
+}
+
+/* Rotate the chevron to point down when the branch is open. */
+details[open] > summary .collection-row__chevron {
+    transform: rotate(90deg);
+}
+
+/* --- Selected row (the one shown in the detail sidebar) --- */
+
+.collection-row--selected {
+    background: #eef2ff;
+    border-color: transparent;
+    box-shadow: inset 3px 0 0 var(--tc-primary, #4f46e5);
+}
+
+.collection-row--selected .collection-row__title {
+    color: var(--tc-primary, #4f46e5);
+}
+
+/* --- Empty state --- */
+
+.collection-tree-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+}
+
+.collection-tree-empty__icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.6;
+}
+

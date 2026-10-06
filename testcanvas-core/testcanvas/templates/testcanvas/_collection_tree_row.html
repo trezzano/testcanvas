@@ -1,0 +1,13 @@
+{% load i18n %}
+{# Row content shared by branch and leaf nodes: color dot + title link + maps count. #}
+<span class="collection-row__color" style="background-color: {{ node.background_color }};"
+      title="{{ node.background_color }}"></span>
+{# Clicking the title loads the collection card into the detail sidebar (it does not toggle the branch). #}
+<a class="collection-row__title"
+   href="#"
+   hx-get="{% url 'testcanvas:collection_detail' node.id %}"
+   hx-target="#detail-sidebar-body"
+   hx-swap="innerHTML"
+   onclick="return false;">{{ node.title }}</a>
+<span class="collection-row__count" title="{% translate 'Maps in this collection' %}">{{ node.maps_count }}</span>
+

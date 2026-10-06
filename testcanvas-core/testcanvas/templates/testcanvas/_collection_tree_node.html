@@ -1,22 +1,24 @@
 {% load i18n %}
-{# Recursive tree node: color swatch + HTMX title link that opens the detail sidebar, then its nested children. #}
-<li class="collection-tree-node{% if node.is_highlighted %} collection-tree-node--highlighted{% endif %}">
-    <div class="collection-row{% if node.is_highlighted %} collection-row--highlighted{% endif %}">
-        <span class="collection-row__color" style="background-color: {{ node.background_color }};"
-              title="{{ node.background_color }}"></span>
-        <a class="collection-row__title"
-           href="#"
-           hx-get="{% url 'testcanvas:collection_detail' node.id %}"
-           hx-target="#detail-sidebar-body"
-           hx-swap="innerHTML"
-           onclick="return false;">{{ node.title }}</a>
-        <span class="collection-row__count" title="{% translate 'Maps in this collection' %}">{{ node.maps_count }}</span>
-    </div>
+{# Recursive tree node. #}
+{# Nodes with children use native <details>/<summary> so they collapse without JavaScript. #}
+{# Leaf nodes render the same row with an empty chevron slot to keep titles aligned. #}
+<li class="collection-tree-node{% if node.is_highlighted %} collection-tree-node--highlighted{% endif %}" role="treeitem">
     {% if node.children %}
-        <ul class="collection-tree">
-            {% for child in node.children %}
-                {% include "testcanvas/_collection_tree_node.html" with node=child %}
-            {% endfor %}
-        </ul>
+        <details open>
+            <summary class="collection-row{% if node.is_highlighted %} collection-row--highlighted{% endif %}">
+                <span class="collection-row__chevron" aria-hidden="true">›</span>
+                {% include "testcanvas/_collection_tree_row.html" with node=node %}
+            </summary>
+            <ul class="collection-tree" role="group">
+                {% for child in node.children %}
+                    {% include "testcanvas/_collection_tree_node.html" with node=child %}
+                {% endfor %}
+            </ul>
+        </details>
+    {% else %}
+        <div class="collection-row{% if node.is_highlighted %} collection-row--highlighted{% endif %}">
+            <span class="collection-row__chevron" aria-hidden="true"></span>
+            {% include "testcanvas/_collection_tree_row.html" with node=node %}
+        </div>
     {% endif %}
 </li>

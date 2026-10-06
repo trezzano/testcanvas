@@ -11,9 +11,8 @@
 {% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="m-0">{% translate "Nested collections" %}</h2>
+    <h2 class="m-0">{% translate "Collections" %}</h2>
     <div class="actions">
-        {# Switch back to the flat card list view. #}
         <a class="btn btn-primary full-page-spinner" href="{% url 'testcanvas:collection_create' %}?next={% url 'testcanvas:collection_tree' %}">+ {% translate "New collection" %}</a>
     </div>
 </div>
@@ -37,5 +36,18 @@
 {% block extra_js %}
     {# Shared controller for the detail sidebar (open/close + resize + HTMX auto-open). #}
     <script src="{% static 'js/detail_sidebar.js' %}?v=20260807a"></script>
+    <script>
+        // Mark the row whose title was clicked as selected (only one at a time).
+        document.addEventListener("click", function (event) {
+            var title = event.target.closest(".collection-row__title");
+            if (!title) {
+                return;
+            }
+            document.querySelectorAll(".collection-row--selected").forEach(function (row) {
+                row.classList.remove("collection-row--selected");
+            });
+            title.closest(".collection-row").classList.add("collection-row--selected");
+        });
+    </script>
 {% endblock %}
 

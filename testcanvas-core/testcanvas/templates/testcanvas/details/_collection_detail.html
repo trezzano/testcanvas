@@ -43,11 +43,11 @@
     </div>
 
     <div class="detail-actions">
-        <a class="btn btn-primary btn-sm full-page-spinner" href="{% url 'testcanvas:collection_edit' collection.pk %}?next={% url 'testcanvas:collection_tree' %}">✎ {% translate "Edit collection" %}</a>
+        <a class="btn btn-primary btn-sm full-page-spinner" href="{% url 'testcanvas:collection_edit' collection.pk %}?next={% url 'testcanvas:collection_tree' %}">{% translate "Edit collection" %}</a>
         <form method="post" action="{% url 'testcanvas:collection_delete' collection.pk %}"
               onsubmit="return confirm('{% blocktranslate with title=collection.title %}Delete collection {{ title }}? Its maps will be kept but ungrouped.{% endblocktranslate %}');">
             {% csrf_token %}
-            <button type="submit" class="btn btn-danger btn-sm">🗑 {% translate "Delete" %}</button>
+            <button type="submit" class="btn btn-danger btn-sm">🗑 {% translate "Delete collection" %}</button>
         </form>
     </div>
 </div>
