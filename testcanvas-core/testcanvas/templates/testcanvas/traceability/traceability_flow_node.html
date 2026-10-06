@@ -92,7 +92,7 @@
 
 
     {# Shared detail sidebar: HTMX loads the tapped node's US/AC/TC card into it. #}
-    {% include "testcanvas/details/_detail_sidebar.html" %}
+    {% include "testcanvas/shared/_shared_detail_sidebar.html" %}
 {% endblock %}
 {% block extra_js %}
     <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
@@ -106,7 +106,7 @@
             // node keeps its own graph position across page navigations.
             node_id: {{ flow_node.pk }},
             // Optional node to transiently highlight when the page is opened via
-            // a UID deep-link (empty = nothing to highlight). Mirrors map_editor.
+            // a UID deep-link (empty = nothing to highlight). Mirrors the map editor.
             highlightNodeId: "{{ highlight_node_id|escapejs }}"
         };
     </script>

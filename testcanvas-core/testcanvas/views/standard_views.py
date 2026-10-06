@@ -124,7 +124,7 @@ def user_story_manage(request, node_id):
         form = UserStoryForm(project=project)
 
     user_stories = flow_node.user_stories.order_by('code')
-    return render(request, 'testcanvas/user_story_manage.html', {
+    return render(request, 'testcanvas/user_stories/user_stories_manage.html', {
         'flow_node': flow_node,
         'application_map': flow_node.application_map,
         'user_stories': user_stories,
@@ -154,7 +154,7 @@ def user_story_edit(request, node_id, pk):
     else:
         form = UserStoryForm(instance=user_story, project=project)
 
-    return render(request, 'testcanvas/user_story_edit.html', {
+    return render(request, 'testcanvas/user_stories/user_stories_edit.html', {
         'flow_node': flow_node,
         'application_map': flow_node.application_map,
         'user_story': user_story,
@@ -202,7 +202,7 @@ def acceptance_criterion_manage(request, user_story_id):
         form = AcceptanceCriterionForm(project=project)
 
     criteria = user_story.criteria.order_by('code')
-    return render(request, 'testcanvas/acceptance_criterion_manage.html', {
+    return render(request, 'testcanvas/acceptance_criteria/acceptance_criteria_manage.html', {
         'flow_node': flow_node,
         'application_map': flow_node.application_map,
         'user_story': user_story,
@@ -237,7 +237,7 @@ def acceptance_criterion_edit(request, pk):
     else:
         form = AcceptanceCriterionForm(instance=criterion, project=project)
 
-    return render(request, 'testcanvas/acceptance_criterion_edit.html', {
+    return render(request, 'testcanvas/acceptance_criteria/acceptance_criteria_edit.html', {
         'flow_node': flow_node,
         'application_map': flow_node.application_map,
         'user_story': user_story,
@@ -290,7 +290,7 @@ def test_case_manage(request, acceptance_criterion_id):
         form = TestCaseForm(project=project)
 
     test_cases = criterion.test_cases.order_by('code')
-    return render(request, 'testcanvas/test_case_manage.html', {
+    return render(request, 'testcanvas/test_cases/test_cases_manage.html', {
         'flow_node': flow_node,
         'application_map': flow_node.application_map,
         'criterion': criterion,
@@ -321,7 +321,7 @@ def test_case_edit(request, pk):
     else:
         form = TestCaseForm(instance=test_case, project=project)
 
-    return render(request, 'testcanvas/test_case_edit.html', {
+    return render(request, 'testcanvas/test_cases/test_cases_edit.html', {
         'flow_node': flow_node,
         'application_map': flow_node.application_map,
         'criterion': criterion,
@@ -372,7 +372,7 @@ def node_acceptance_criteria(request, node_id):
         .prefetch_related('criteria')
         .order_by('code')
     )
-    return render(request, 'testcanvas/acceptance_criterion_overview.html', {
+    return render(request, 'testcanvas/acceptance_criteria/acceptance_criteria_overview.html', {
         'flow_node': flow_node,
         'application_map': flow_node.application_map,
         'user_stories': user_stories,
@@ -492,7 +492,7 @@ def flow_node_traceability(request, node_id):
         # is installed, so the template slot simply renders nothing.
         'plugin_widgets': collect_object_widgets('flow_node', flow_node, request),
     }
-    return render(request, 'testcanvas/flow_node_traceability.html', context)
+    return render(request, 'testcanvas/traceability/traceability_flow_node.html', context)
 
 @login_required
 def flow_node_traceability_matrix(request, node_id):
@@ -551,7 +551,7 @@ def flow_node_traceability_matrix(request, node_id):
         # is installed, so the template slot simply renders nothing.
         'plugin_widgets': collect_object_widgets('flow_node', flow_node, request),
     }
-    return render(request, 'testcanvas/flow_node_traceability_matrix.html', context)
+    return render(request, 'testcanvas/traceability/traceability_matrix.html', context)
 
 @login_required
 def user_story_detail(request, pk):
@@ -590,7 +590,7 @@ def user_story_detail(request, pk):
     else:
         form = UserStoryForm(instance=user_story, project=project)
 
-    return render(request, 'testcanvas/details/_user_story_detail.html', {
+    return render(request, 'testcanvas/user_stories/_user_stories_detail.html', {
         'user_story': user_story,
         'form': form,
         'saved': saved,
@@ -634,7 +634,7 @@ def acceptance_criterion_detail(request, pk):
     else:
         form = AcceptanceCriterionForm(instance=criterion, project=project)
 
-    return render(request, 'testcanvas/details/_acceptance_criterion_detail.html', {
+    return render(request, 'testcanvas/acceptance_criteria/_acceptance_criteria_detail.html', {
         'criterion': criterion,
         'form': form,
         'saved': saved,
@@ -678,7 +678,7 @@ def test_case_detail(request, pk):
     else:
         form = TestCaseForm(instance=test_case, project=project)
 
-    return render(request, 'testcanvas/details/_test_case_detail.html', {
+    return render(request, 'testcanvas/test_cases/_test_cases_detail.html', {
         'test_case': test_case,
         'form': form,
         'saved': saved,
@@ -752,7 +752,7 @@ def map_list(request):
         .prefetch_related('referencing_nodes')
     )
     # Search, sorting and paging are handled client-side by DataTables.
-    return render(request, 'testcanvas/map_list.html', {'maps': maps})
+    return render(request, 'testcanvas/maps/maps_list.html', {'maps': maps})
 
 @login_required
 def map_subflow_usage(request, pk):
@@ -761,7 +761,7 @@ def map_subflow_usage(request, pk):
     Lists each ``FlowNode`` that references this map through ``sub_flow``,
     together with a link to open the containing flow's editor. The response is a
     fragment (``_map_subflow_usage.html``) meant to be swapped into the
-    map_list sidebar by HTMX.
+    map list sidebar by HTMX.
 
     Args:
         request: The HTTP request (typically an hx-get).
@@ -779,7 +779,7 @@ def map_subflow_usage(request, pk):
         .order_by('application_map__name', 'local_graph_id')
     )
 
-    return render(request, 'testcanvas/_map_subflow_usage.html', {
+    return render(request, 'testcanvas/maps/_maps_subflow_usage.html', {
         'application_map': application_map,
         'referencing_nodes': referencing_nodes,
     })
@@ -930,7 +930,7 @@ def map_editor(request, pk):
         # Empty when no plugin is installed, so the header slot renders nothing.
         'plugin_widgets': collect_object_widgets('application_map', application_map, request),
     }
-    return render(request, 'testcanvas/map_editor.html', context)
+    return render(request, 'testcanvas/maps/maps_editor.html', context)
 
 @require_POST
 @login_required
@@ -1158,7 +1158,7 @@ def node_user_stories(request, pk, node_id):
     is_subflow = bool(flow_node and flow_node.node_type == FlowNode.SUBFLOW)
     user_stories = [] if is_subflow else (flow_node.user_stories.all() if flow_node else [])
 
-    return render(request, 'testcanvas/_user_stories.html', {
+    return render(request, 'testcanvas/maps/_maps_user_stories.html', {
         'flow_node': flow_node,
         'node_id': node_id,
         'user_stories': user_stories,
@@ -1230,7 +1230,7 @@ def map_delete(request, pk):
         if typed_phrase != name:
             # Re-render the confirmation page with an inline error so the user
             # can retry without losing context.
-            return render(request, 'testcanvas/map_delete_confirm.html', {
+            return render(request, 'testcanvas/maps/maps_delete_confirm.html', {
                 'application_map': application_map,
                 'referencing_nodes': referencing_nodes,
                 'expected_phrase': name,
@@ -1247,7 +1247,7 @@ def map_delete(request, pk):
 
     # GET: render the confirmation page (blocked or not — we still let the user
     # see the referencing nodes so they know what to fix).
-    return render(request, 'testcanvas/map_delete_confirm.html', {
+    return render(request, 'testcanvas/maps/maps_delete_confirm.html', {
         'application_map': application_map,
         'referencing_nodes': referencing_nodes,
         'expected_phrase': name,
@@ -1290,7 +1290,7 @@ def collection_create(request):
     else:
         form = ApplicationMapsCollectionForm()
 
-    return render(request, 'testcanvas/collection_form.html', {
+    return render(request, 'testcanvas/collections/collections_form.html', {
         'form': form,
         'is_edit': False,
         'next_url': next_url,
@@ -1329,7 +1329,7 @@ def collection_edit(request, pk):
     else:
         form = ApplicationMapsCollectionForm(instance=collection)
 
-    return render(request, 'testcanvas/collection_form.html', {
+    return render(request, 'testcanvas/collections/collections_form.html', {
         'form': form,
         'collection': collection,
         'is_edit': True,
@@ -1408,7 +1408,7 @@ def project_field_settings(request):
         ]
         sections.append({'model_name': model_name, 'fields': fields})
 
-    return render(request, 'testcanvas/project_field_settings.html', {
+    return render(request, 'testcanvas/settings/settings_project_fields.html', {
         'sections': sections,
     })
 

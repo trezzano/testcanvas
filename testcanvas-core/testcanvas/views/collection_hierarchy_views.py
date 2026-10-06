@@ -5,8 +5,7 @@ adding the tree-specific operations introduced with the self-referential
 ``ApplicationMapsCollection.parent`` field:
 
 * :func:`collection_tree` — render the whole nested tree of collections;
-* :func:`collection_children` — HTMX partial listing the direct children of a
-  collection (lazy tree expansion);
+* :func:`collection_detail` — HTMX detail card shown in the sidebar;
 * :func:`collection_move` — re-parent a collection (drag & drop / move action).
 
 They are intentionally kept out of ``standard_views`` so the hierarchy concern
@@ -39,7 +38,6 @@ def _serialize_tree(collection: ApplicationMapsCollection, highlight_collection_
         "id": collection.pk,
         "title": collection.title,
         "background_color": collection.background_color,
-        "full_path": collection.get_full_path(),
         # Number of ApplicationMaps directly grouped by this collection.
         "maps_count": collection.maps.count(),
         "is_highlighted": collection.pk == highlight_collection_id,
@@ -50,70 +48,28 @@ def _serialize_tree(collection: ApplicationMapsCollection, highlight_collection_
 @login_required
 def collection_tree(request, application_map_uid=None):
     """Render the complete nested tree of collections.
-
     Starts from the root collections (``parent`` is ``None``) and walks down the
-    ``children`` relation to build a folder-like tree. The serialized structure
-    is passed both as Python objects (for server-side rendering) and can be
-    reused by the front-end if needed.
-
-    If the ``application_map_uid`` URL parameter is provided, the view finds
-    the ApplicationMap with that flow_uid and highlights its parent collection
-    in the tree.
-
+    ``children`` relation to build a folder-like tree.
+    If ``application_map_uid`` is provided, the collection containing that
+    ApplicationMap is highlighted in the tree. Unknown UIDs are ignored.
     Args:
         request: The incoming HTTP request.
         application_map_uid: Optional application map UID from the URL.
-
     Returns:
         An ``HttpResponse`` rendering the collections tree page.
     """
-    # Resolve the collection ID to highlight from the application map UID.
     highlight_collection_id = None
-    
     if application_map_uid:
-        try:
-            app_map = ApplicationMap.objects.get(flow_uid=application_map_uid)
-            # Get the collection ID if the map has one.
-            if app_map.collection_id:
-                highlight_collection_id = app_map.collection_id
-        except ApplicationMap.DoesNotExist:
-            # Silently ignore invalid UIDs; tree renders normally without highlighting.
-            pass
-    
+        app_map = ApplicationMap.objects.filter(flow_uid=application_map_uid).first()
+        if app_map:
+            highlight_collection_id = app_map.collection_id
     roots = (
         ApplicationMapsCollection.objects
         .filter(parent__isnull=True)
         .order_by("title")
     )
     tree = [_serialize_tree(root, highlight_collection_id) for root in roots]
-    return render(request, "testcanvas/collection_tree.html", {
-        "tree": tree,
-        "highlight_collection_id": highlight_collection_id,
-    })
-
-
-@login_required
-def collection_children(request, pk):
-    """Return the direct children of a collection as an HTMX partial.
-
-    Enables lazy expansion of the tree: the client requests the children of a
-    node only when the user expands it, keeping the initial payload small.
-
-    Args:
-        request: The incoming HTTP request (typically an hx-get).
-        pk: Primary key of the parent collection.
-
-    Returns:
-        An ``HttpResponse`` rendering the children list partial.
-    """
-    collection = get_object_or_404(ApplicationMapsCollection, pk=pk)
-    children = collection.children.order_by("title").prefetch_related("maps", "children")
-    return render(request, "testcanvas/collections/_children.html", {
-        "collection": collection,
-        "children": children,
-    })
-
-
+    return render(request, "testcanvas/collections/collections_tree.html", {"tree": tree})
 @login_required
 def collection_detail(request, pk):
     """Render a collection detail card as an HTMX partial.
@@ -134,7 +90,7 @@ def collection_detail(request, pk):
         ApplicationMapsCollection.objects.prefetch_related("maps"),
         pk=pk,
     )
-    return render(request, "testcanvas/collections/_detail.html", {
+    return render(request, "testcanvas/collections/_collections_detail.html", {
         "collection": collection,
         "maps": collection.maps.order_by("name"),
     })

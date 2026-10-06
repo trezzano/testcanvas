@@ -21,7 +21,7 @@
     {# Recursive folder-like tree rendered server-side from the serialized nodes. #}
     <ul class="collection-tree">
         {% for node in tree %}
-            {% include "testcanvas/collections/_tree_node.html" with node=node %}
+            {% include "testcanvas/collections/_collections_tree_node.html" with node=node %}
         {% endfor %}
     </ul>
 {% else %}
@@ -31,7 +31,7 @@
 {% endif %}
 
 {# Shared detail sidebar: HTMX loads the clicked collection card into it. #}
-{% include "testcanvas/details/_detail_sidebar.html" %}
+{% include "testcanvas/shared/_shared_detail_sidebar.html" %}
 {% endblock %}
 {% block extra_js %}
     {# Shared controller for the detail sidebar (open/close + resize + HTMX auto-open). #}

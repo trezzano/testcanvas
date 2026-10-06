@@ -2,10 +2,9 @@
 {% comment %}
     Shared detail sidebar shell.
 
-    Included by both traceability views (graph and RTM table). Replaces the old
-    Bootstrap modal: clicking a US / AC / TC label (RTM) or tapping a node
-    (graph) loads the matching detail partial into ``#detail-sidebar-body`` via
-    HTMX. A small script (detail_sidebar.js) slides the panel in on load and
+    Included by both traceability views (graph and RTM table) and by the
+    collections tree. Clicking an item loads the matching detail partial into
+    ``#detail-sidebar-body`` via HTMX. A small script (detail_sidebar.js) slides the panel in on load and
     wires the close / re-open controls. The panel can stay open or be dismissed.
 
     The panel overlays the RIGHT edge of the content area so both pages share the

@@ -46,7 +46,6 @@ from .views.standard_views import (
 from .views.collection_hierarchy_views import (
     # nested (folder/sub-folder) hierarchy operations
     collection_tree,
-    collection_children,
     collection_move,
     collection_detail,
 )
@@ -83,9 +82,9 @@ urlpatterns = [
     path('test-cases/<int:pk>/detail/', test_case_detail, name='test_case_detail'),
 
     # user story
-    # - barra htmx partials
+    # - HTMX side panel of the map editor
     path('<int:pk>/node/<str:node_id>/user-stories/', node_user_stories, name='node_user_stories'),
-    # il resto
+    # - full pages
     path('flow-node/<int:node_id>/user-stories/manage/', user_story_manage, name='user_story_manage'),
     path('flow-node/<int:node_id>/user-stories/<int:pk>/edit/', user_story_edit, name='user_story_edit'),
     path('flow-node/<int:node_id>/user-stories/<int:pk>/delete/', user_story_delete, name='user_story_delete'),
@@ -110,7 +109,6 @@ urlpatterns = [
     # application maps collections — nested (folder/sub-folder) hierarchy
     path('collections/tree/<str:application_map_uid>/', collection_tree, name='collection_tree_highlight'),
     path('collections/tree/', collection_tree, name='collection_tree'),
-    path('collections/<int:pk>/children/', collection_children, name='collection_children'),
     path('collections/<int:pk>/move/', collection_move, name='collection_move'),
     path('collections/<int:pk>/detail/', collection_detail, name='collection_detail'),
 
