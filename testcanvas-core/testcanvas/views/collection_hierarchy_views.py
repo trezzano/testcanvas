@@ -21,18 +21,19 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from testcanvas.models import ApplicationMapsCollection
+from testcanvas.models import ApplicationMap, ApplicationMapsCollection
 
 
-def _serialize_tree(collection: ApplicationMapsCollection) -> dict:
+def _serialize_tree(collection: ApplicationMapsCollection, highlight_collection_id: int | None = None) -> dict:
     """Recursively serialize a collection and its descendants into a dict tree.
 
     Args:
         collection: The root collection of the (sub)tree to serialize.
+        highlight_collection_id: Optional collection ID to mark as highlighted.
 
     Returns:
-        A nested dictionary describing the collection, its member maps count and
-        its children, ready to be JSON-encoded or consumed by a template.
+        A nested dictionary describing the collection, its member maps count,
+        children, and whether it should be highlighted.
     """
     return {
         "id": collection.pk,
@@ -41,12 +42,13 @@ def _serialize_tree(collection: ApplicationMapsCollection) -> dict:
         "full_path": collection.get_full_path(),
         # Number of ApplicationMaps directly grouped by this collection.
         "maps_count": collection.maps.count(),
-        "children": [_serialize_tree(child) for child in collection.children.all()],
+        "is_highlighted": collection.pk == highlight_collection_id,
+        "children": [_serialize_tree(child, highlight_collection_id) for child in collection.children.all()],
     }
 
 
 @login_required
-def collection_tree(request):
+def collection_tree(request, application_map_uid=None):
     """Render the complete nested tree of collections.
 
     Starts from the root collections (``parent`` is ``None``) and walks down the
@@ -54,20 +56,39 @@ def collection_tree(request):
     is passed both as Python objects (for server-side rendering) and can be
     reused by the front-end if needed.
 
+    If the ``application_map_uid`` URL parameter is provided, the view finds
+    the ApplicationMap with that flow_uid and highlights its parent collection
+    in the tree.
+
     Args:
         request: The incoming HTTP request.
+        application_map_uid: Optional application map UID from the URL.
 
     Returns:
         An ``HttpResponse`` rendering the collections tree page.
     """
+    # Resolve the collection ID to highlight from the application map UID.
+    highlight_collection_id = None
+    
+    if application_map_uid:
+        try:
+            app_map = ApplicationMap.objects.get(flow_uid=application_map_uid)
+            # Get the collection ID if the map has one.
+            if app_map.collection_id:
+                highlight_collection_id = app_map.collection_id
+        except ApplicationMap.DoesNotExist:
+            # Silently ignore invalid UIDs; tree renders normally without highlighting.
+            pass
+    
     roots = (
         ApplicationMapsCollection.objects
         .filter(parent__isnull=True)
         .order_by("title")
     )
-    tree = [_serialize_tree(root) for root in roots]
+    tree = [_serialize_tree(root, highlight_collection_id) for root in roots]
     return render(request, "testcanvas/collection_tree.html", {
         "tree": tree,
+        "highlight_collection_id": highlight_collection_id,
     })
 
 
@@ -164,4 +185,3 @@ def collection_move(request, pk):
         })
     messages.success(request, success)
     return redirect("testcanvas:collection_tree")
-

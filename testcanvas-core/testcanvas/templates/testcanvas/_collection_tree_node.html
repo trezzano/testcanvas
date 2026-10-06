@@ -1,7 +1,7 @@
 {% load i18n %}
 {# Recursive tree node: color swatch + HTMX title link that opens the detail sidebar, then its nested children. #}
-<li class="collection-tree-node">
-    <div class="collection-row">
+<li class="collection-tree-node{% if node.is_highlighted %} collection-tree-node--highlighted{% endif %}">
+    <div class="collection-row{% if node.is_highlighted %} collection-row--highlighted{% endif %}">
         <span class="collection-row__color" style="background-color: {{ node.background_color }};"
               title="{{ node.background_color }}"></span>
         <a class="collection-row__title"

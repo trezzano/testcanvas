@@ -36,6 +36,18 @@
             </label>
         </div>
         <div class="app-header__actions">
+            {# Link to view this map's collection in the tree (if assigned to one). #}
+            {% if application_map.collection_id %}
+                <a class="header-link" href="{% url 'testcanvas:collection_tree_highlight' application_map.flow_uid %}"
+                   title="{% translate 'View this map in its collection tree' %}">
+                     {% translate "View the collection" %}
+                </a>
+            {% endif %}
+            {# Delete flow: two-step process with confirmation page. #}
+            <a class="header-link header-link--danger full-page-spinner" href="{% url 'testcanvas:map_delete' application_map.pk %}"
+               title="{% translate 'Delete this flow (requires confirmation)' %}">
+               {% translate "Delete…" %}
+            </a>
             {# Page-specific action only; global logout lives in the shared navbar. #}
             <a class="header-link full-page-spinner" href="{% url 'testcanvas:map_list' %}">← {% translate "Back to list" %}</a>
         </div>

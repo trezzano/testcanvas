@@ -742,13 +742,16 @@ def map_list(request):
 
     Each map is prefetched with its ``referencing_nodes`` so the template can
     tell whether it is used as a sub-flow (and therefore show the
-    "Info subflow use" button).
+    "Info subflow use" button). Maps are also joined with their collection so
+    the collection title can be displayed without N+1 queries.
     """
     maps = (
         ApplicationMap.objects
+        .select_related('collection')
         .order_by('-created_at')
         .prefetch_related('referencing_nodes')
     )
+    # Search, sorting and paging are handled client-side by DataTables.
     return render(request, 'testcanvas/map_list.html', {'maps': maps})
 
 @login_required
@@ -1257,28 +1260,6 @@ def map_delete(request, pk):
 # --------------------------------------------------------------------------- #
 
 @login_required
-def collection_list(request):
-    """List every ApplicationMapsCollection with its member maps.
-
-    Read-only overview page: each collection is shown together with the maps
-    it groups and links to add / edit / delete collections.
-
-    Args:
-        request: The incoming HTTP request.
-
-    Returns:
-        An ``HttpResponse`` rendering the collections list.
-    """
-    collections = (
-        ApplicationMapsCollection.objects
-        .order_by('title')
-        .prefetch_related('maps')
-    )
-    return render(request, 'testcanvas/collection_list.html', {
-        'collections': collections,
-    })
-
-@login_required
 def collection_create(request):
     """Create a new ApplicationMapsCollection.
 
@@ -1297,7 +1278,7 @@ def collection_create(request):
     next_url = (
         request.POST.get('next')
         or request.GET.get('next')
-        or reverse('testcanvas:collection_list')
+        or reverse('testcanvas:collection_tree')
     )
 
     if request.method == 'POST':
@@ -1336,7 +1317,7 @@ def collection_edit(request, pk):
     next_url = (
         request.POST.get('next')
         or request.GET.get('next')
-        or reverse('testcanvas:collection_list')
+        or reverse('testcanvas:collection_tree')
     )
 
     if request.method == 'POST':
@@ -1374,8 +1355,7 @@ def collection_delete(request, pk):
     title = collection.title
     collection.delete()
     messages.success(request, _("Collection '%(title)s' deleted.") % {"title": title})
-    return redirect('testcanvas:collection_list')
-
+    return redirect('testcanvas:collection_tree')
 
 @login_required
 def project_field_settings(request):

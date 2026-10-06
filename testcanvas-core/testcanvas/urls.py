@@ -37,7 +37,6 @@ from .views.standard_views import (
     test_case_edit,
     test_case_delete,
     # application maps collections
-    collection_list,
     collection_create,
     collection_edit,
     collection_delete,
@@ -104,12 +103,12 @@ urlpatterns = [
 
 
     # application maps collections (logical grouping layer)
-    path('collections/', collection_list, name='collection_list'),
     path('collections/create/', collection_create, name='collection_create'),
     path('collections/<int:pk>/edit/', collection_edit, name='collection_edit'),
     path('collections/<int:pk>/delete/', collection_delete, name='collection_delete'),
 
     # application maps collections — nested (folder/sub-folder) hierarchy
+    path('collections/tree/<str:application_map_uid>/', collection_tree, name='collection_tree_highlight'),
     path('collections/tree/', collection_tree, name='collection_tree'),
     path('collections/<int:pk>/children/', collection_children, name='collection_children'),
     path('collections/<int:pk>/move/', collection_move, name='collection_move'),
@@ -118,4 +117,3 @@ urlpatterns = [
     # settings — optional field visibility
     path('settings/fields/', project_field_settings, name='project_field_settings'),
 ]
-

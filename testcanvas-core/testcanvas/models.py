@@ -12,7 +12,6 @@ from django.utils.translation import gettext_lazy as _
 # Base62 alphabet used to render a 128-bit UUID as a short, URL-safe token.
 _BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
-
 def _int_to_base62(value: int) -> str:
     """Encode a non-negative integer into a Base62 string.
 
@@ -31,7 +30,6 @@ def _int_to_base62(value: int) -> str:
         digits.append(_BASE62_ALPHABET[remainder])
     return "".join(reversed(digits))
 
-
 def generate_compact_node_uid() -> str:
     """Return a compact, globally unique node identifier.
 
@@ -49,7 +47,6 @@ def generate_compact_node_uid() -> str:
         below (e.g. :func:`generate_ac_uid`).
     """
     return _int_to_base62(uuid.uuid4().int)
-
 
 # Number of random Base62 characters in the token part of a prefixed UID.
 # 13 chars over a 62-symbol alphabet is roughly 77 bits of entropy, which makes
@@ -136,8 +133,6 @@ class ApplicationMapsCollection(models.Model):
         db_index=True,
         help_text=_("Parent collection. Leave empty for a top-level (root) collection."),
     )
-
-
 
     created_at = models.DateTimeField(auto_now_add=True)
 

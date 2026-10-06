@@ -122,6 +122,13 @@ a, button, input, .card, .btn {
 .app-header .header-link:hover {
     color: var(--tc-primary);
 }
+/* Danger variant for delete links (pastel rose). */
+.app-header .header-link--danger {
+    color: var(--tc-danger);
+}
+.app-header .header-link--danger:hover {
+    color: var(--tc-danger-hover);
+}
 
 /* Right-aligned group holding the back link and the logout button. */
 .app-header__actions {

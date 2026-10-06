@@ -83,3 +83,20 @@
     margin: 0.15rem 0;
 }
 
+/* Highlighted collection node: visual emphasis with a distinct background and border. */
+.collection-row--highlighted {
+    background: #fef3c7;
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.2);
+}
+
+.collection-row--highlighted:hover {
+    background: #fcd34d;
+    border-color: #f59e0b;
+}
+
+.collection-row--highlighted .collection-row__title {
+    color: #92400e;
+    font-weight: 700;
+}
+
