@@ -12,9 +12,10 @@ body.traceability-page { display: flex; flex-direction: column; overflow: hidden
 .traceability-page .app-header h1 { font-size: 1.05rem; }
 
 /* Right side: the single, isolated "Back to editor" link, pushed to the edge. */
-.header-right { display: flex; align-items: center; margin-left: auto; }
+.header-right { display: flex; align-items: center; gap: 1.1rem; margin-left: auto; }
 /* Reset the base .header-link auto margin so spacing is driven by the wrapper. */
 .header-right .header-link { margin-left: 0; }
+
 
 /* Left side: the control cluster laid out in a row with comfortable spacing. */
 .header-actions { display: flex; align-items: center; gap: .9rem; }

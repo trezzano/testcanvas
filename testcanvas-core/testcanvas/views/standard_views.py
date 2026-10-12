@@ -860,6 +860,30 @@ def dynamic_show_by_uid(request, uid):
         raise Http404(f"No page suitable for show the uid: {uid}")
 
 
+@login_required
+def search_by_uid(request):
+    """Bounce a GET search form submission to ``dynamic_show_by_uid``.
+
+    HTML forms send the UID as a query string (``?uid=...``) and cannot fill
+    the ``<str:uid>`` path segment directly, so this view only translates the
+    query parameter into the resolver URL. Every lookup check (including the
+    404 for unknown UIDs) is intentionally left to ``dynamic_show_by_uid``.
+
+    Args:
+        request: The incoming HTTP request carrying the ``uid`` GET parameter.
+
+    Returns:
+        A redirect to ``dynamic_show_by_uid`` for the given UID, or back to the
+        flow list when the UID is empty.
+    """
+    uid = request.GET.get('uid', '').strip()
+    # An empty UID cannot be reversed into the ``<str:uid>`` path segment
+    # (it would raise NoReverseMatch), so simply go back to the flow list.
+    if not uid:
+        return redirect('testcanvas:map_list')
+    return redirect('testcanvas:dynamic_show_by_uid', uid=uid)
+
+
 
 
 @login_required

@@ -37,6 +37,14 @@
 {% block content %}
 <div class="map-list-layout">
     <div class="map-list-main">
+        {# Search any artefact by UID: the GET form hits a bounce view that redirects to dynamic_show_by_uid. #}
+        {# Plain Bootstrap input-group (no .card wrapper, so no custom hover effects). #}
+        <form class="input-group mb-3" method="get" action="{% url 'testcanvas:search_by_uid' %}">
+            <input type="search" name="uid" class="form-control" required
+                   placeholder="{% translate 'Search by UID (e.g. ACU-...)' %}"
+                   aria-label="{% translate 'Search by UID' %}">
+            <button type="submit" class="btn btn-primary">{% translate "Go" %}</button>
+        </form>
         {# Bootstrap accordion: the create form stays collapsed by default to keep the list in focus. #}
         <div class="accordion mb-3" id="create-flow-accordion">
             <div class="accordion-item">
