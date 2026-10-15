@@ -82,9 +82,11 @@
             {% if not elements_json or elements_json == '[]' %}
                 <div id="empty-state" style="display:flex;">
                     <div>{% translate "No relationship to show for this Flow Node." %}</div>
+                    {% if can_write %}
                     <a class="empty-cta full-page-spinner" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
                         <i style="font-style:normal;">＋</i> {% translate "Add a User Story" %}
                     </a>
+                    {% endif %}
                 </div>
             {% endif %}
             <div id="tooltip"><div class="t-id"></div><div class="t-desc"></div></div>
@@ -116,6 +118,6 @@
     {# Shared Cytoscape highlight helper (used by the editor and the traceability graph). #}
     <script src="{% static 'js/cytoscape_highlight.js' %}?v=20261001b"></script>
     {# Shared controller for the detail sidebar (open/close + HTMX auto-open). #}
-    <script src="{% static 'js/detail_sidebar.js' %}?v=20260807a"></script>
+    <script src="{% static 'js/detail_sidebar.js' %}?v=20261013a"></script>
     <script src="{% static 'js/traceability.js' %}?v=20260821a"></script>
 {% endblock %}

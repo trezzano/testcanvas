@@ -36,6 +36,8 @@
           hx-target="closest .detail-card"
           hx-swap="outerHTML">
         {% csrf_token %}
+        {# Read-only users: a disabled fieldset locks every field of the form. #}
+        <fieldset {% if not can_write %}disabled{% endif %}>
 
         {% if saved %}
             <div class="detail-flash detail-flash-success" role="status">
@@ -61,10 +63,13 @@
 
         {# Project-enabled optional fields (rendered only when turned on). #}
         {% include "testcanvas/slots/_optional_form_fields.html" with form=form %}
+        </fieldset>
 
+        {% if can_write %}
         <div class="form-actions">
             <button type="submit" class="btn btn-primary btn-sm">{% translate "Save changes" %}</button>
         </div>
+        {% endif %}
     </form>
 
     <div class="detail-field">
@@ -75,11 +80,13 @@
     <div class="detail-actions">
          {# Delete with a native confirmation dialog; the view redirects back to #}
          {# the node's traceability in the user's preferred view (graph/matrix). #}
+         {% if can_write %}
          <form method="post"
                action="{% url 'testcanvas:test_case_delete' test_case.pk %}"
                onsubmit="return confirm('{% blocktranslate with code=test_case.code %}Delete test case {{ code }}?{% endblocktranslate %}');">
              {% csrf_token %}
              <button type="submit" class="btn btn-danger btn-sm">🗑 {% translate "Delete" %}</button>
          </form>
+         {% endif %}
      </div>
 </div>

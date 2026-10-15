@@ -11,7 +11,8 @@
     exact same markup and styles regardless of their own layout.
 
     The ``#detail-sidebar-resize`` handle (left edge of the panel) lets the user
-    drag the panel to any width they like. The chosen width is NOT persisted.
+    drag the panel to any width they like. The chosen width is saved in the
+    browser localStorage and restored on the next page load.
 {% endcomment %}
 <aside class="detail-sidebar collapsed" id="detail-sidebar" aria-hidden="true">
     {# Drag this edge left/right to resize the panel. JS wires the interaction. #}

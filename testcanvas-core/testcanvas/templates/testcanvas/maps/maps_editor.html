@@ -13,6 +13,7 @@
     <header class="app-header">
         <div class="header-map-info">
             <input type="text" id="map-name" class="header-input" value="{{ application_map.name }}"
+                   {% if not can_write %}readonly{% endif %}
                    title="{% translate 'Click to rename the flow' %}"  placeholder="{% translate 'Flow name…' %}">
             {# Flow UID: stable LLM reference, read-only with one-click copy. #}
             <span class="header-flow-uid">
@@ -24,8 +25,12 @@
             {# collection is pre-selected; the empty option detaches the map.       #}
             <label class="header-collection" for="map-collection">
                 <span class="header-collection__label">{% translate "Collection" %}</span>
-                <select id="map-collection" class="header-select" title="{% translate 'Associate this flow with a collection' %}">
-                    <option value="">— {% translate "No collection" %} —</option>
+                <select id="map-collection" class="header-select" title="{% translate 'Associate this flow with a collection' %}"
+                        {% if not can_write %}disabled{% endif %}>
+                    {# Detaching a flow (no collection) is reserved to superusers. #}
+                    {% if can_detach_collection or not application_map.collection_id %}
+                        <option value="">— {% translate "No collection" %} —</option>
+                    {% endif %}
                     {% for collection in collections %}
                         <option value="{{ collection.pk }}"
                                 {% if application_map.collection_id == collection.pk %}selected{% endif %}>
@@ -43,11 +48,27 @@
                      {% translate "View the collection" %}
                 </a>
             {% endif %}
+            {# Clone and Delete need write access on the flow's collection. #}
+            {% if can_write %}
+            {# Clone flow: POST to clone_by_uid, which redirects to the new copy. #}
+            {% translate "Clone this flow with all its nodes, User Stories, Acceptance Criteria and Test Cases?" as clone_confirm_msg %}
+            <form method="post" action="{% url 'testcanvas:clone_by_uid' %}" class="d-inline m-0"
+                  onsubmit="if (!confirm('{{ clone_confirm_msg|escapejs }}')) return false; if (window.PageSpinner) window.PageSpinner.show(); return true;">
+                {% csrf_token %}
+                <input type="hidden" name="uid" value="{{ application_map.flow_uid }}">
+                <button type="submit" class="header-link full-page-spinner"
+                        title="{% translate 'Clone this flow' %}">
+                    {% translate "Clone" %}
+                </button>
+            </form>
             {# Delete flow: two-step process with confirmation page. #}
             <a class="header-link header-link--danger full-page-spinner" href="{% url 'testcanvas:map_delete' application_map.pk %}"
                title="{% translate 'Delete this flow (requires confirmation)' %}">
                {% translate "Delete…" %}
             </a>
+            {% else %}
+                <span class="header-link" title="{% translate 'You have read-only access to this flow' %}">🔒 {% translate "Read-only" %}</span>
+            {% endif %}
             {# Page-specific action only; global logout lives in the shared navbar. #}
             <a class="header-link full-page-spinner" href="{% url 'testcanvas:map_list' %}">← {% translate "Back to list" %}</a>
         </div>
@@ -61,9 +82,10 @@
     <div class="toolbar">
         <button class="btn btn-secondary" id="btn-toggle-sidebar">☰ {% translate "Properties" %}</button>
         {# Toggle for the right-hand operations sidebar (mirrors the properties toggle). #}
-        <button class="btn btn-secondary" id="btn-toggle-ops">☰ {% translate "Operations" %}</button>
+        {# Editing controls stay in the DOM (the JS binds to them) but are hidden in read-only mode. #}
+        <button class="btn btn-secondary{% if not can_write %} d-none{% endif %}" id="btn-toggle-ops">☰ {% translate "Operations" %}</button>
         <button class="btn btn-secondary" id="btn-description" data-bs-toggle="modal" data-bs-target="#description-modal">{% translate "Description" %}</button>
-        <button class="btn btn-primary" id="btn-save">{% translate "Save" %}</button>
+        <button class="btn btn-primary{% if not can_write %} d-none{% endif %}" id="btn-save">{% translate "Save" %}</button>
         <span class="toolbar-sep"></span>
         <!-- Graph visualization controls grouped together -->
         <div class="btn-group" role="group" aria-label="{% translate 'Graph visualization' %}">
@@ -158,7 +180,7 @@
                     </div>
                 </div>
             </div>
-            <div class="tab-panel" id="tab-stories">
+            <div class="tab-panel active" id="tab-stories">
                 <div id="stories-content">
                     <div class="sidebar-empty">{% translate "Select a node to see its User Stories." %}</div>
                 </div>
@@ -168,16 +190,21 @@
         <div id="cy"></div>
 
         {# ---- Right sidebar: node/edge operations (collapsible, mirrors the left one) ---- #}
-        <aside class="map-sidebar map-sidebar--right" id="ops-sidebar">
+        <aside class="map-sidebar map-sidebar--right{% if not can_write %} d-none{% endif %}" id="ops-sidebar">
             <h2>{% translate "Operations" %}</h2>
             <div class="ops-list">
                 <button class="btn btn-secondary" id="btn-add-node">+ {% translate "Node" %}</button>
                 <button class="btn btn-secondary" id="btn-add-edge">+ {% translate "Edge (link 2 selected)" %}</button>
+                {# Clone the selected (saved, PURE) node server-side; disabled for sub-flow nodes. #}
+                <button type="button" class="btn btn-secondary" id="btn-clone-node" disabled
+                        title="{% translate 'Clone the selected node with its User Stories, Acceptance Criteria and Test Cases (sub-flow nodes cannot be cloned)' %}">
+                    ⧉ {% translate "Clone node" %}
+                </button>
                 <button class="btn btn-danger" id="btn-delete">{% translate "Delete selected" %}</button>
             </div>
         </aside>
         {# Re-open tab shown on the right edge when the operations sidebar is collapsed. #}
-        <button class="sidebar-toggle-tab sidebar-toggle-tab--right"
+        <button class="sidebar-toggle-tab sidebar-toggle-tab--right{% if not can_write %} d-none{% endif %}"
                 id="ops-sidebar-reopen" title="{% translate 'Show operations' %}">☰</button>
     </div>
 
@@ -216,7 +243,12 @@
             subflows: {{ subflows_json|safe }},
             nodeUids: {{ node_uids_json|safe }},
             mapEditorUrl: "{% url 'testcanvas:map_editor' 0 %}",
-            highlightNodeId: "{{ highlight_node_id|escapejs }}"
+            {# POST endpoint that clones a node by its node_uid and redirects to the editor. #}
+            cloneUrl: "{% url 'testcanvas:clone_by_uid' %}",
+            cloneConfirmMsg: "{% translate 'Clone this node with all its User Stories, Acceptance Criteria and Test Cases? Unsaved changes in the editor will be lost.' as clone_node_msg %}{{ clone_node_msg|escapejs }}",
+            highlightNodeId: "{{ highlight_node_id|escapejs }}",
+            {# Read-only mode: the graph cannot be edited (the server rejects saves anyway). #}
+            readOnly: {% if can_write %}false{% else %}true{% endif %}
         };
     </script>
     {# Shared Cytoscape highlight helper (used by the editor and the traceability graph). #}

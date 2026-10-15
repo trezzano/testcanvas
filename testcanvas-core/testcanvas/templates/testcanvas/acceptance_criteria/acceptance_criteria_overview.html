@@ -33,13 +33,15 @@
                                 <td>
                                     <div class="actions">
                                         <a class="btn btn-secondary btn-sm full-page-spinner"
-                                           href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% translate "Edit" %}</a>
+                                           href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% if can_write %}{% translate "Edit" %}{% else %}{% translate "View" %}{% endif %}</a>
+{% if can_write %}
                                         <form method="post"
                                               action="{% url 'testcanvas:acceptance_criterion_delete' ac.pk %}"
                                               onsubmit="return confirm('{% blocktranslate with code=ac.code %}Delete acceptance criterion {{ code }}?{% endblocktranslate %}');">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
                                         </form>
+{% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -50,14 +52,16 @@
                 <p class="muted">{% translate "No acceptance criteria for this user story yet." %}</p>
             {% endif %}
             <a class="btn btn-primary full-page-spinner" href="{% url 'testcanvas:acceptance_criterion_manage' us.pk %}">
-                + {% blocktranslate with code=us.code %}Add / manage criteria for {{ code }}{% endblocktranslate %}
+                {% if can_write %}+ {% blocktranslate with code=us.code %}Add / manage criteria for {{ code }}{% endblocktranslate %}{% else %}{% blocktranslate with code=us.code %}View criteria for {{ code }}{% endblocktranslate %}{% endif %}
             </a>
         </div>
     {% endfor %}
 {% else %}
     <div class="card">
         <p class="muted">{% translate "This flow node has no user stories yet, so it cannot hold acceptance criteria." %}</p>
+        {% if can_write %}
         <a class="btn btn-primary full-page-spinner" href="{% url 'testcanvas:user_story_manage' flow_node.pk %}">+ {% translate "Add a User Story first" %}</a>
+        {% endif %}
     </div>
 {% endif %}
 {% endblock %}

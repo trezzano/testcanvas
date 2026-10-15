@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
@@ -11,6 +12,7 @@ from .utilities.optional_fields import (
     get_optional_field_specs,
     get_visible_optional_field_names,
 )
+from .utilities.permissions import can_write_collection, get_access, is_unrestricted
 
 
 class DynamicOptionalFieldsMixin:
@@ -133,15 +135,26 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
             "parent": _("Parent collection"),
         }
 
-    def __init__(self, *args, **kwargs):
-        """Restrict the ``parent`` choices to avoid self-references and cycles.
+    def __init__(self, *args, user=None, **kwargs):
+        """Restrict the ``parent`` choices to avoid cycles and enforce permissions.
 
         When editing an existing collection, the instance itself and all of its
         descendants are removed from the ``parent`` dropdown so the UI cannot
         even offer a choice that would create a cycle. ``clean_parent`` still
         enforces the rule server-side as a safety net.
+
+        For non-superusers the choices are further limited to the writable
+        collections (plus the current parent, so an unchanged value stays
+        valid), and a parent is mandatory: they cannot create root collections.
+
+        Args:
+            *args: Positional arguments forwarded to ``ModelForm``.
+            user: The acting user, used to apply collection permissions.
+                ``None`` disables the permission filtering.
+            **kwargs: Keyword arguments forwarded to ``ModelForm``.
         """
         super().__init__(*args, **kwargs)
+        self.user = user
 
         queryset = ApplicationMapsCollection.objects.all()
         if self.instance and self.instance.pk:
@@ -151,20 +164,47 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
             ]
             queryset = queryset.exclude(pk__in=forbidden_ids)
 
+        self._restricted = user is not None and not is_unrestricted(user)
+        if self._restricted:
+            allowed = Q(pk__in=get_access(user).writable)
+            current_parent_id = self.instance.parent_id if self.instance.pk else None
+            if current_parent_id:
+                allowed |= Q(pk=current_parent_id)
+            queryset = queryset.filter(allowed)
+
         self.fields["parent"].queryset = queryset.order_by("title")
-        self.fields["parent"].required = False
         self.fields["parent"].empty_label = _("— No parent (top level) —")
+        # Non-superusers may keep an existing root collection as root, but can
+        # never create a new root nor move a collection to the top level.
+        is_existing_root = bool(self.instance.pk) and self.instance.parent_id is None
+        self.fields["parent"].required = self._restricted and not is_existing_root
 
     def clean_parent(self):
-        """Reject a ``parent`` that is the instance itself or one of its descendants.
+        """Reject cycles and parents the acting user cannot write.
 
         Returns:
             The validated parent collection, or ``None`` for a root collection.
 
         Raises:
-            forms.ValidationError: If the chosen parent would create a cycle.
+            forms.ValidationError: If the chosen parent would create a cycle or
+                is not writable by a non-superuser.
         """
         parent = self.cleaned_data.get("parent")
+        current_parent_id = self.instance.parent_id if self.instance.pk else None
+
+        if self._restricted:
+            # The current placement is always accepted (nothing changes).
+            unchanged = self.instance.pk and (parent.pk if parent else None) == current_parent_id
+            if not unchanged:
+                if parent is None:
+                    raise forms.ValidationError(
+                        _("You cannot create or move a collection at the top level.")
+                    )
+                if not can_write_collection(self.user, parent):
+                    raise forms.ValidationError(
+                        _("You do not have write access to the selected parent collection.")
+                    )
+
         if parent is None:
             return None
 

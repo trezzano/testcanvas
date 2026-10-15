@@ -3,11 +3,16 @@
 <span class="collection-row__color" style="background-color: {{ node.background_color }};"
       title="{{ node.background_color }}"></span>
 {# Clicking the title loads the collection card into the detail sidebar (it does not toggle the branch). #}
-<a class="collection-row__title"
-   href="#"
-   hx-get="{% url 'testcanvas:collection_detail' node.id %}"
-   hx-target="#detail-sidebar-body"
-   hx-swap="innerHTML"
-   onclick="return false;">{{ node.title }}</a>
-<span class="collection-row__count" title="{% translate 'Maps in this collection' %}">{{ node.maps_count }}</span>
+{# Container-only nodes (ancestors of a readable collection) are shown as plain, non-clickable text. #}
+{% if node.is_accessible %}
+    <a class="collection-row__title"
+       href="#"
+       hx-get="{% url 'testcanvas:collection_detail' node.id %}"
+       hx-target="#detail-sidebar-body"
+       hx-swap="innerHTML"
+       onclick="return false;">{{ node.title }}</a>
+    <span class="collection-row__count" title="{% translate 'Maps in this collection' %}">{{ node.maps_count }}</span>
+{% else %}
+    <span class="collection-row__title muted" title="{% translate 'You do not have access to this collection' %}">{{ node.title }}</span>
+{% endif %}
 

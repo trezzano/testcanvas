@@ -4,6 +4,7 @@ from .models import (
     AcceptanceCriterion,
     ApplicationMap,
     ApplicationMapsCollection,
+    CollectionPermission,
     FieldVisibilityPreference,
     FlowNode,
     TestCase,
@@ -45,15 +46,40 @@ class TestCaseInline(admin.TabularInline):
     show_change_link = True
 
 
+class CollectionPermissionInline(admin.TabularInline):
+    """Inline to grant read/write access on a collection to users or groups.
+
+    Grants cascade to every sub-collection and contained flow (see
+    ``testcanvas.utilities.permissions``).
+    """
+
+    model = CollectionPermission
+    extra = 1
+    fields = ("user", "group", "can_read", "can_write")
+    autocomplete_fields = ("user", "group")
+
+
 @admin.register(ApplicationMapsCollection)
 class ApplicationMapsCollectionAdmin(admin.ModelAdmin):
     """Admin for the logical grouping layer over ApplicationMap."""
 
-    list_display = ("id", "title", "background_color", "created_at")
+    list_display = ("id", "title", "parent", "background_color", "created_at")
     search_fields = ("title", "description")
     date_hierarchy = "created_at"
     ordering = ("title",)
     readonly_fields = ("created_at",)
+    inlines = (CollectionPermissionInline,)
+
+
+@admin.register(CollectionPermission)
+class CollectionPermissionAdmin(admin.ModelAdmin):
+    """Flat admin view of every collection grant, handy to audit access."""
+
+    list_display = ("id", "collection", "user", "group", "can_read", "can_write")
+    list_filter = ("can_read", "can_write", "collection")
+    search_fields = ("collection__title", "user__username", "group__name")
+    list_select_related = ("collection", "user", "group")
+    autocomplete_fields = ("collection", "user", "group")
 
 
 @admin.register(ApplicationMap)

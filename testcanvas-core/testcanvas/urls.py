@@ -14,6 +14,7 @@ from .views.standard_views import (
     # resolver
     dynamic_show_by_uid,
     search_by_uid,
+    clone_by_uid,
     # traceability page
     flow_node_traceability,
     flow_node_traceability_matrix,
@@ -70,6 +71,8 @@ urlpatterns = [
     path('dynamic_show_by_uid/<str:uid>', dynamic_show_by_uid, name='dynamic_show_by_uid'),
     # GET search form bounce: ?uid=... -> dynamic_show_by_uid/<uid>
     path('search-by-uid/', search_by_uid, name='search_by_uid'),
+    # POST clone an object by uid and redirect to the clone
+    path('clone-by-uid/', clone_by_uid, name='clone_by_uid'),
 
     # traceability page
     path('flow-node/<int:node_id>/traceability/', flow_node_traceability, name='flow_node_traceability'),
@@ -117,4 +120,5 @@ urlpatterns = [
 
     # settings — optional field visibility
     path('settings/fields/', project_field_settings, name='project_field_settings'),
+
 ]

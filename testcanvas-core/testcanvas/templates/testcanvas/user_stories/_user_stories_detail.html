@@ -39,6 +39,8 @@
           hx-target="closest .detail-card"
           hx-swap="outerHTML">
         {% csrf_token %}
+        {# Read-only users: a disabled fieldset locks every field of the form. #}
+        <fieldset {% if not can_write %}disabled{% endif %}>
 
         {% if saved %}
             {# In-partial flash shown right after a successful HTMX save. #}
@@ -90,10 +92,13 @@
 
         {# Project-enabled optional fields (rendered only when turned on). #}
         {% include "testcanvas/slots/_optional_form_fields.html" with form=form %}
+        </fieldset>
 
+        {% if can_write %}
         <div class="form-actions">
             <button type="submit" class="btn btn-primary btn-sm">{% translate "Save changes" %}</button>
         </div>
+        {% endif %}
     </form>
 
     {% if plugin_widgets %}
@@ -109,13 +114,31 @@
 
     <div class="detail-actions">
         <a class="btn btn-secondary btn-sm full-page-spinner" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">{% translate "Manage AC" %}</a>
+        {# Clone and Delete need write access on the flow. #}
+        {% if can_write and user_story.user_story_uid %}
+            {# Clone: plain POST to clone_by_uid, which duplicates the story with #}
+            {# its AC/TC and redirects to the copy highlighted in the traceability #}
+            {# graph. No hx-* attributes: a full page load is required, so the #}
+            {# default page spinner is shown after confirmation. #}
+            {% translate "Clone this User Story with all its Acceptance Criteria and Test Cases?" as clone_confirm_msg %}
+            <form method="post"
+                  action="{% url 'testcanvas:clone_by_uid' %}"
+                  onsubmit="if (!confirm('{{ clone_confirm_msg|escapejs }}')) return false; if (window.PageSpinner) window.PageSpinner.show(); return true;">
+                {% csrf_token %}
+                <input type="hidden" name="uid" value="{{ user_story.user_story_uid }}">
+                <button type="submit" class="btn btn-secondary btn-sm"
+                        title="{% translate 'Clone this User Story' %}">{% translate "Clone User Story" %}</button>
+            </form>
+        {% endif %}
         {# Delete with a native confirmation dialog; the view redirects back to #}
         {# the node's traceability in the user's preferred view (graph/matrix). #}
+        {% if can_write %}
         <form method="post"
               action="{% url 'testcanvas:user_story_delete' user_story.flow_node.pk user_story.pk %}"
               onsubmit="return confirm('{% blocktranslate with code=user_story.code %}Delete user story {{ code }}?{% endblocktranslate %}');">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger btn-sm">🗑 {% translate "Delete" %}</button>
         </form>
+        {% endif %}
     </div>
 </div>

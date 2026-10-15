@@ -10,6 +10,8 @@
     <div><span class="code">{{ criterion.code }}</span> · <span class="title">{{ user_story.code }} — {{ user_story.title }}</span></div>
     {% if criterion.description %}<div class="desc">{{ criterion.description }}</div>{% endif %}
 </div>
+{# The create form is only offered to users with write access on the flow. #}
+{% if can_write %}
 <div class="card">
     <h2>{% translate "Add a new Test Case" %}</h2>
     <form method="post" action="{% url 'testcanvas:test_case_manage' criterion.pk %}">
@@ -31,6 +33,7 @@
         <button type="submit" class="btn btn-primary">+ {% translate "Add Test Case" %}</button>
     </form>
 </div>
+{% endif %}
 <div class="card">
     <h2>{% translate "Test Cases" %} <span class="count-pill">{{ test_cases|length }}</span></h2>
     {% if test_cases %}
@@ -50,13 +53,15 @@
                         <td>
                             <div class="actions">
                                 <a class="btn btn-secondary btn-sm full-page-spinner"
-                                   href="{% url 'testcanvas:test_case_edit' tc.pk %}">{% translate "Edit" %}</a>
+                                   href="{% url 'testcanvas:test_case_edit' tc.pk %}">{% if can_write %}{% translate "Edit" %}{% else %}{% translate "View" %}{% endif %}</a>
+{% if can_write %}
                                 <form method="post"
                                       action="{% url 'testcanvas:test_case_delete' tc.pk %}"
                                       onsubmit="return confirm('{% blocktranslate with code=tc.code %}Delete test case {{ code }}?{% endblocktranslate %}');">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
                                 </form>
+{% endif %}
                             </div>
                         </td>
                     </tr>

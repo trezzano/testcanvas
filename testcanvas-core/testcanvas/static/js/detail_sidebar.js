@@ -29,6 +29,48 @@
     const reopenBtn = document.getElementById('detail-sidebar-reopen');
     const resizeHandle = document.getElementById('detail-sidebar-resize');
 
+    /* ---- Width persistence ----------------------------------------------- */
+    // localStorage key shared by every page using the detail sidebar, so the
+    // user's preferred width follows them across traceability and collections.
+    const STORAGE_KEY = 'tc.detailSidebar.width';
+    // Bounds mirror the CSS ``min-width`` (220px) and ``max-width`` (85vw).
+    const MIN_WIDTH = 220;
+    const MAX_WIDTH_RATIO = 0.85;
+
+    /**
+     * Clamp a width (px) between the minimum and 85 % of the viewport.
+     *
+     * @param {number} width Requested width in pixels.
+     * @returns {number} The clamped width in pixels.
+     */
+    function clampWidth(width) {
+        const maxWidth = Math.floor(window.innerWidth * MAX_WIDTH_RATIO);
+        return Math.min(maxWidth, Math.max(MIN_WIDTH, width));
+    }
+
+    /** Apply the width saved in localStorage, if any and valid. */
+    function restoreWidth() {
+        try {
+            const saved = parseInt(window.localStorage.getItem(STORAGE_KEY), 10);
+            if (Number.isFinite(saved) && saved > 0) {
+                sidebar.style.width = clampWidth(saved) + 'px';
+            }
+        } catch (error) {
+            // Storage may be disabled (privacy mode): keep the CSS default.
+        }
+    }
+
+    /** Persist the current sidebar width in localStorage. */
+    function saveWidth() {
+        try {
+            window.localStorage.setItem(STORAGE_KEY, String(sidebar.offsetWidth));
+        } catch (error) {
+            // Storage unavailable or full: silently skip persistence.
+        }
+    }
+
+    restoreWidth();
+
     /** Slide the panel in and hide the re-open tab. */
     function open() {
         sidebar.classList.remove('collapsed');
@@ -113,7 +155,7 @@
        left-edge handle changes the CSS width so the panel grows/shrinks.
        Width is clamped between the CSS min-width (220 px) and 85 % of the
        viewport width to match the ``max-width`` rule in the stylesheet.
-       The chosen width is NOT persisted across page loads. */
+       The chosen width is saved to localStorage when the drag ends. */
     if (resizeHandle) {
         let startX = 0;
         let startWidth = 0;
@@ -122,14 +164,13 @@
             const pointerX = event.touches ? event.touches[0].clientX : event.clientX;
             // Panel is right-anchored: moving the left edge leftward increases width.
             const delta = startX - pointerX;
-            const maxWidth = Math.floor(window.innerWidth * 0.85);
-            const newWidth = Math.min(maxWidth, Math.max(220, startWidth + delta));
-            sidebar.style.width = newWidth + 'px';
+            sidebar.style.width = clampWidth(startWidth + delta) + 'px';
         }
 
         function onResizeEnd() {
             sidebar.classList.remove('is-resizing');
             resizeHandle.classList.remove('is-resizing');
+            saveWidth();
             document.removeEventListener('mousemove', onResizeMove);
             document.removeEventListener('mouseup', onResizeEnd);
             document.removeEventListener('touchmove', onResizeMove);

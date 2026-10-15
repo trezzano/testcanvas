@@ -9,6 +9,8 @@
 <div class="plugin-slotbar">
     {% include "testcanvas/slots/_object_widgets.html" with widgets=plugin_widgets %}
 </div>
+{# The create form is only offered to users with write access on the flow. #}
+{% if can_write %}
 <div class="card">
     <h2>{% translate "Add a new User Story" %}</h2>
     <form method="post" action="{% url 'testcanvas:user_story_manage' flow_node.pk %}">
@@ -64,6 +66,7 @@
         <button type="submit" class="btn btn-primary">+ {% translate "Add User Story" %}</button>
     </form>
 </div>
+{% endif %}
 <div class="card">
     <h2>{% translate "User Stories" %} <span class="count-pill">{{ user_stories|length }}</span></h2>
     {% if user_stories %}
@@ -87,15 +90,17 @@
                         <td>
                             <div class="actions">
                                 <a class="btn btn-secondary btn-sm full-page-spinner"
-                                   href="{% url 'testcanvas:user_story_edit' flow_node.pk us.pk %}">{% translate "Edit" %}</a>
+                                   href="{% url 'testcanvas:user_story_edit' flow_node.pk us.pk %}">{% if can_write %}{% translate "Edit" %}{% else %}{% translate "View" %}{% endif %}</a>
                                 <a class="btn btn-secondary btn-sm full-page-spinner"
                                    href="{% url 'testcanvas:acceptance_criterion_manage' us.pk %}">{% translate "Criteria" %}</a>
+                                {% if can_write %}
                                 <form method="post"
                                       action="{% url 'testcanvas:user_story_delete' flow_node.pk us.pk %}"
                                       onsubmit="return confirm('{% blocktranslate with code=us.code %}Delete user story {{ code }}?{% endblocktranslate %}');">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
                                 </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

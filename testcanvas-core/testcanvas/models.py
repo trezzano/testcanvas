@@ -2,6 +2,7 @@ import secrets
 import uuid
 from functools import partial
 
+from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -248,6 +249,98 @@ class ApplicationMapsCollection(models.Model):
         # full_clean runs clean(), enforcing the no-self / no-cycle invariants.
         self.full_clean()
         self.save(update_fields=["parent"])
+
+class CollectionPermission(models.Model):
+    """Read/write grant of a user or group on an ``ApplicationMapsCollection``.
+
+    Grants cascade down the collection tree: a permission assigned to a
+    collection also applies to every nested sub-collection and to every
+    ``ApplicationMap`` (and its FlowNodes, User Stories, Acceptance Criteria
+    and Test Cases) contained in them. Superusers bypass these grants
+    entirely, while maps without a collection are reserved to superusers.
+
+    The evaluation logic lives in ``testcanvas.utilities.permissions``.
+
+    Attributes:
+        collection: The collection the grant applies to (and its descendants).
+        user: The grantee user (mutually exclusive with ``group``).
+        group: The grantee group (mutually exclusive with ``user``).
+        can_read: Whether the grantee can view the collection content.
+        can_write: Whether the grantee can modify the collection content.
+            Writing implies reading.
+    """
+
+    collection = models.ForeignKey(
+        ApplicationMapsCollection,
+        on_delete=models.CASCADE,
+        related_name="permissions",
+        help_text=_("Collection the grant applies to (cascades to sub-collections)."),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="testcanvas_collection_permissions",
+        help_text=_("Grantee user. Leave empty when granting to a group."),
+    )
+    group = models.ForeignKey(
+        "auth.Group",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="testcanvas_collection_permissions",
+        help_text=_("Grantee group. Leave empty when granting to a user."),
+    )
+    can_read = models.BooleanField(
+        default=True,
+        help_text=_("The grantee can view the flows of the collection."),
+    )
+    can_write = models.BooleanField(
+        default=False,
+        help_text=_("The grantee can modify the flows of the collection (implies read)."),
+    )
+
+    class Meta:
+        verbose_name = _("Collection Permission")
+        verbose_name_plural = _("Collection Permissions")
+        # "Exactly one grantee" is validated in clean(): a CheckConstraint would
+        # need a keyword (check/condition) that differs across the supported
+        # Django versions.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["collection", "user"],
+                condition=models.Q(user__isnull=False),
+                name="unique_collection_permission_user",
+            ),
+            models.UniqueConstraint(
+                fields=["collection", "group"],
+                condition=models.Q(group__isnull=False),
+                name="unique_collection_permission_group",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        grantee = self.user or self.group
+        level = "RW" if self.can_write else ("R" if self.can_read else "-")
+        return f"{self.collection} -> {grantee} [{level}]"
+
+    def clean(self) -> None:
+        """Validate that exactly one grantee (user or group) is set.
+
+        Raises:
+            ValidationError: If both or none of ``user`` and ``group`` are set.
+        """
+        from django.core.exceptions import ValidationError
+
+        if bool(self.user_id) == bool(self.group_id):
+            raise ValidationError(_("Select exactly one between a user and a group."))
+
+    def save(self, *args, **kwargs) -> None:
+        """Persist the grant, enforcing that writing implies reading."""
+        if self.can_write:
+            self.can_read = True
+        super().save(*args, **kwargs)
 
 class ApplicationMap(models.Model):
     """
@@ -542,10 +635,12 @@ class UserStory(models.Model):
         related_name='user_stories',
         verbose_name=_("Flow Node")
     )
+    # Human-facing traceability label. It is intentionally NOT unique: the only
+    # globally unique identifier of a story is ``user_story_uid``. This lets a
+    # duplicated flow keep the same story codes as the original one.
     code = models.CharField(
-        max_length=20,
-        unique=True,
-        help_text=_("Unique identifier ensuring ISTQB vertical traceability. E.g., US-01"),
+        max_length=200,
+        help_text=_("Traceability label (not unique), e.g. US-01. The stable identifier is user_story_uid."),
         verbose_name=_("Code")
     )
     title = models.CharField(
@@ -639,8 +734,9 @@ class AcceptanceCriterion(models.Model):
         on_delete=models.CASCADE,
         related_name='criteria'
     )
+    # Long enough to hold prefixed copies (e.g. "copy_copy_AC-01.1").
     code = models.CharField(
-        max_length=20,
+        max_length=200,
         help_text=_("E.g., AC-01.1")
     )
 
@@ -852,8 +948,9 @@ class TestCase(models.Model):
         help_text=_("Prefixed, globally unique identifier (e.g. TCU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
     )
 
+    # Long enough to hold prefixed copies (e.g. "copy_copy_TC-01.1.1").
     code = models.CharField(
-        max_length=20,
+        max_length=200,
         help_text=_("E.g., TC-01.1.1"),
         verbose_name=_("Code"),
     )

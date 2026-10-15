@@ -28,10 +28,12 @@
         {% endfor %}
     </div>
     <div class="app-navbar__actions">
-        {# Field settings #}
+        {# Field settings: global preferences, reserved to superusers. #}
+        {% if request.user.is_superuser %}
         <a class="nav-link full-page-spinner" href="{% url 'testcanvas:project_field_settings' %}">
             {% translate 'Field settings' %}
         </a>
+        {% endif %}
         <a class="nav-link full-page-spinner" href="{% url 'testcanvas:collection_tree' %}">
             {% translate "Manage collections" %}
         </a>

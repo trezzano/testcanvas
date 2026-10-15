@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -24,6 +24,36 @@ from testcanvas.context_processors import (
 )
 from testcanvas.plugins import collect_object_widgets
 from testcanvas.utilities.optional_fields import resolve_project_for
+from testcanvas.utilities.permissions import (
+    can_write,
+    can_write_collection,
+    clear_access_cache,
+    filter_collections,
+    filter_maps,
+    get_access,
+    is_unrestricted,
+)
+from testcanvas.views._permissions import ensure_can_read, ensure_can_write
+
+
+def _ensure_read_or_write(request, obj) -> None:
+    """Check read access on GET and write access on any other method.
+
+    Shared by the views that both display an object and save it in place
+    (manage/edit/detail pages): reading needs read access, POSTing needs write.
+
+    Args:
+        request: The incoming HTTP request.
+        obj: A collection or any artefact of the ISTQB chain.
+
+    Raises:
+        Http404: If the object is not readable.
+        PermissionDenied: If a write is attempted without write access.
+    """
+    if request.method == 'POST':
+        ensure_can_write(request.user, obj)
+    else:
+        ensure_can_read(request.user, obj)
 
 
 DEFAULT_LOGIN_LOGO_STATIC_PATH = 'images/white_small_logo_trasparent.png'
@@ -108,6 +138,8 @@ def user_story_manage(request, node_id):
         FlowNode.objects.select_related('application_map'),
         pk=node_id,
     )
+    # Reading the list needs read access, creating a story needs write access.
+    _ensure_read_or_write(request, flow_node)
 
     # Optional fields shown depend on global preferences.
     project = resolve_project_for(flow_node)
@@ -129,6 +161,8 @@ def user_story_manage(request, node_id):
         'application_map': flow_node.application_map,
         'user_stories': user_stories,
         'form': form,
+        # Hides create/edit/delete controls for read-only users.
+        'can_write': can_write(request.user, flow_node),
         # Plugin extension slot for this flow node (see flow_node_traceability).
         'plugin_widgets': collect_object_widgets('flow_node', flow_node, request),
     })
@@ -141,6 +175,7 @@ def user_story_edit(request, node_id, pk):
         pk=node_id,
     )
     user_story = get_object_or_404(UserStory, pk=pk, flow_node=flow_node)
+    _ensure_read_or_write(request, flow_node)
 
     # Optional fields shown depend on global preferences.
     project = resolve_project_for(user_story)
@@ -159,14 +194,16 @@ def user_story_edit(request, node_id, pk):
         'application_map': flow_node.application_map,
         'user_story': user_story,
         'form': form,
+        'can_write': can_write(request.user, flow_node),
     })
 
 @require_POST
 @login_required
 def user_story_delete(request, node_id, pk):
     """Delete a UserStory belonging to the given FlowNode."""
-    flow_node = get_object_or_404(FlowNode, pk=node_id)
+    flow_node = get_object_or_404(FlowNode.objects.select_related('application_map'), pk=node_id)
     user_story = get_object_or_404(UserStory, pk=pk, flow_node=flow_node)
+    ensure_can_write(request.user, flow_node)
     code = user_story.code
     user_story.delete()
     messages.success(request, _("User Story '%(code)s' deleted.") % {"code": code})
@@ -186,6 +223,7 @@ def acceptance_criterion_manage(request, user_story_id):
         pk=user_story_id,
     )
     flow_node = user_story.flow_node
+    _ensure_read_or_write(request, flow_node)
 
     # Optional fields shown depend on global preferences.
     project = resolve_project_for(user_story)
@@ -208,6 +246,7 @@ def acceptance_criterion_manage(request, user_story_id):
         'user_story': user_story,
         'criteria': criteria,
         'form': form,
+        'can_write': can_write(request.user, flow_node),
         # Plugin extension slot for this user story (e.g. links to test cases
         # verifying its acceptance criteria). Empty when no plugin is installed.
         'plugin_widgets': collect_object_widgets('user_story', user_story, request),
@@ -224,6 +263,7 @@ def acceptance_criterion_edit(request, pk):
     )
     user_story = criterion.user_story
     flow_node = user_story.flow_node
+    _ensure_read_or_write(request, flow_node)
 
     # Optional fields shown depend on global preferences.
     project = resolve_project_for(criterion)
@@ -243,6 +283,7 @@ def acceptance_criterion_edit(request, pk):
         'user_story': user_story,
         'criterion': criterion,
         'form': form,
+        'can_write': can_write(request.user, flow_node),
     })
 
 @require_POST
@@ -250,10 +291,11 @@ def acceptance_criterion_edit(request, pk):
 def acceptance_criterion_delete(request, pk):
     """Delete an AcceptanceCriterion, returning to its node's traceability."""
     criterion = get_object_or_404(
-        AcceptanceCriterion.objects.select_related('user_story__flow_node'),
+        AcceptanceCriterion.objects.select_related('user_story__flow_node__application_map'),
         pk=pk,
     )
     flow_node = criterion.user_story.flow_node
+    ensure_can_write(request.user, flow_node)
     code = criterion.code
     criterion.delete()
     messages.success(request, _("Acceptance Criterion '%(code)s' deleted.") % {"code": code})
@@ -274,6 +316,7 @@ def test_case_manage(request, acceptance_criterion_id):
     )
     user_story = criterion.user_story
     flow_node = user_story.flow_node
+    _ensure_read_or_write(request, flow_node)
 
     # Optional TestCase fields shown depend on global preferences.
     project = resolve_project_for(criterion)
@@ -296,6 +339,7 @@ def test_case_manage(request, acceptance_criterion_id):
         'criterion': criterion,
         'test_cases': test_cases,
         'form': form,
+        'can_write': can_write(request.user, flow_node),
     })
 
 @login_required
@@ -308,6 +352,7 @@ def test_case_edit(request, pk):
     criterion = test_case.acceptance_criterion
     user_story = criterion.user_story
     flow_node = user_story.flow_node
+    _ensure_read_or_write(request, flow_node)
 
     # Optional TestCase fields shown depend on global preferences.
     project = resolve_project_for(test_case)
@@ -327,6 +372,7 @@ def test_case_edit(request, pk):
         'criterion': criterion,
         'test_case': test_case,
         'form': form,
+        'can_write': can_write(request.user, flow_node),
     })
 
 @require_POST
@@ -335,11 +381,12 @@ def test_case_delete(request, pk):
     """Delete a TestCase, returning to its node's traceability."""
     test_case = get_object_or_404(
         TestCase.objects.select_related(
-            'acceptance_criterion__user_story__flow_node',
+            'acceptance_criterion__user_story__flow_node__application_map',
         ),
         pk=pk,
     )
     flow_node = test_case.acceptance_criterion.user_story.flow_node
+    ensure_can_write(request.user, flow_node)
     code = test_case.code
     test_case.delete()
     messages.success(request, _("Test Case '%(code)s' deleted.") % {"code": code})
@@ -367,6 +414,7 @@ def node_acceptance_criteria(request, node_id):
         FlowNode.objects.select_related('application_map'),
         pk=node_id,
     )
+    ensure_can_read(request.user, flow_node)
     user_stories = (
         flow_node.user_stories
         .prefetch_related('criteria')
@@ -376,6 +424,7 @@ def node_acceptance_criteria(request, node_id):
         'flow_node': flow_node,
         'application_map': flow_node.application_map,
         'user_stories': user_stories,
+        'can_write': can_write(request.user, flow_node),
     })
 
 
@@ -401,6 +450,7 @@ def flow_node_traceability(request, node_id):
         FlowNode.objects.select_related('application_map'),
         pk=node_id,
     )
+    ensure_can_read(request.user, flow_node)
 
     user_stories = list(
         flow_node.user_stories
@@ -487,6 +537,8 @@ def flow_node_traceability(request, node_id):
         # purely presentational and never persisted; the front-end matches it
         # against a Cytoscape node id (e.g. ``AC_12``). Mirrors ``map_editor``.
         'highlight_node_id': request.GET.get('highlight', ''),
+        # Hides the add/edit controls for read-only users.
+        'can_write': can_write(request.user, flow_node),
         # Plugin extension slot: widgets (progress, buttons, dividers, …) that
         # installed plugins contribute for this flow node. Empty when no plugin
         # is installed, so the template slot simply renders nothing.
@@ -514,6 +566,7 @@ def flow_node_traceability_matrix(request, node_id):
         FlowNode.objects.select_related('application_map'),
         pk=node_id,
     )
+    ensure_can_read(request.user, flow_node)
 
     user_stories = list(
         flow_node.user_stories
@@ -546,6 +599,7 @@ def flow_node_traceability_matrix(request, node_id):
         'us_count': len(user_stories),
         'ac_count': ac_count,
         'tc_count': tc_count,
+        'can_write': can_write(request.user, flow_node),
         # Plugin extension slot: widgets (progress, buttons, dividers, …) that
         # installed plugins contribute for this flow node. Empty when no plugin
         # is installed, so the template slot simply renders nothing.
@@ -573,8 +627,10 @@ def user_story_detail(request, pk):
         An ``HttpResponse`` rendering the User Story detail partial.
     """
     user_story = get_object_or_404(
-        UserStory.objects.select_related('flow_node'), pk=pk,
+        UserStory.objects.select_related('flow_node__application_map'), pk=pk,
     )
+    # GET needs read access, the inline save (POST) needs write access.
+    _ensure_read_or_write(request, user_story)
 
     # POST → save inline; GET → show the current values as an editable form.
     saved = False
@@ -594,6 +650,7 @@ def user_story_detail(request, pk):
         'user_story': user_story,
         'form': form,
         'saved': saved,
+        'can_write': can_write(request.user, user_story),
         # Plugin extension slot for this user story (e.g. test-case shortcuts
         # or coverage widgets). Empty when no plugin is installed, so the
         # template slot simply renders nothing.
@@ -619,9 +676,10 @@ def acceptance_criterion_detail(request, pk):
         An ``HttpResponse`` rendering the Acceptance Criterion detail partial.
     """
     criterion = get_object_or_404(
-        AcceptanceCriterion.objects.select_related('user_story'),
+        AcceptanceCriterion.objects.select_related('user_story__flow_node__application_map'),
         pk=pk,
     )
+    _ensure_read_or_write(request, criterion)
 
     saved = False
     project = resolve_project_for(criterion)
@@ -638,6 +696,7 @@ def acceptance_criterion_detail(request, pk):
         'criterion': criterion,
         'form': form,
         'saved': saved,
+        'can_write': can_write(request.user, criterion),
         # Plugin extension slot for this acceptance criterion (e.g. links to
         # the test cases that verify it, or a coverage widget). Empty when no
         # plugin is installed, so the template slot simply renders nothing.
@@ -663,9 +722,10 @@ def test_case_detail(request, pk):
         An ``HttpResponse`` rendering the Test Case detail partial.
     """
     test_case = get_object_or_404(
-        TestCase.objects.select_related('acceptance_criterion'),
+        TestCase.objects.select_related('acceptance_criterion__user_story__flow_node__application_map'),
         pk=pk,
     )
+    _ensure_read_or_write(request, test_case)
 
     saved = False
     project = resolve_project_for(test_case)
@@ -682,6 +742,7 @@ def test_case_detail(request, pk):
         'test_case': test_case,
         'form': form,
         'saved': saved,
+        'can_write': can_write(request.user, test_case),
     })
 
 @require_POST
@@ -744,15 +805,30 @@ def map_list(request):
     tell whether it is used as a sub-flow (and therefore show the
     "Info subflow use" button). Maps are also joined with their collection so
     the collection title can be displayed without N+1 queries.
+
+    Only the maps readable by the user are listed (superusers see all). The
+    create form offers the writable collections only; non-superusers must pick
+    one, since maps without a collection are reserved to superusers.
     """
-    maps = (
+    maps = filter_maps(
+        request.user,
         ApplicationMap.objects
         .select_related('collection')
         .order_by('-created_at')
-        .prefetch_related('referencing_nodes')
+        .prefetch_related('referencing_nodes'),
     )
+    writable_collections = filter_collections(
+        request.user, ApplicationMapsCollection.objects.order_by('title'), write=True,
+    )
+    unrestricted = is_unrestricted(request.user)
     # Search, sorting and paging are handled client-side by DataTables.
-    return render(request, 'testcanvas/maps/maps_list.html', {'maps': maps})
+    return render(request, 'testcanvas/maps/maps_list.html', {
+        'maps': maps,
+        'writable_collections': writable_collections,
+        # Superusers may create ungrouped maps; others need a writable collection.
+        'can_create_ungrouped': unrestricted,
+        'can_create_map': unrestricted or writable_collections.exists(),
+    })
 
 @login_required
 def map_subflow_usage(request, pk):
@@ -761,7 +837,7 @@ def map_subflow_usage(request, pk):
     Lists each ``FlowNode`` that references this map through ``sub_flow``,
     together with a link to open the containing flow's editor. The response is a
     fragment (``_map_subflow_usage.html``) meant to be swapped into the
-    map list sidebar by HTMX.
+    map list sidebar by HTMX. Referencing maps the user cannot read are hidden.
 
     Args:
         request: The HTTP request (typically an hx-get).
@@ -771,10 +847,14 @@ def map_subflow_usage(request, pk):
         The rendered sidebar partial.
     """
     application_map = get_object_or_404(ApplicationMap, pk=pk)
+    ensure_can_read(request.user, application_map)
 
-    # Nodes (in other maps) that reference this map as their sub-flow.
+    # Nodes (in other maps) that reference this map as their sub-flow, limited
+    # to the containing maps the user is allowed to read.
+    readable_map_ids = filter_maps(request.user, ApplicationMap.objects.all()).values('pk')
     referencing_nodes = (
         application_map.referencing_nodes
+        .filter(application_map_id__in=readable_map_ids)
         .select_related('application_map')
         .order_by('application_map__name', 'local_graph_id')
     )
@@ -787,13 +867,27 @@ def map_subflow_usage(request, pk):
 @require_POST
 @login_required
 def map_create(request):
-    """Create a new (empty) ApplicationMap and jump straight into the editor."""
+    """Create a new (empty) ApplicationMap and jump straight into the editor.
+
+    The optional ``collection`` POST field places the new map in a collection.
+    Non-superusers must choose a collection they can write; superusers may
+    leave it empty to create an ungrouped map.
+    """
     name = (request.POST.get('name') or '').strip()
     if not name:
         messages.error(request, _("The flow name cannot be empty."))
         return redirect('testcanvas:map_list')
 
-    application_map = ApplicationMap.objects.create(name=name)
+    collection_id = (request.POST.get('collection') or '').strip() or None
+    collection = None
+    if collection_id is not None:
+        collection = ApplicationMapsCollection.objects.filter(pk=collection_id).first()
+    # None means "default collection", writable by superusers only.
+    if not can_write_collection(request.user, collection):
+        messages.error(request, _("Select a collection you have write access to."))
+        return redirect('testcanvas:map_list')
+
+    application_map = ApplicationMap.objects.create(name=name, collection=collection)
     messages.success(request, _("Flow '%(name)s' created.") % {"name": name})
     return redirect('testcanvas:map_editor', pk=application_map.pk)
 
@@ -825,6 +919,9 @@ def dynamic_show_by_uid(request, uid):
     model_obj = find_model_object_by_uid(uid)
     if model_obj is None:
         raise Http404(f"Nothing found for uid: {uid}")
+    # A UID must never bypass the collection permissions: unreadable objects
+    # answer exactly like unknown UIDs (404).
+    ensure_can_read(request.user, model_obj)
 
     # An ApplicationMap UID opens its editor directly: there is no single node
     # to highlight, so no ``highlight`` parameter is added.
@@ -884,12 +981,78 @@ def search_by_uid(request):
     return redirect('testcanvas:dynamic_show_by_uid', uid=uid)
 
 
+@require_POST
+@login_required
+def clone_by_uid(request):
+    """Clone the artefact identified by the POSTed ``uid`` and show the copy.
+
+    Duplicates any artefact of the ISTQB chain (ApplicationMap, FlowNode,
+    UserStory, AcceptanceCriterion, TestCase) together with everything below
+    it, then redirects to ``dynamic_show_by_uid`` with the UID of the new copy,
+    so the page reloads with the clone highlighted.
+
+    Args:
+        request: The incoming HTTP POST request carrying the ``uid`` field.
+
+    Returns:
+        A redirect to ``dynamic_show_by_uid`` for the cloned object, or back
+        to the flow list when the UID is missing or the cloning fails.
+    """
+    # Local import: keeps the module-level imports untouched.
+    from testcanvas.utilities.duplication import duplicate_by_uid
+
+    uid = (request.POST.get('uid') or '').strip()
+    if not uid:
+        messages.error(request, _("No UID provided for cloning."))
+        return redirect('testcanvas:map_list')
+
+    # Cloning writes into the same flow/collection as the original, so the
+    # user needs write access on it.
+    from testcanvas.utilities.other_support import find_model_object_by_uid
+
+    original = find_model_object_by_uid(uid)
+    if original is None:
+        raise Http404(f"Nothing found for uid: {uid}")
+    ensure_can_write(request.user, original)
+
+    try:
+        clone = duplicate_by_uid(uid)
+    except ValueError as exc:
+        messages.error(request, _("Cloning failed: %(error)s") % {"error": exc})
+        return redirect('testcanvas:map_list')
+
+    # Each model stores its UID in a different field: map type -> (uid, label).
+    if isinstance(clone, ApplicationMap):
+        new_uid, label = clone.flow_uid, clone.name
+    elif isinstance(clone, FlowNode):
+        new_uid, label = clone.node_uid, clone.title
+    elif isinstance(clone, UserStory):
+        new_uid, label = clone.user_story_uid, clone.title
+    elif isinstance(clone, AcceptanceCriterion):
+        new_uid, label = clone.ac_uid, clone.code
+    else:  # TestCase
+        new_uid, label = clone.tc_uid, clone.code
+
+    messages.success(
+        request,
+        _("Cloning completed: '%(label)s' (%(uid)s).") % {"label": label, "uid": new_uid},
+    )
+    # Reload the proper page with the new object highlighted.
+    return redirect('testcanvas:dynamic_show_by_uid', uid=new_uid)
+
+
 
 
 @login_required
 def map_editor(request, pk):
-    """Render the Cytoscape.js editor for a given ApplicationMap."""
+    """Render the Cytoscape.js editor for a given ApplicationMap.
+
+    Users with read-only access get the same page in read-only mode: every
+    editing control is hidden and ``map_save`` rejects any write anyway.
+    """
     application_map = get_object_or_404(ApplicationMap, pk=pk)
+    ensure_can_read(request.user, application_map)
+    user_can_write = can_write(request.user, application_map)
 
     # graph_data is already stored in Cytoscape format; hand it to the template as JSON.
     graph_data = application_map.graph_data or {}
@@ -916,11 +1079,14 @@ def map_editor(request, pk):
                 data['color'] = get_node_coverage_color(flow_node)
 
     # Maps that can be referenced as a sub-flow by a node of THIS map. We only
-    # offer other maps; the single-level nesting / cycle rules are enforced by
-    # FlowNode.clean() on save.
+    # offer other maps the user can read; the single-level nesting / cycle
+    # rules are enforced by FlowNode.clean() on save.
     subflows = [
         {'id': m.pk, 'name': m.name}
-        for m in ApplicationMap.objects.exclude(pk=application_map.pk).order_by('name')
+        for m in filter_maps(
+            request.user,
+            ApplicationMap.objects.exclude(pk=application_map.pk).order_by('name'),
+        )
     ]
 
     # Compact, globally unique node identifiers keyed by their Cytoscape id
@@ -933,8 +1099,16 @@ def map_editor(request, pk):
 
     # Collections the map can be attached to. Passed as real objects so the
     # header <select> is rendered server-side (the current one pre-selected),
-    # letting the user (re)group this map on the next Save.
-    collections = ApplicationMapsCollection.objects.all()
+    # letting the user (re)group this map on the next Save. Only writable
+    # collections are offered, plus the current one so it is always displayed.
+    collections = filter_collections(
+        request.user, ApplicationMapsCollection.objects.all(), write=True,
+    )
+    if application_map.collection_id:
+        collections = collections | ApplicationMapsCollection.objects.filter(
+            pk=application_map.collection_id,
+        )
+    collections = collections.distinct().order_by('title')
 
     # Transient highlight marker: the Cytoscape id (local_graph_id) of a node to
     # visually emphasise when the editor is opened via a UID deep-link (see
@@ -948,6 +1122,10 @@ def map_editor(request, pk):
         'subflows_json': json.dumps(subflows),
         'node_uids_json': json.dumps(node_uids),
         'collections': collections,
+        # Read-only mode: hides Save/Clone/Delete and the editing tools.
+        'can_write': user_can_write,
+        # Only superusers may detach a map from any collection.
+        'can_detach_collection': is_unrestricted(request.user),
         # Node to transiently highlight (empty when the editor is opened normally).
         'highlight_node_id': highlight_node_id,
         # Plugin extension slot for the whole map (e.g. aggregate coverage).
@@ -967,6 +1145,7 @@ def map_save(request, pk):
     restored the next time the editor is opened.
     """
     application_map = get_object_or_404(ApplicationMap, pk=pk)
+    ensure_can_write(request.user, application_map)
 
     try:
         payload = json.loads(request.body.decode('utf-8'))
@@ -1035,14 +1214,50 @@ def map_save(request, pk):
     # (Re)group the map under a collection chosen in the editor header. An empty
     # value detaches the map (SET_NULL); an unknown/invalid id fails silently to
     # None ("— No collection —") so a stale option can never break the save.
+    # Moving the map requires write access on the target collection too (the
+    # "no collection" target is reserved to superusers).
     if 'collection' in payload:
         collection_id = payload.get('collection') or None
         if collection_id is None:
-            application_map.collection = None
+            new_collection = None
         else:
-            application_map.collection = (
+            new_collection = (
                 ApplicationMapsCollection.objects.filter(pk=collection_id).first()
             )
+        new_collection_id = new_collection.pk if new_collection else None
+        if new_collection_id != application_map.collection_id:
+            if not can_write_collection(request.user, new_collection):
+                return JsonResponse({
+                    'ok': False,
+                    'error': _("You do not have write access to the selected collection."),
+                }, status=403)
+            application_map.collection = new_collection
+
+    # Sub-flow references may only target maps the user can read. References
+    # that already exist in the database are kept even if no longer readable,
+    # so a read-restricted target is never silently dropped.
+    existing_refs = set(
+        application_map.relational_nodes
+        .exclude(sub_flow_id__isnull=True)
+        .values_list('sub_flow_id', flat=True)
+    )
+    requested_refs = {
+        int(n['data']['sub_flow'])
+        for n in norm_nodes
+        if n['data'].get('node_type') == FlowNode.SUBFLOW
+        and str(n['data'].get('sub_flow') or '').isdigit()
+    }
+    new_refs = requested_refs - existing_refs
+    if new_refs:
+        readable_refs = set(
+            filter_maps(request.user, ApplicationMap.objects.filter(pk__in=new_refs))
+            .values_list('pk', flat=True)
+        )
+        if new_refs - readable_refs:
+            return JsonResponse({
+                'ok': False,
+                'error': _("You cannot reference a sub-flow you do not have access to."),
+            }, status=403)
 
     # Save the graph and mirror the per-node type / sub-flow reference onto the
     # relational FlowNode rows. Wrapped in a transaction so a validation error
@@ -1058,10 +1273,19 @@ def map_save(request, pk):
     except ValidationError as exc:
         return JsonResponse({'ok': False, 'error': '; '.join(exc.messages)}, status=400)
 
+    # Return the fresh local_graph_id -> node_uid mapping so the editor can
+    # learn the UIDs of nodes created since the page was loaded (needed by the
+    # "Node UUID" field and the "Clone node" operation) without a reload.
+    node_uids = {
+        fn.local_graph_id: fn.node_uid
+        for fn in application_map.relational_nodes.all()
+    }
+
     return JsonResponse({
         'ok': True,
         'graph_data': application_map.graph_data,
         'name': application_map.name,
+        'node_uids': node_uids,
     })
 
 def get_node_coverage_color(flow_node):
@@ -1175,6 +1399,7 @@ def _apply_coverage_colors(application_map, norm_nodes):
 def node_user_stories(request, pk, node_id):
     """HTMX endpoint: render the UserStories linked to a graph node (via FlowNode) as an HTML partial."""
     application_map = get_object_or_404(ApplicationMap, pk=pk)
+    ensure_can_read(request.user, application_map)
     flow_node = application_map.relational_nodes.filter(local_graph_id=str(node_id)).first()
 
     # Sub-flow reference nodes delegate testing to another map, so they never own
@@ -1187,6 +1412,7 @@ def node_user_stories(request, pk, node_id):
         'node_id': node_id,
         'user_stories': user_stories,
         'is_subflow': is_subflow,
+        'can_write': can_write(request.user, application_map),
     })
 
 @login_required
@@ -1217,6 +1443,8 @@ def map_delete(request, pk):
         back to the flow list on success / when deletion is blocked.
     """
     application_map = get_object_or_404(ApplicationMap, pk=pk)
+    # Both the confirmation page and the deletion itself require write access.
+    ensure_can_write(request.user, application_map)
     name = application_map.name
 
     # Nodes (in other maps) that reference this map as a sub-flow. Deleting
@@ -1291,13 +1519,22 @@ def collection_create(request):
     The ``next`` target (list or tree view) is preserved so the user returns to
     the page they came from, both on save and on cancel.
 
+    Superusers can create root collections; other users can only create
+    sub-collections of a collection they can write (enforced by the form).
+
     Args:
         request: The incoming HTTP request.
 
     Returns:
         An ``HttpResponse`` rendering the form, or a redirect to ``next`` on
         success.
+
+    Raises:
+        PermissionDenied: If a non-superuser has no writable collection at all.
     """
+    if not is_unrestricted(request.user) and not get_access(request.user).writable:
+        raise PermissionDenied(_("You do not have write access to any collection."))
+
     # Where to go back after save/cancel; falls back to the flat list view.
     next_url = (
         request.POST.get('next')
@@ -1306,13 +1543,15 @@ def collection_create(request):
     )
 
     if request.method == 'POST':
-        form = ApplicationMapsCollectionForm(request.POST)
+        form = ApplicationMapsCollectionForm(request.POST, user=request.user)
         if form.is_valid():
             collection = form.save()
+            # The new collection inherits the parent grants: refresh the cache.
+            clear_access_cache(request.user)
             messages.success(request, _("Collection '%(title)s' created.") % {"title": collection.title})
             return redirect(next_url)
     else:
-        form = ApplicationMapsCollectionForm()
+        form = ApplicationMapsCollectionForm(user=request.user)
 
     return render(request, 'testcanvas/collections/collections_form.html', {
         'form': form,
@@ -1336,6 +1575,7 @@ def collection_edit(request, pk):
         success.
     """
     collection = get_object_or_404(ApplicationMapsCollection, pk=pk)
+    ensure_can_write(request.user, collection)
 
     # Where to go back after save/cancel; falls back to the flat list view.
     next_url = (
@@ -1345,13 +1585,15 @@ def collection_edit(request, pk):
     )
 
     if request.method == 'POST':
-        form = ApplicationMapsCollectionForm(request.POST, instance=collection)
+        form = ApplicationMapsCollectionForm(request.POST, instance=collection, user=request.user)
         if form.is_valid():
             form.save()
+            # A new parent may change the inherited grants: refresh the cache.
+            clear_access_cache(request.user)
             messages.success(request, _("Collection '%(title)s' updated.") % {"title": collection.title})
             return redirect(next_url)
     else:
-        form = ApplicationMapsCollectionForm(instance=collection)
+        form = ApplicationMapsCollectionForm(instance=collection, user=request.user)
 
     return render(request, 'testcanvas/collections/collections_form.html', {
         'form': form,
@@ -1368,6 +1610,10 @@ def collection_delete(request, pk):
     Deleting a collection only removes the grouping: its maps survive and become
     ungrouped (the FK uses ``SET_NULL``).
 
+    Ungrouped maps belong to the superuser-only default collection, so a
+    non-superuser is not allowed to delete a collection (or sub-tree) that
+    still contains maps: they would become invisible to them.
+
     Args:
         request: The incoming HTTP request (POST only).
         pk: Primary key of the collection to delete.
@@ -1376,7 +1622,21 @@ def collection_delete(request, pk):
         A redirect back to the collections list.
     """
     collection = get_object_or_404(ApplicationMapsCollection, pk=pk)
+    ensure_can_write(request.user, collection)
     title = collection.title
+
+    if not is_unrestricted(request.user):
+        subtree_ids = [c.pk for c in collection.get_descendants(include_self=True)]
+        if ApplicationMap.objects.filter(collection_id__in=subtree_ids).exists():
+            messages.error(
+                request,
+                _(
+                    "Collection '%(title)s' cannot be deleted: it (or one of its "
+                    "sub-collections) still contains flows. Move or delete them first."
+                ) % {"title": title},
+            )
+            return redirect('testcanvas:collection_tree')
+
     collection.delete()
     messages.success(request, _("Collection '%(title)s' deleted.") % {"title": title})
     return redirect('testcanvas:collection_tree')
@@ -1396,7 +1656,15 @@ def project_field_settings(request):
     Returns:
         An ``HttpResponse`` rendering the settings page, or a redirect back to it
         after a successful save.
+
+    Raises:
+        PermissionDenied: If the user is not a superuser. The preferences are
+            global (they affect every user and collection), so only superusers
+            may view or change them.
     """
+    if not is_unrestricted(request.user):
+        raise PermissionDenied(_("Only superusers can manage the optional fields settings."))
+
     from testcanvas.models import FieldVisibilityPreference
     from testcanvas.utilities.optional_fields import OPTIONAL_FIELDS
 

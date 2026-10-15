@@ -1,7 +1,8 @@
 /* ==========================================================================
    TestCanvas · Map editor logic (Cytoscape graph + inspector + HTMX stories)
    Reads runtime config from `window.MAP_EDITOR_CONFIG` injected by the template:
-       { graphData, saveUrl, userStoriesUrl }
+       { graphData, saveUrl, userStoriesUrl, subflows, nodeUids, mapEditorUrl,
+         cloneUrl, cloneConfirmMsg, highlightNodeId, readOnly }
    ========================================================================== */
 (function () {
     'use strict';
@@ -246,6 +247,22 @@
     // highlight id is provided or the node is not in this graph.
     TestCanvasGraph.highlightNode(cy, CONFIG.highlightNodeId);
 
+    // Read-only mode (user without write access on the flow's collection):
+    // nodes cannot be dragged and every inspector input is locked. The server
+    // rejects any save anyway; this only keeps the UI consistent.
+    const READ_ONLY = CONFIG.readOnly === true;
+    if (READ_ONLY) {
+        cy.autoungrabify(true);
+        document
+            .querySelectorAll('#tab-props input, #tab-props textarea, #tab-props select, #tab-props button')
+            .forEach(el => {
+                // Copy-to-clipboard stays usable: it does not modify anything.
+                if (el.id !== 'btn-copy-uid') {
+                    el.disabled = true;
+                }
+            });
+    }
+
     // Toolbar buttons: re-run the automatic layout on demand.
     document.getElementById('btn-layout-td').addEventListener('click', () => runAutoLayout('td'));
     document.getElementById('btn-layout-lr').addEventListener('click', () => runAutoLayout('lr'));
@@ -373,6 +390,8 @@
             selectedEl.removeData('sub_flow');
             reflectNodeType('PURE');
         }
+        // The node nature changed: re-evaluate whether it can be cloned.
+        updateCloneButtonState();
     }
     nodeTypeGroup.querySelectorAll('button').forEach(btn => {
         btn.addEventListener('click', () => applyNodeType(btn.dataset.type));
@@ -492,6 +511,8 @@
         showInspectorFor(sel.length === 1 ? sel[0] : null);
         // Keep the User Story tab aligned with the current node selection.
         refreshStoriesTab();
+        // Enable/disable the "Clone node" operation for the new selection.
+        updateCloneButtonState();
     }
     cy.on('select', 'node, edge', syncInspector);
     cy.on('unselect', 'node, edge', syncInspector);
@@ -649,6 +670,10 @@
 
     // Build the editor up-front (the modal is only display:none, Quill handles that fine).
     initDescriptionEditor();
+    // In read-only mode the description can be read but not edited.
+    if (CONFIG.readOnly === true && descriptionEditor) {
+        descriptionEditor.disable();
+    }
 
     if (descriptionModal) {
         // Recalculate layout and drop the cursor into the editor once the modal is visible.
@@ -665,7 +690,8 @@
         stories: document.getElementById('tab-stories'),
     };
     const storiesContent = document.getElementById('stories-content');
-    let activeTab = 'props';
+    // "User Story" is the default tab on load (must match the `active` classes in maps_editor.html).
+    let activeTab = 'stories';
 
     function activateTab(name) {
         activeTab = name;
@@ -733,6 +759,64 @@
     });
 
 
+    // --- Clone selected node ---
+    // Cloning is delegated to the server (`clone_by_uid`), which duplicates the
+    // FlowNode with its US/AC/TC chain, updates graph_data and redirects back to
+    // the editor with the clone highlighted. The client only POSTs the node_uid.
+    const cloneNodeButton = document.getElementById('btn-clone-node');
+
+    // Return the node_uid of the single selected node if it can be cloned:
+    // exactly one node, not a SUBFLOW reference, and already persisted
+    // (unsaved nodes have no node_uid yet). Returns null otherwise.
+    function getCloneableNodeUid() {
+        const sel = cy.$(':selected');
+        if (sel.length !== 1 || !sel[0].isNode()) return null;
+        const node = sel[0];
+        if ((node.data('node_type') || 'PURE') === 'SUBFLOW') return null;
+        const uids = CONFIG.nodeUids || {};
+        return uids[node.id()] || null;
+    }
+
+    // Reflect the clone eligibility of the current selection on the button.
+    // The element is looked up here (not via the const above) because this
+    // hoisted function may run from selection events before that const is set.
+    function updateCloneButtonState() {
+        const btn = document.getElementById('btn-clone-node');
+        if (!btn) return;
+        btn.disabled = !getCloneableNodeUid();
+    }
+
+    if (cloneNodeButton) {
+        cloneNodeButton.addEventListener('click', () => {
+            // Re-check at click time (defence in depth against stale state).
+            const uid = getCloneableNodeUid();
+            if (!uid || !CONFIG.cloneUrl) {
+                setStatus('Select a single saved, non sub-flow node to clone.', true);
+                return;
+            }
+            if (!confirm(CONFIG.cloneConfirmMsg || 'Clone this node?')) return;
+
+            // Build and submit a regular POST form so the server redirect
+            // reloads the editor with the cloned node highlighted.
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = CONFIG.cloneUrl;
+            [['csrfmiddlewaretoken', getCsrfToken()], ['uid', uid]].forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                form.appendChild(input);
+            });
+            document.body.appendChild(form);
+            // Reuse the shared full-page spinner (page-spinner.js): the POST
+            // to clone_by_uid ends in a full page reload, like a normal link.
+            if (window.PageSpinner) window.PageSpinner.show();
+            form.submit();
+        });
+    }
+    updateCloneButtonState();
+
     // --- Delete selected ---
     document.getElementById('btn-delete').addEventListener('click', () => {
         const sel = cy.$(':selected');
@@ -783,6 +867,14 @@
                              }
                          }
                      });
+                 }
+                 // Refresh the node_uid mapping: nodes created since the page
+                 // loaded only get a node_uid once saved. Without this, the
+                 // "Node UUID" field and the "Clone node" button would stay
+                 // stale until a full page reload.
+                 if (result.node_uids) {
+                     CONFIG.nodeUids = result.node_uids;
+                     syncInspector();
                  }
                  setStatus('Saved ✔', false);
              } else {

@@ -21,10 +21,14 @@
                 {% if us.description %}<div class="desc">{{ us.description }}</div>{% endif %}
             </div>
         {% empty %}
-            {# Empty state: the "Manage User Stories" button above is the way to add the first story, so make that explicit here. #}
+            {# Empty state: the traceability link above is the way to add the first story (write access only). #}
             <div class="sidebar-empty">
-                {% blocktranslate %}No User Story for this node yet.
-                Use <strong>Traceability matrix</strong> above to add the first one.{% endblocktranslate %}
+                {% if can_write %}
+                    {% blocktranslate %}No User Story for this node yet.
+                    Use <strong>Traceability matrix</strong> above to add the first one.{% endblocktranslate %}
+                {% else %}
+                    {% translate "No User Story for this node yet." %}
+                {% endif %}
             </div>
         {% endfor %}
     {% endif %}

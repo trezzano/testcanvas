@@ -129,6 +129,17 @@ a, button, input, .card, .btn {
 .app-header .header-link--danger:hover {
     color: var(--tc-danger-hover);
 }
+/* Let <button class="header-link"> (e.g. Clone inside a POST form) look exactly
+   like an <a class="header-link"> by stripping the native button chrome. */
+.app-header button.header-link {
+    appearance: none;
+    background: none;
+    border: 0;
+    padding: 0;
+    font-family: inherit;
+    line-height: inherit;
+    cursor: pointer;
+}
 
 /* Right-aligned group holding the back link and the logout button. */
 .app-header__actions {
@@ -140,6 +151,11 @@ a, button, input, .card, .btn {
 /* Reset the back link's own auto margin now that it lives in the actions group. */
 .app-header__actions .header-link {
     margin-left: 0;
+}
+/* Inline POST forms (e.g. Clone) must align vertically like plain links. */
+.app-header__actions form {
+    display: inline-flex;
+    align-items: center;
 }
 .logout-form {
     margin: 0;
@@ -607,6 +623,42 @@ tr:hover td {
 .actions {
     display: flex;
     gap: .5rem;
+}
+
+/* Row-level action grid for table rows with several buttons.
+   Two equal columns keep buttons aligned across rows: the primary action spans
+   the full width on top, secondary actions share the middle row, and the
+   destructive action is isolated at the bottom to avoid accidental clicks. */
+.row-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .4rem;
+    min-width: 200px;
+}
+.row-actions > form {
+    margin: 0;
+    display: flex; /* lets the inner <button> stretch to the grid cell */
+}
+.row-actions .btn {
+    width: 100%;
+    gap: .35rem;
+    white-space: nowrap;
+}
+.row-actions__primary,
+.row-actions__wide,
+.row-actions__danger {
+    grid-column: 1 / -1;
+}
+.row-actions__danger {
+    padding-top: .4rem;
+    border-top: 1px dashed var(--tc-border-soft);
+}
+.row-actions .count-pill {
+    padding: 1px 7px;
+}
+.row-actions .btn-info:hover .count-pill {
+    background: #fff;
+    color: #1d4ed8;
 }
 
 /* ==========================================================================

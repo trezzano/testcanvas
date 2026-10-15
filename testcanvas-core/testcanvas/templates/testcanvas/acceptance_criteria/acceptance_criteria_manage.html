@@ -14,6 +14,8 @@
 <div class="plugin-slotbar">
     {% include "testcanvas/slots/_object_widgets.html" with widgets=plugin_widgets %}
 </div>
+{# The create form is only offered to users with write access on the flow. #}
+{% if can_write %}
 <div class="card">
     <h2>{% translate "Add a new Acceptance Criterion" %}</h2>
     <form method="post" action="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">
@@ -48,6 +50,7 @@
         <button type="submit" class="btn btn-primary">+ {% translate "Add Acceptance Criterion" %}</button>
     </form>
 </div>
+{% endif %}
 <div class="card">
     <h2>{% translate "Acceptance Criteria" %} <span class="count-pill">{{ criteria|length }}</span></h2>
     {% if criteria %}
@@ -77,15 +80,17 @@
                          <td>
                              <div class="actions">
                                  <a class="btn btn-secondary btn-sm full-page-spinner"
-                                    href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% translate "Edit" %}</a>
+                                    href="{% url 'testcanvas:acceptance_criterion_edit' ac.pk %}">{% if can_write %}{% translate "Edit" %}{% else %}{% translate "View" %}{% endif %}</a>
                                  <a class="btn btn-secondary btn-sm full-page-spinner"
-                                    href="{% url 'testcanvas:test_case_manage' ac.pk %}">🧪 {% translate "Test Cases" %} <span class="count-pill">{{ ac.test_cases.count }}</span></a>
+                                    href="{% url 'testcanvas:test_case_manage' ac.pk %}">{% translate "Test Cases" %} <span class="count-pill">{{ ac.test_cases.count }}</span></a>
+{% if can_write %}
                                 <form method="post"
                                       action="{% url 'testcanvas:acceptance_criterion_delete' ac.pk %}"
                                       onsubmit="return confirm('{% blocktranslate with code=ac.code %}Delete acceptance criterion {{ code }}?{% endblocktranslate %}');">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-danger btn-sm">{% translate "Delete" %}</button>
                                 </form>
+{% endif %}
                             </div>
                         </td>
                     </tr>
