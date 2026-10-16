@@ -6,8 +6,11 @@ permission system means for your code and how to use the core permission API
 correctly.
 See also: `collection-permissions-user-guide.md` — how permissions are
 assigned by administrators.
+
 ---
+
 ## 1. Where permissions are enforced
+
 TestCanvas enforces collection permissions at **application level**, not at
 model level:
 - the TestCanvas web pages call `testcanvas.utilities.permissions` before
@@ -18,7 +21,9 @@ This is intentional: plugins keep full freedom on the data model. The
 consequence is that **every plugin entry point acting on behalf of a user must
 apply the permission API itself**. Code that uses the ORM directly bypasses
 every rule.
+
 ### The rules your plugin must respect
+
 1. **Superusers** are unrestricted.
 2. Other users only access the collections granted to them (directly or through
    a group) with **read** and/or **write** (write implies read).
@@ -30,8 +35,11 @@ every rule.
 5. Non-superusers can create flows and collections **only inside a writable
    collection** (no ungrouped flows, no top-level collections).
 ---
+
 ## 2. Common pitfalls
+
 ### Pitfall 1 — Not knowing who the user is
+
 If your code runs without a Django user, or always as a superuser, permissions
 cannot be applied:
 | Approach | Effect |
@@ -40,22 +48,30 @@ cannot be applied:
 | Fixed **superuser** | same as above, and no audit trail of who changed what |
 ➡ Every operation must run on behalf of a real, authenticated **Django `User`**
 (see §3).
+
 ### Pitfall 2 — Flows created without a collection disappear
+
 A flow created without a `collection` lands in the **default collection**
 (superuser-only). A normal user who created it **can no longer see it**.
 ➡ Creation code must receive a **target collection** and check that the user
 can write it (see §5.1).
+
 ### Pitfall 3 — Unchecked modifications
+
 Any code that updates or deletes an existing object (flow, node, User Story,
 Acceptance Criterion, Test Case) must do it **only if the user has write
 access** on the governing collection.
 ➡ Call `require_write(user, obj)` before every write (see §5.2).
+
 ### Pitfall 4 — Listings that leak data
+
 Lists, searches, statistics and exports must only include what the user can
 read. Resolving an object by UID must not reveal objects of inaccessible
 collections.
 ➡ Use `filter_maps` / `filter_collections` and `require_read` (see §5.3).
+
 ### Pitfall 5 — Moves and references
+
 - Moving a flow to another collection needs write access on **both** the flow
   and the **target** collection.
 - Moving a collection needs write access on it and on the new parent;
@@ -64,26 +80,34 @@ collections.
   **read** the referenced flow.
 ---
 ## 3. Identifying the user
+
 | Context | How to get the user |
 |---------|---------------------|
 | Django view / REST endpoint | `request.user` (authenticated session or token) |
 | Background job | store the id of the user who started the job and reload that user when the job runs |
 | Script / management command | a `--user` option resolved to an active user, or a dedicated **service account** |
+
 ### Service accounts
+
 For automated processes, create a dedicated user (for example `import-bot`)
 that is **not** superuser and **not** staff, and grant it only the collections
 it needs. This keeps the impact of the automation limited and visible.
+
 ### Never
+
 - Never run user-facing operations as a **superuser** just "to make it work".
 - Never trust a user id received from an untrusted client: resolve the user
   from an authenticated session or token.
 ---
 ## 4. The permission API
+
 Module: `testcanvas.utilities.permissions`
 This module is a **pure domain layer**: it never raises or depends on
 HTTP-specific exceptions (no `Http404`). It is safe to use from a view, a
 management command, a background job or any other integration. Deciding what
 HTTP status to answer (404 vs 403) is entirely up to your own code — see §5.4.
+
+
 | Function | Use |
 |----------|-----|
 | `is_unrestricted(user)` | `True` for active superusers |
@@ -96,7 +120,9 @@ HTTP status to answer (404 vs 403) is entirely up to your own code — see §5.4
 | `resolve_map(obj)` | climb from FlowNode / UserStory / AcceptanceCriterion / TestCase (or a registered model) to the owning flow |
 | `get_access(user)` | the raw `CollectionAccess(readable, writable, unrestricted)` (cached on the user instance) |
 | `clear_access_cache(user)` | invalidate the cache after creating or moving collections |
+
 Notes:
+
 - `obj` can be an `ApplicationMapsCollection`, `ApplicationMap`, `FlowNode`,
   `UserStory`, `AcceptanceCriterion`, `TestCase`, or any model registered as
   described in §4.2: the governing collection is found automatically.
@@ -109,7 +135,9 @@ Notes:
 - The access sets are cached on the **user instance**. In long-running
   processes, load a **fresh user** for each unit of work (or call
   `clear_access_cache`) so permission changes are picked up.
+- 
 ### 4.2 Extending the system to your own models
+
 If your plugin adds a model linked to a flow (e.g. a `TestRun` linked to a
 `TestCase`), register it so `filter_readable` and `resolve_map` understand it:
 ```python
@@ -132,8 +160,11 @@ class TestRun(models.Model):
         return resolve_map(self.test_case)
 ```
 ---
+
 ## 5. Implementation patterns
+
 ### 5.1 Create a flow
+
 ```python
 from django.core.exceptions import PermissionDenied
 from testcanvas.models import ApplicationMap, ApplicationMapsCollection
@@ -152,7 +183,9 @@ def create_flow(user, name: str, collection_id: int | None) -> ApplicationMap:
 - Offer the user the list of **writable collections**
   (`filter_collections(user, qs, write=True)`) so they can pick a valid target.
 - Imports of complete flows follow the same rule.
+- 
 ### 5.2 Modify or delete an existing object
+
 ```python
 from testcanvas.utilities.other_support import find_model_object_by_uid
 from testcanvas.utilities.permissions import require_write
@@ -173,7 +206,9 @@ def update_by_uid(user, uid: str, changes: dict):
 - Moving a flow: `require_write(user, flow)` **and**
   `can_write_collection(user, target_collection)`.
 - Sub-flow references: the referenced flow must satisfy `can_read(user, flow)`.
+- 
 ### 5.3 Read, list, search
+
 ```python
 from testcanvas.models import ApplicationMap
 from testcanvas.utilities.other_support import find_model_object_by_uid
@@ -191,7 +226,9 @@ def get_by_uid(user, uid):
 ```
 - Never start from `Model.objects.all()` for data shown to a user.
 - Compute statistics and exports on filtered querysets only.
+- 
 ### 5.4 Error handling
+
 `AccessDenied` is deliberately **not** tied to any transport. Your code
 decides what to do with it, based on `exc.level`:
 ```python
@@ -205,18 +242,23 @@ def handle_update(user, uid, changes):
         else:
             ...   # object exists but is read-only -> "Forbidden"
 ```
+
 | Exception | Meaning | Typical response |
 |-----------|---------|-------------------|
 | `AccessDenied` with `level == NONE` | not readable | "Not found" (do not reveal that the object exists) |
 | `AccessDenied` with `level == READ` | readable but not writable | "Forbidden" |
 | `ValidationError` | invalid data | "Invalid data" plus messages |
+
 In a Django view you are of course free to raise `django.http.Http404` or
 `django.core.exceptions.PermissionDenied` yourself based on `exc.level` — that
 is exactly what TestCanvas's own views do internally. Outside a view (scripts,
 jobs, other APIs), map `AccessDenied` to your own error format.
 ---
+
 ## 6. Complete examples
+
 ### 6.1 A Django view in a plugin
+
 ```python
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -245,7 +287,9 @@ def flow_summary(request, pk):
 ```
 > Hiding buttons is only a convenience. Always repeat the check in the view
 > that performs the write.
+
 ### 6.2 A management command that imports data
+
 ```python
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
@@ -268,11 +312,14 @@ class Command(BaseCommand):
             flow = create_flow(user, options["name"], options["collection"])
         except PermissionDenied as exc:
             raise CommandError(f"Forbidden: {exc}")
-        self.stdout.write(self.style.SUCCESS(f"Created {flow.flow_uid}"))
+        self.stdout.write(self.style.SUCCESS(f"Created {flow.uid}"))
 ```
+
 ### 6.3 What different users get
+
 Assume the tree `Sales / Checkout`, user *Mario* with **write** on `Sales`, and
 user *Lucia* with **read** on `Checkout`:
+
 | Operation | Mario | Lucia | Superuser |
 |-----------|-------|-------|-----------|
 | `list_flows` | flows of `Sales` and `Checkout` | flows of `Checkout` only | all flows |
@@ -280,8 +327,11 @@ user *Lucia* with **read** on `Checkout`:
 | `create_flow(..., collection_id=None)` | ❌ `PermissionDenied` | ❌ `PermissionDenied` | ✅ created (ungrouped) |
 | `update_by_uid` on a `Checkout` flow | ✅ updated | ❌ `AccessDenied(level=READ)` | ✅ updated |
 | `update_by_uid` on a `Marketing` flow | ❌ `AccessDenied(level=NONE)` | ❌ `AccessDenied(level=NONE)` | ✅ updated |
+
 ---
+
 ## 7. Checklist
+
 - [ ] Every operation runs on behalf of a real, authenticated Django `User`.
 - [ ] Listings use `filter_maps` / `filter_collections` (or `filter_readable`
       for your own registered models).

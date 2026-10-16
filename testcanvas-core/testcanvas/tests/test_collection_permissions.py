@@ -263,7 +263,7 @@ class PermissionViewTests(CollectionPermissionTestBase):
     def test_uid_resolver_does_not_bypass(self) -> None:
         """Resolving the UID of an unreadable map answers 404."""
         self.client.force_login(self.reader)
-        response = self.client.get(reverse("testcanvas:dynamic_show_by_uid", args=[self.map_other.flow_uid]))
+        response = self.client.get(reverse("testcanvas:dynamic_show_by_uid", args=[self.map_other.uid]))
         self.assertEqual(response.status_code, 404)
 
     def test_user_story_create_requires_write(self) -> None:

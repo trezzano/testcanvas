@@ -60,23 +60,38 @@ CODE_MAX_LENGTH = 200
 # Public entry point
 # --------------------------------------------------------------------------- #
 
-def duplicate_by_uid(uid: str):
+def duplicate_by_uid(uid: str, *, user=None):
     """Duplicate the object identified by ``uid`` and everything below it.
 
     The whole operation runs inside a single database transaction: if anything
     goes wrong, nothing is saved (no half-made copies are left behind).
 
+    The UID is treated as an opaque string: its format is never inspected.
+
     Args:
-        uid: The UID of the object to duplicate (e.g. ``"AMU-..."``,
-            ``"FNU-..."``, ``"USU-..."``, ``"ACU-..."`` or ``"TCU-..."``).
+        uid: The UID of the object to duplicate.
+        user: Optional acting user. When given, write access on the original
+            is enforced (the copy lands in the same flow/collection). ``None``
+            skips the check and is kept for backward compatibility (trusted
+            callers such as management commands).
 
     Returns:
         The newly created copy (same model as the original object).
 
     Raises:
-        ValueError: If no object matches ``uid`` or the copy cannot be built.
+        ValueError: If ``user`` is ``None`` and no object matches ``uid``, or
+            the copy cannot be built.
+        ObjectNotFound: If ``user`` is given and the object is unknown or not
+            readable by the user.
+        AccessDenied: If ``user`` is given and the object is only readable.
     """
-    original = find_model_object_by_uid(uid)
+    if user is not None:
+        # Local import: permissions imports this package lazily as well.
+        from testcanvas.utilities.permissions import AccessLevel, get_object_by_uid_for_user
+
+        original = get_object_by_uid_for_user(user, uid, required=AccessLevel.WRITE)
+    else:
+        original = find_model_object_by_uid(uid)
     if original is None:
         raise ValueError(f"No object found with uid '{uid}'.")
 
@@ -120,7 +135,6 @@ def _clone_application_map(original_map: ApplicationMap) -> ApplicationMap:
     # ApplicationMap.sync_flow_nodes), so the nodes already exist afterwards.
     new_map = _copy_instance(
         original_map,
-        uid_field="flow_uid",
         name=_add_copy_prefix(original_map.name, max_length=150),
         graph_data=copy.deepcopy(original_map.graph_data),
     )
@@ -210,7 +224,6 @@ def _clone_user_story(original_story: UserStory, target_node: FlowNode, is_root:
 
     new_story = _copy_instance(
         original_story,
-        uid_field="user_story_uid",
         flow_node=target_node,
         title=new_title,
     )
@@ -245,7 +258,6 @@ def _clone_acceptance_criterion(
 
     new_criterion = _copy_instance(
         original_criterion,
-        uid_field="ac_uid",
         user_story=target_story,
         code=new_code,
     )
@@ -280,7 +292,6 @@ def _clone_test_case(
 
     return _copy_instance(
         original_test_case,
-        uid_field="tc_uid",
         acceptance_criterion=target_criterion,
         code=new_code,
     )
@@ -310,17 +321,16 @@ def _copy_node_content(original_node: FlowNode, new_node: FlowNode) -> None:
         _clone_user_story(original_story, new_node)
 
 
-def _copy_instance(original, uid_field: str, **changes):
+def _copy_instance(original, **changes):
     """Create and save a copy of ``original`` with some fields changed.
 
     All the regular fields are copied as they are, except:
 
     * the primary key, so the database creates a new row;
-    * the UID field, so the model generates a new UID automatically.
+    * the ``uid`` field, so the model generates a new UID automatically.
 
     Args:
         original: The model instance to copy.
-        uid_field: Name of the UID field of this model (e.g. ``"tc_uid"``).
         **changes: Fields to set on the copy (e.g. the new parent or the new
             name), applied after the plain copy.
 
@@ -332,7 +342,7 @@ def _copy_instance(original, uid_field: str, **changes):
 
     # Copy every regular field, one by one.
     for field in model_class._meta.concrete_fields:
-        if field.primary_key or field.name == uid_field:
+        if field.primary_key or field.name == "uid":
             continue
         setattr(new_object, field.attname, getattr(original, field.attname))
 

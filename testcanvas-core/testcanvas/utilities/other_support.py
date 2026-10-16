@@ -1,6 +1,22 @@
-"""Resolve any TestCanvas UID back to its owning ApplicationMap."""
+"""Resolve a compact UID to the core TestCanvas artefact that owns it.
 
-from typing import Optional
+Every artefact of the ISTQB chain (``ApplicationMap``, ``FlowNode``,
+``UserStory``, ``AcceptanceCriterion``, ``TestCase``) stores its compact,
+globally unique identifier in a field named ``uid``, so reading it is simply
+``obj.uid`` and filtering is simply ``Model.objects.filter(uid=...)``.
+
+Important:
+    A UID is treated as an opaque string: the code never parses its prefix.
+    UIDs are assumed unique across all the artefact tables (each ``uid`` field
+    is unique in its own table and the generator makes cross-table collisions
+    negligible, but no database constraint enforces it).
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from django.db.models import Model
 
 from testcanvas.models import (
     AcceptanceCriterion,
@@ -10,44 +26,46 @@ from testcanvas.models import (
     UserStory,
 )
 
+#: Every model carrying a ``uid`` field, in lookup order (top of the ISTQB
+#: chain first). Should two tables ever share a UID, the first one wins.
+UID_MODELS: tuple[type[Model], ...] = (
+    ApplicationMap,
+    FlowNode,
+    UserStory,
+    AcceptanceCriterion,
+    TestCase,
+)
 
-def find_model_object_by_uid(uid: str) -> None | ApplicationMap | FlowNode | UserStory | AcceptanceCriterion | TestCase:
-    """ identifica e ritorna l'oggetto del modello che ha l'UID passato."""
 
+def find_model_object_by_uid(uid: Any) -> Model | None:
+    """Return the artefact whose ``uid`` matches, or ``None``.
 
-    if not isinstance(uid, str):
-        raise ValueError("uid must be a string.")
+    Each table of ``UID_MODELS`` is queried in turn on its indexed ``uid``
+    column (at most 5 fast queries). This function does **not** check
+    permissions: user-facing callers must use
+    :func:`testcanvas.utilities.permissions.get_object_by_uid_for_user`.
 
+    Args:
+        uid: The UID to resolve. Leading/trailing whitespace is ignored.
+
+    Returns:
+        The matching artefact, or ``None`` when nothing matches or when
+        ``uid`` is not a non-blank string.
+    """
+    # Invalid input is simply "not found", exactly like an unknown UID.
+    if not isinstance(uid, str) or not uid.strip():
+        return None
     uid = uid.strip()
-    if not uid:
-        raise ValueError("uid must be a non-empty string.")
 
-    # Is it an ApplicationMap UID? Then it is already the map we want.
-    application_map = ApplicationMap.objects.filter(flow_uid=uid).first()
-    if application_map is not None:
-        return application_map
-
-    # Is it a FlowNode UID? Climb one step up to its map.
-    flow_node = FlowNode.objects.filter(node_uid=uid).first()
-    if flow_node is not None:
-        return flow_node
-
-    # Is it a UserStory UID? Climb: UserStory -> FlowNode -> ApplicationMap.
-    user_story = UserStory.objects.filter(user_story_uid=uid).first()
-    if user_story is not None:
-        return user_story
-
-    # Is it an AcceptanceCriterion UID?
-    # Climb: AcceptanceCriterion -> UserStory -> FlowNode -> ApplicationMap.
-    criterion = AcceptanceCriterion.objects.filter(ac_uid=uid).first()
-    if criterion is not None:
-        return criterion
-
-    # Is it a TestCase UID? Climb the full chain:
-    # TestCase -> AcceptanceCriterion -> UserStory -> FlowNode -> ApplicationMap.
-    test_case = TestCase.objects.filter(tc_uid=uid).first()
-    if test_case is not None:
-        return test_case
-
-    # No artefact matched the UID.
+    for model in UID_MODELS:
+        obj = model.objects.filter(uid=uid).first()
+        if obj is not None:
+            return obj
     return None
+
+
+__all__ = [
+    "UID_MODELS",
+    "find_model_object_by_uid",
+]
+

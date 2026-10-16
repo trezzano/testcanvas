@@ -7,7 +7,6 @@ from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import transaction
 from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
@@ -23,17 +22,92 @@ from testcanvas.context_processors import (
     TRACEABILITY_URL_NAMES,
 )
 from testcanvas.plugins import collect_object_widgets
+from testcanvas.services import (
+    BusinessRuleViolation,
+    MapInUseAsSubflow,
+    create_acceptance_criteria,
+    create_application_map,
+    create_test_cases,
+    create_user_stories,
+    delete_artefact,
+    update_application_map,
+    update_artefact,
+)
 from testcanvas.utilities.optional_fields import resolve_project_for
 from testcanvas.utilities.permissions import (
+    AccessDenied,
     can_write,
-    can_write_collection,
     clear_access_cache,
     filter_collections,
     filter_maps,
     get_access,
     is_unrestricted,
 )
-from testcanvas.views._permissions import ensure_can_read, ensure_can_write
+from testcanvas.views._permissions import ensure_can_read, ensure_can_write, get_object_by_uid_or_404
+
+
+def _add_service_errors(form, exc: ValidationError) -> None:
+    """Attach a service ``ValidationError`` to a bound form.
+
+    Field errors are attached to the matching form field when it exists,
+    everything else becomes a non-field error, so the template can render
+    them like regular form errors.
+
+    Args:
+        form: The bound form being processed.
+        exc: The error raised by a domain service.
+    """
+    if hasattr(exc, 'error_dict'):
+        for field, errors in exc.message_dict.items():
+            form.add_error(field if field in form.fields else None, errors)
+    else:
+        form.add_error(None, exc.messages)
+
+
+def _create_from_form(request, form, create_service, parent):
+    """Create one artefact from a valid form through a domain service.
+
+    Args:
+        request: The incoming HTTP request (provides the acting user).
+        form: A valid ModelForm whose ``cleaned_data`` holds the new values.
+        create_service: One of the bulk ``create_*`` services.
+        parent: The parent artefact passed to the service.
+
+    Returns:
+        The created instance, or ``None`` when the service rejected the data
+        (errors are then attached to ``form``).
+    """
+    try:
+        return create_service(request.user, parent, [dict(form.cleaned_data)])[0]
+    except ValidationError as exc:
+        _add_service_errors(form, exc)
+    except BusinessRuleViolation as exc:
+        form.add_error(None, str(exc))
+    return None
+
+
+def _update_from_form(request, form, obj) -> bool:
+    """Persist a valid edit form through :func:`update_artefact`.
+
+    Args:
+        request: The incoming HTTP request (provides the acting user).
+        form: A valid ModelForm bound to ``obj``.
+        obj: The artefact being edited.
+
+    Returns:
+        ``True`` on success, ``False`` when the service rejected the data
+        (errors are then attached to ``form``).
+    """
+    try:
+        # Only the fields rendered by the form may change.
+        update_artefact(request.user, obj, dict(form.cleaned_data), set(form.fields))
+    except ValidationError as exc:
+        _add_service_errors(form, exc)
+        return False
+    except BusinessRuleViolation as exc:
+        form.add_error(None, str(exc))
+        return False
+    return True
 
 
 def _ensure_read_or_write(request, obj) -> None:
@@ -147,11 +221,11 @@ def user_story_manage(request, node_id):
     if request.method == 'POST':
         form = UserStoryForm(request.POST, project=project)
         if form.is_valid():
-            user_story = form.save(commit=False)
-            user_story.flow_node = flow_node
-            user_story.save()
-            messages.success(request, _("User Story '%(code)s' created.") % {"code": user_story.code})
-            return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
+            # The service enforces write access and the SUBFLOW rule.
+            user_story = _create_from_form(request, form, create_user_stories, flow_node)
+            if user_story is not None:
+                messages.success(request, _("User Story '%(code)s' created.") % {"code": user_story.code})
+                return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
     else:
         form = UserStoryForm(project=project)
 
@@ -182,8 +256,7 @@ def user_story_edit(request, node_id, pk):
 
     if request.method == 'POST':
         form = UserStoryForm(request.POST, instance=user_story, project=project)
-        if form.is_valid():
-            form.save()
+        if form.is_valid() and _update_from_form(request, form, user_story):
             messages.success(request, _("User Story '%(code)s' updated.") % {"code": user_story.code})
             return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
     else:
@@ -205,7 +278,7 @@ def user_story_delete(request, node_id, pk):
     user_story = get_object_or_404(UserStory, pk=pk, flow_node=flow_node)
     ensure_can_write(request.user, flow_node)
     code = user_story.code
-    user_story.delete()
+    delete_artefact(request.user, user_story)
     messages.success(request, _("User Story '%(code)s' deleted.") % {"code": code})
     # Back to the node's traceability, in whichever view the user prefers.
     return redirect('testcanvas:flow_node_traceability_go', node_id=flow_node.pk)
@@ -231,11 +304,10 @@ def acceptance_criterion_manage(request, user_story_id):
     if request.method == 'POST':
         form = AcceptanceCriterionForm(request.POST, project=project)
         if form.is_valid():
-            criterion = form.save(commit=False)
-            criterion.user_story = user_story
-            criterion.save()
-            messages.success(request, _("Acceptance Criterion '%(code)s' created.") % {"code": criterion.code})
-            return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
+            criterion = _create_from_form(request, form, create_acceptance_criteria, user_story)
+            if criterion is not None:
+                messages.success(request, _("Acceptance Criterion '%(code)s' created.") % {"code": criterion.code})
+                return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
     else:
         form = AcceptanceCriterionForm(project=project)
 
@@ -270,8 +342,7 @@ def acceptance_criterion_edit(request, pk):
 
     if request.method == 'POST':
         form = AcceptanceCriterionForm(request.POST, instance=criterion, project=project)
-        if form.is_valid():
-            form.save()
+        if form.is_valid() and _update_from_form(request, form, criterion):
             messages.success(request, _("Acceptance Criterion '%(code)s' updated.") % {"code": criterion.code})
             return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
     else:
@@ -297,7 +368,7 @@ def acceptance_criterion_delete(request, pk):
     flow_node = criterion.user_story.flow_node
     ensure_can_write(request.user, flow_node)
     code = criterion.code
-    criterion.delete()
+    delete_artefact(request.user, criterion)
     messages.success(request, _("Acceptance Criterion '%(code)s' deleted.") % {"code": code})
     # Back to the node's traceability, in whichever view the user prefers.
     return redirect('testcanvas:flow_node_traceability_go', node_id=flow_node.pk)
@@ -324,11 +395,10 @@ def test_case_manage(request, acceptance_criterion_id):
     if request.method == 'POST':
         form = TestCaseForm(request.POST, project=project)
         if form.is_valid():
-            test_case = form.save(commit=False)
-            test_case.acceptance_criterion = criterion
-            test_case.save()
-            messages.success(request, _("Test Case '%(code)s' created.") % {"code": test_case.code})
-            return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
+            test_case = _create_from_form(request, form, create_test_cases, criterion)
+            if test_case is not None:
+                messages.success(request, _("Test Case '%(code)s' created.") % {"code": test_case.code})
+                return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
     else:
         form = TestCaseForm(project=project)
 
@@ -359,8 +429,7 @@ def test_case_edit(request, pk):
 
     if request.method == 'POST':
         form = TestCaseForm(request.POST, instance=test_case, project=project)
-        if form.is_valid():
-            form.save()
+        if form.is_valid() and _update_from_form(request, form, test_case):
             messages.success(request, _("Test Case '%(code)s' updated.") % {"code": test_case.code})
             return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
     else:
@@ -388,7 +457,7 @@ def test_case_delete(request, pk):
     flow_node = test_case.acceptance_criterion.user_story.flow_node
     ensure_can_write(request.user, flow_node)
     code = test_case.code
-    test_case.delete()
+    delete_artefact(request.user, test_case)
     messages.success(request, _("Test Case '%(code)s' deleted.") % {"code": code})
     # Back to the node's traceability, in whichever view the user prefers.
     return redirect('testcanvas:flow_node_traceability_go', node_id=flow_node.pk)
@@ -637,8 +706,7 @@ def user_story_detail(request, pk):
     project = resolve_project_for(user_story)
     if request.method == 'POST':
         form = UserStoryForm(request.POST, instance=user_story, project=project)
-        if form.is_valid():
-            user_story = form.save()
+        if form.is_valid() and _update_from_form(request, form, user_story):
             saved = True
             # Rebuild an unbound form from the freshly-saved instance so the
             # partial re-renders with the canonical values and no "dirty" state.
@@ -685,8 +753,7 @@ def acceptance_criterion_detail(request, pk):
     project = resolve_project_for(criterion)
     if request.method == 'POST':
         form = AcceptanceCriterionForm(request.POST, instance=criterion, project=project)
-        if form.is_valid():
-            criterion = form.save()
+        if form.is_valid() and _update_from_form(request, form, criterion):
             saved = True
             form = AcceptanceCriterionForm(instance=criterion, project=project)
     else:
@@ -731,8 +798,7 @@ def test_case_detail(request, pk):
     project = resolve_project_for(test_case)
     if request.method == 'POST':
         form = TestCaseForm(request.POST, instance=test_case, project=project)
-        if form.is_valid():
-            test_case = form.save()
+        if form.is_valid() and _update_from_form(request, form, test_case):
             saved = True
             form = TestCaseForm(instance=test_case, project=project)
     else:
@@ -882,12 +948,17 @@ def map_create(request):
     collection = None
     if collection_id is not None:
         collection = ApplicationMapsCollection.objects.filter(pk=collection_id).first()
-    # None means "default collection", writable by superusers only.
-    if not can_write_collection(request.user, collection):
+
+    # The service enforces the collection permission: None means "default
+    # collection", writable by superusers only.
+    try:
+        application_map = create_application_map(request.user, name=name, collection=collection)
+    except AccessDenied:
         messages.error(request, _("Select a collection you have write access to."))
         return redirect('testcanvas:map_list')
-
-    application_map = ApplicationMap.objects.create(name=name, collection=collection)
+    except ValidationError as exc:
+        messages.error(request, '; '.join(exc.messages))
+        return redirect('testcanvas:map_list')
     messages.success(request, _("Flow '%(name)s' created.") % {"name": name})
     return redirect('testcanvas:map_editor', pk=application_map.pk)
 
@@ -912,16 +983,11 @@ def dynamic_show_by_uid(request, uid):
         A redirect to the flow editor, optionally carrying ``?highlight=<id>``.
 
     Raises:
-        Http404: If no artefact matches ``uid``.
+        Http404: If no artefact matches ``uid`` or it is not readable.
     """
-    from testcanvas.utilities.other_support import find_model_object_by_uid
-
-    model_obj = find_model_object_by_uid(uid)
-    if model_obj is None:
-        raise Http404(f"Nothing found for uid: {uid}")
     # A UID must never bypass the collection permissions: unreadable objects
     # answer exactly like unknown UIDs (404).
-    ensure_can_read(request.user, model_obj)
+    model_obj = get_object_by_uid_or_404(request.user, uid)
 
     # An ApplicationMap UID opens its editor directly: there is no single node
     # to highlight, so no ``highlight`` parameter is added.
@@ -999,7 +1065,7 @@ def clone_by_uid(request):
         to the flow list when the UID is missing or the cloning fails.
     """
     # Local import: keeps the module-level imports untouched.
-    from testcanvas.utilities.duplication import duplicate_by_uid
+    from testcanvas.services import duplicate_by_uid
 
     uid = (request.POST.get('uid') or '').strip()
     if not uid:
@@ -1007,31 +1073,18 @@ def clone_by_uid(request):
         return redirect('testcanvas:map_list')
 
     # Cloning writes into the same flow/collection as the original, so the
-    # user needs write access on it.
-    from testcanvas.utilities.other_support import find_model_object_by_uid
-
-    original = find_model_object_by_uid(uid)
-    if original is None:
-        raise Http404(f"Nothing found for uid: {uid}")
-    ensure_can_write(request.user, original)
+    # user needs write access on it (404 if unreadable, 403 if read-only).
+    get_object_by_uid_or_404(request.user, uid, write=True)
 
     try:
-        clone = duplicate_by_uid(uid)
+        clone = duplicate_by_uid(uid, user=request.user)
     except ValueError as exc:
         messages.error(request, _("Cloning failed: %(error)s") % {"error": exc})
         return redirect('testcanvas:map_list')
 
-    # Each model stores its UID in a different field: map type -> (uid, label).
-    if isinstance(clone, ApplicationMap):
-        new_uid, label = clone.flow_uid, clone.name
-    elif isinstance(clone, FlowNode):
-        new_uid, label = clone.node_uid, clone.title
-    elif isinstance(clone, UserStory):
-        new_uid, label = clone.user_story_uid, clone.title
-    elif isinstance(clone, AcceptanceCriterion):
-        new_uid, label = clone.ac_uid, clone.code
-    else:  # TestCase
-        new_uid, label = clone.tc_uid, clone.code
+    # Human-facing label: maps have a name, nodes/stories a title, AC/TC a code.
+    new_uid = clone.uid
+    label = getattr(clone, 'name', None) or getattr(clone, 'title', None) or clone.code
 
     messages.success(
         request,
@@ -1091,9 +1144,9 @@ def map_editor(request, pk):
 
     # Compact, globally unique node identifiers keyed by their Cytoscape id
     # (local_graph_id). The graph itself only stores local_graph_id, so we hand
-    # the front-end this mapping to display each node's stable node_uid.
+    # the front-end this mapping to display each node's stable uid.
     node_uids = {
-        fn.local_graph_id: fn.node_uid
+        fn.local_graph_id: fn.uid
         for fn in application_map.relational_nodes.all()
     }
 
@@ -1200,84 +1253,49 @@ def map_save(request, pk):
     except Exception as exc:  # noqa: BLE001 - surface any conversion error to the client
         return JsonResponse({'ok': False, 'error': f'Graph validation failed: {exc}'}, status=400)
 
-    application_map.graph_data = graph_data
-
-    # Allow renaming from the editor as well.
-    new_name = (payload.get('name') or '').strip()
-    if new_name:
-        application_map.name = new_name
+    # Allow renaming from the editor as well (a blank name keeps the current one).
+    update_kwargs = {
+        'graph_data': graph_data,
+        'name': (payload.get('name') or '').strip() or None,
+    }
 
     # Persist the rich-text description (Quill HTML) when provided.
     if 'description' in payload:
-        application_map.description = payload.get('description') or ''
+        update_kwargs['description'] = payload.get('description') or ''
 
     # (Re)group the map under a collection chosen in the editor header. An empty
     # value detaches the map (SET_NULL); an unknown/invalid id fails silently to
     # None ("— No collection —") so a stale option can never break the save.
-    # Moving the map requires write access on the target collection too (the
-    # "no collection" target is reserved to superusers).
+    # The service checks write access on the target collection when it changes
+    # (the "no collection" target is reserved to superusers).
     if 'collection' in payload:
         collection_id = payload.get('collection') or None
-        if collection_id is None:
-            new_collection = None
-        else:
-            new_collection = (
-                ApplicationMapsCollection.objects.filter(pk=collection_id).first()
-            )
-        new_collection_id = new_collection.pk if new_collection else None
-        if new_collection_id != application_map.collection_id:
-            if not can_write_collection(request.user, new_collection):
-                return JsonResponse({
-                    'ok': False,
-                    'error': _("You do not have write access to the selected collection."),
-                }, status=403)
-            application_map.collection = new_collection
-
-    # Sub-flow references may only target maps the user can read. References
-    # that already exist in the database are kept even if no longer readable,
-    # so a read-restricted target is never silently dropped.
-    existing_refs = set(
-        application_map.relational_nodes
-        .exclude(sub_flow_id__isnull=True)
-        .values_list('sub_flow_id', flat=True)
-    )
-    requested_refs = {
-        int(n['data']['sub_flow'])
-        for n in norm_nodes
-        if n['data'].get('node_type') == FlowNode.SUBFLOW
-        and str(n['data'].get('sub_flow') or '').isdigit()
-    }
-    new_refs = requested_refs - existing_refs
-    if new_refs:
-        readable_refs = set(
-            filter_maps(request.user, ApplicationMap.objects.filter(pk__in=new_refs))
-            .values_list('pk', flat=True)
+        update_kwargs['collection'] = (
+            ApplicationMapsCollection.objects.filter(pk=collection_id).first()
+            if collection_id is not None else None
         )
-        if new_refs - readable_refs:
-            return JsonResponse({
-                'ok': False,
-                'error': _("You cannot reference a sub-flow you do not have access to."),
-            }, status=403)
 
-    # Save the graph and mirror the per-node type / sub-flow reference onto the
-    # relational FlowNode rows. Wrapped in a transaction so a validation error
-    # (e.g. a cycle or illegal nesting) rolls back the whole save.
+    # Coverage colors (presentational) are computed on the current relational
+    # rows and baked into the graph BEFORE saving, so a single save persists
+    # both the structure and the colors.
+    _apply_coverage_colors(application_map, norm_nodes)
+
+    # The service saves the graph, mirrors FlowNode rows (incl. node types and
+    # sub-flow references) and enforces every permission / business rule in a
+    # single transaction: a validation error (e.g. a cycle or illegal nesting)
+    # rolls back the whole save.
     try:
-        with transaction.atomic():
-            application_map.save()  # sync_flow_nodes() (re)creates FlowNode rows
-            _apply_node_types(application_map, norm_nodes)
-            # Apply coverage colors: green if complete, yellow if incomplete.
-            _apply_coverage_colors(application_map, norm_nodes)
-            # Save again with updated colors.
-            application_map.save()
+        update_application_map(request.user, application_map, **update_kwargs)
+    except AccessDenied as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=403)
     except ValidationError as exc:
         return JsonResponse({'ok': False, 'error': '; '.join(exc.messages)}, status=400)
 
-    # Return the fresh local_graph_id -> node_uid mapping so the editor can
+    # Return the fresh local_graph_id -> uid mapping so the editor can
     # learn the UIDs of nodes created since the page was loaded (needed by the
     # "Node UUID" field and the "Clone node" operation) without a reload.
     node_uids = {
-        fn.local_graph_id: fn.node_uid
+        fn.local_graph_id: fn.uid
         for fn in application_map.relational_nodes.all()
     }
 
@@ -1296,7 +1314,8 @@ def get_node_coverage_color(flow_node):
     AC lacks a TestCase or if any UserStory lacks an AC.
 
     Args:
-        flow_node: The ``FlowNode`` whose coverage should be evaluated.
+        flow_node: The ``FlowNode`` whose coverage should be evaluated, or
+            ``None`` for a graph node not yet mirrored (it owns no story).
 
     Returns:
         A color code (hex string) representing the coverage status.
@@ -1305,6 +1324,8 @@ def get_node_coverage_color(flow_node):
     yellow_color = "#fbbf24"
     blue_color = "#93c5fd"
     green_color = "#86efac"
+    if flow_node is None:
+        return green_color
     for user_story in flow_node.user_stories.all():
         criteria = list(user_story.criteria.all())
         # US must have at least one AC; if it has none, it's incomplete.
@@ -1320,51 +1341,19 @@ def get_node_coverage_color(flow_node):
     return green_color
 
 
-def _apply_node_types(application_map, norm_nodes):
-    """Mirror ``node_type``/``sub_flow`` from graph nodes onto the FlowNode rows.
-
-    ``sync_flow_nodes`` only mirrors title/description, so the node nature is
-    applied here from the ``node.data`` payload and validated through
-    ``FlowNode.full_clean`` (which enforces the pure/reference invariants).
-
-    Args:
-        application_map: The map whose FlowNode rows should be updated.
-        norm_nodes: The normalised graph nodes (``[{'data': {...}}, ...]``).
-
-    Raises:
-        ValidationError: If any node violates the FlowNode invariants.
-    """
-    flow_by_id = {
-        fn.local_graph_id: fn
-        for fn in application_map.relational_nodes.all()
-    }
-    for node in norm_nodes:
-        data = node['data']
-        flow_node = flow_by_id.get(str(data.get('id')))
-        if flow_node is None:
-            continue
-
-        node_type = data.get('node_type') or FlowNode.PURE
-        sub_flow_id = data.get('sub_flow') if node_type == FlowNode.SUBFLOW else None
-
-        flow_node.node_type = node_type
-        flow_node.sub_flow_id = sub_flow_id or None
-        # full_clean runs FlowNode.clean(): coherence, self-reference, single-level
-        # nesting and cycle checks. Any problem aborts the surrounding transaction.
-        flow_node.full_clean()
-        flow_node.save(update_fields=['node_type', 'sub_flow'])
-
-
 def _apply_coverage_colors(application_map, norm_nodes):
-    """Apply coverage colors to nodes based on their test basis completeness.
+    """Write coverage colors into the graph nodes based on their test basis.
 
-    A node is colored green (#10b981) if all its UserStories have complete
-    AcceptanceCriteria coverage (all AC have TestCases), or yellow (#fbbf24)
-    if coverage is incomplete or missing.
+    Called before the map is saved: colors are computed from the current
+    relational rows and written into ``norm_nodes`` in place, so the following
+    save persists them together with the graph. Nodes that have no FlowNode
+    row yet (just added in the editor) own no User Story, so they get the same
+    color as an existing node without stories.
 
     Args:
         application_map: The map whose nodes should be colored.
-        norm_nodes: The normalised graph nodes (``[{'data': {...}}, ...]``).
+        norm_nodes: The normalised graph nodes (``[{'data': {...}}, ...]``),
+            updated in place.
     """
     # Prefetch all related data (US → AC → TC) for efficient coverage calculation.
     flow_by_id = {
@@ -1373,27 +1362,12 @@ def _apply_coverage_colors(application_map, norm_nodes):
             'user_stories__criteria__test_cases'
         ).all()
     }
-    
+
     for node in norm_nodes:
         data = node['data']
-        node_id = str(data.get('id'))
-        flow_node = flow_by_id.get(node_id)
-        
-        if flow_node is None:
-            # Node not yet synchronized to FlowNode table; skip color update.
-            continue
-        
-        # Calculate and apply the coverage color based on test case completeness.
-        # Yellow if any AC lacks a TC or any US lacks an AC; green otherwise.
-        data['color'] = get_node_coverage_color(flow_node)
-    
-    # Persist the updated graph with new colors.
-    application_map.graph_data = {
-        'data': application_map.graph_data.get('data', []),
-        'directed': True,
-        'multigraph': False,
-        'elements': {'nodes': norm_nodes, 'edges': application_map.graph_data.get('elements', {}).get('edges', [])},
-    }
+        # Yellow if any AC lacks a TC or any US lacks an AC (see
+        # get_node_coverage_color); None = node not synchronised yet.
+        data['color'] = get_node_coverage_color(flow_by_id.get(str(data.get('id'))))
 
 @login_required
 def node_user_stories(request, pk, node_id):
@@ -1493,7 +1467,13 @@ def map_delete(request, pk):
                 ),
             })
 
-        application_map.delete()
+        try:
+            # The service re-checks the sub-flow usage rule atomically.
+            delete_artefact(request.user, application_map)
+        except MapInUseAsSubflow as exc:
+            # Rebinds the closure variable read by _blocked_response().
+            referencing_nodes = exc.referencing_nodes
+            return _blocked_response()
         messages.success(request, _("Flow '%(name)s' deleted.") % {"name": name})
         return redirect('testcanvas:map_list')
 

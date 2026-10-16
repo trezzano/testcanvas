@@ -67,12 +67,12 @@ traceable way**:
   pure/sub-flow rules (coherent `node_type`, no self-reference, single-level
   nesting, no cycles), keeping the flow graph well-formed.
 - **Stable, global identifiers.** Every core artefact carries a compact Base62
-  identifier (`flow_uid`, `node_uid`, `user_story_uid`, `ac_uid`) that is stable
-  across environments and re-imports.
+  identifier, always stored in the same field `uid`, that is stable across
+  environments and re-imports.
 
 !!! note "Why the UIDs matter"
-    The `*_uid` fields are the **contract** on which plugins attach. A plugin —
-    or a per-client MCP tool — anchors to an `ac_uid` or `node_uid`, never to an
+    The `uid` field is the **contract** on which plugins attach. A plugin —
+    or a per-client MCP tool — anchors to the `uid` of a criterion or a node, never to an
     internal primary key. This is what lets the core evolve while plugins keep
     working.
 
@@ -85,7 +85,7 @@ it is a **first-class core model** alongside the test basis it verifies.
 |---------|-------------------|------------------|
 | **Question answered** | *What* must be validated | *How* the criteria are verified |
 | **Coupled to** | Business/functional analysis | The acceptance criteria it covers |
-| **Examples of fields** | actor, criterion, flow step | code, description, `tc_uid`, linked criterion |
+| **Examples of fields** | actor, criterion, flow step | code, description, `uid`, linked criterion |
 
 The core `TestCase` model:
 
@@ -104,7 +104,7 @@ class TestCase(models.Model):
         related_name="test_cases",   # core reverse accessor: criterion.test_cases
         on_delete=models.CASCADE,
     )
-    # code, description, tc_uid ...
+    # code, description, uid ...
 ```
 
 ### Consequences

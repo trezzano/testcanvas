@@ -21,7 +21,42 @@ from typing import Any
 
 from django.http import Http404
 
-from testcanvas.utilities.permissions import AccessDenied, AccessLevel, require_read, require_write
+from testcanvas.utilities.permissions import (
+    AccessDenied,
+    AccessLevel,
+    ObjectNotFound,
+    get_object_by_uid_for_user,
+    require_read,
+    require_write,
+)
+
+
+def get_object_by_uid_or_404(user: Any, uid: Any, *, model: type | tuple[type, ...] | None = None, write: bool = False):
+    """Resolve an artefact UID for a view, applying the HTTP policy.
+
+    Thin adapter over
+    :func:`~testcanvas.utilities.permissions.get_object_by_uid_for_user`.
+
+    Args:
+        user: The requesting user.
+        uid: The artefact UID (opaque string).
+        model: Optional model class (or tuple) the artefact must match.
+        write: When ``True`` write access is required, otherwise read access.
+
+    Returns:
+        The resolved artefact.
+
+    Raises:
+        Http404: If the UID is unknown/invalid, the model does not match or
+            the object is not readable.
+        AccessDenied: If write access is required but the object is only
+            readable (results in a 403 response).
+    """
+    required = AccessLevel.WRITE if write else AccessLevel.READ
+    try:
+        return get_object_by_uid_for_user(user, uid, model=model, required=required)
+    except ObjectNotFound as exc:
+        raise Http404("Object not found.") from exc
 
 
 def ensure_can_read(user: Any, obj: Any) -> None:

@@ -40,7 +40,7 @@
         {# RIGHT: single, isolated action to leave the traceability view. #}
         <div class="header-right">
             {# Open the parent map through the UID resolver so the current Flow Node is highlighted in the editor. #}
-            <a class="header-link full-page-spinner" href="{% url 'testcanvas:dynamic_show_by_uid' flow_node.node_uid %}" title="{% translate 'Open the map highlighting this node' %}">⊕ {% translate "Show node in map" %}</a>
+            <a class="header-link full-page-spinner" href="{% url 'testcanvas:dynamic_show_by_uid' flow_node.uid %}" title="{% translate 'Open the map highlighting this node' %}">⊕ {% translate "Show node in map" %}</a>
             <span class="header-sep"></span>
             <a class="header-link back-link full-page-spinner" href="{% url 'testcanvas:map_editor' application_map.pk %}">← {% translate "Back to editor" %}</a>
         </div>

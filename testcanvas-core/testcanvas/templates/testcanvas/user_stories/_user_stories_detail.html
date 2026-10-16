@@ -18,13 +18,13 @@
 
     <div class="detail-code">{{ user_story.code }}</div>
 
-    {% if user_story.user_story_uid %}
+    {% if user_story.uid %}
         <div class="detail-uid">
             <span class="detail-uid-label">{% translate "UID" %}</span>
-            <code>{{ user_story.user_story_uid }}</code>
+            <code>{{ user_story.uid }}</code>
             <button type="button"
                     class="btn btn-sm btn-secondary detail-copy-btn"
-                    data-copy-text="{{ user_story.user_story_uid }}"
+                    data-copy-text="{{ user_story.uid }}"
                     data-copy-label="📋"
                     data-copy-success-label="✔"
                     title="{% translate 'Copy User Story UID' %}"
@@ -115,7 +115,7 @@
     <div class="detail-actions">
         <a class="btn btn-secondary btn-sm full-page-spinner" href="{% url 'testcanvas:acceptance_criterion_manage' user_story.pk %}">{% translate "Manage AC" %}</a>
         {# Clone and Delete need write access on the flow. #}
-        {% if can_write and user_story.user_story_uid %}
+        {% if can_write and user_story.uid %}
             {# Clone: plain POST to clone_by_uid, which duplicates the story with #}
             {# its AC/TC and redirects to the copy highlighted in the traceability #}
             {# graph. No hx-* attributes: a full page load is required, so the #}
@@ -125,7 +125,7 @@
                   action="{% url 'testcanvas:clone_by_uid' %}"
                   onsubmit="if (!confirm('{{ clone_confirm_msg|escapejs }}')) return false; if (window.PageSpinner) window.PageSpinner.show(); return true;">
                 {% csrf_token %}
-                <input type="hidden" name="uid" value="{{ user_story.user_story_uid }}">
+                <input type="hidden" name="uid" value="{{ user_story.uid }}">
                 <button type="submit" class="btn btn-secondary btn-sm"
                         title="{% translate 'Clone this User Story' %}">{% translate "Clone User Story" %}</button>
             </form>

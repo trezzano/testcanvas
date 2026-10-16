@@ -45,7 +45,7 @@ def generate_compact_node_uid() -> str:
     Note:
         Kept for backward compatibility because historical ``0001`` migrations
         reference it. New records use the prefixed, human-friendlier generators
-        below (e.g. :func:`generate_ac_uid`).
+        below (:func:`generate_humanized_uid`).
     """
     return _int_to_base62(uuid.uuid4().int)
 
@@ -76,6 +76,31 @@ def generate_humanized_uid(prefix: str) -> str:
         for _ in range(_PREFIXED_UID_TOKEN_LENGTH)
     )
     return f"{prefix}-{token}"
+
+def uid_field(prefix: str) -> models.CharField:
+    """Build the ``uid`` field shared by every core TestCanvas artefact.
+
+    Every artefact of the ISTQB chain (``ApplicationMap``, ``FlowNode``,
+    ``UserStory``, ``AcceptanceCriterion``, ``TestCase``) stores its compact,
+    globally unique identifier in a field named ``uid``. The prefix only makes
+    the value human-readable (e.g. ``"USU-4k9Fm2Xz8Qw1B"``); code must never
+    rely on it.
+
+    Args:
+        prefix: Short semantic prefix passed to :func:`generate_humanized_uid`.
+
+    Returns:
+        A unique, indexed, non-editable ``CharField`` whose default generates
+        a new prefixed UID.
+    """
+    return models.CharField(
+        max_length=20,
+        unique=True,
+        default=partial(generate_humanized_uid, prefix=prefix),
+        editable=False,
+        db_index=True,
+        help_text=_("Prefixed, globally unique identifier usable as a stable LLM reference."),
+    )
 
 class ApplicationMapsCollection(models.Model):
     """Logical grouping layer that gathers several ``ApplicationMap`` records.
@@ -351,14 +376,7 @@ class ApplicationMap(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True)
 
-    flow_uid = models.CharField(
-        max_length=20,
-        unique=True,
-        default=partial(generate_humanized_uid, prefix="AMU"),
-        editable=False,
-        db_index=True,
-        help_text=_("Prefixed, globally unique flow identifier (e.g. AMU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
-    )
+    uid = uid_field("AMU")
 
     # Optional logical grouping. SET_NULL keeps the map if its collection is
     # deleted (the map simply becomes ungrouped).
@@ -461,18 +479,10 @@ class FlowNode(models.Model):
 
     application_map = models.ForeignKey(ApplicationMap, on_delete=models.CASCADE, related_name='relational_nodes')
     local_graph_id = models.CharField(max_length=50, help_text=_("ID matching the node.data.id inside the NetworkX graph"))
-    # Compact, globally unique identifier (Base62-encoded UUID4). Unlike
-    # local_graph_id (unique only within a single map), this value is unique
-    # across every map, so it is safe to expose as a stable node reference,
-    # e.g. to an LLM.
-    node_uid = models.CharField(
-        max_length=20,
-        unique=True,
-        default=partial(generate_humanized_uid, prefix="FNU"),
-        editable=False,
-        db_index=True,
-        help_text=_("Prefixed, globally unique node identifier (e.g. FNU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
-    )
+    # Unlike local_graph_id (unique only within a single map), ``uid`` is
+    # unique across every map, so it is safe to expose as a stable node
+    # reference, e.g. to an LLM.
+    uid = uid_field("FNU")
     title = models.CharField(max_length=100)
     description = models.TextField(blank=True)
 
@@ -620,14 +630,7 @@ class UserStory(models.Model):
 
     description = models.TextField(blank=True)
 
-    user_story_uid = models.CharField(
-        max_length=20,
-        unique=True,
-        default=partial(generate_humanized_uid, prefix="USU"),
-        editable=False,
-        db_index=True,
-        help_text=_("Prefixed, globally unique identifier (e.g. USU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
-    )
+    uid = uid_field("USU")
 
     flow_node = models.ForeignKey(
         'FlowNode',
@@ -636,11 +639,11 @@ class UserStory(models.Model):
         verbose_name=_("Flow Node")
     )
     # Human-facing traceability label. It is intentionally NOT unique: the only
-    # globally unique identifier of a story is ``user_story_uid``. This lets a
+    # globally unique identifier of a story is ``uid``. This lets a
     # duplicated flow keep the same story codes as the original one.
     code = models.CharField(
         max_length=200,
-        help_text=_("Traceability label (not unique), e.g. US-01. The stable identifier is user_story_uid."),
+        help_text=_("Traceability label (not unique), e.g. US-01. The stable identifier is uid."),
         verbose_name=_("Code")
     )
     title = models.CharField(
@@ -754,14 +757,7 @@ class AcceptanceCriterion(models.Model):
         )
     )
 
-    ac_uid = models.CharField(
-        max_length=20,
-        unique=True,
-        default=partial(generate_humanized_uid, prefix="ACU"),
-        editable=False,
-        db_index=True,
-        help_text=_("Prefixed, globally unique identifier (e.g. ACU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
-    )
+    uid = uid_field("ACU")
 
     # Free-form notes: extra context, business rules, technical constraints,
     # links to specs or anything that doesn't fit into `description` or the
@@ -849,7 +845,7 @@ class TestCase(models.Model):
 
     Attributes:
         acceptance_criterion: The criterion this test case verifies.
-        tc_uid: Prefixed, globally unique identifier usable as a stable LLM
+        uid: Prefixed, globally unique identifier usable as a stable LLM
             reference (e.g. ``TCU-4k9Fm2Xz8Qw1B``).
         code: Human-facing identifier ensuring ISTQB vertical traceability
             (e.g. ``TC-01.1.1``).
@@ -939,14 +935,7 @@ class TestCase(models.Model):
         verbose_name=_("Estimated Duration (minutes)"),
     )
 
-    tc_uid = models.CharField(
-        max_length=20,
-        unique=True,
-        default=partial(generate_humanized_uid, prefix="TCU"),
-        editable=False,
-        db_index=True,
-        help_text=_("Prefixed, globally unique identifier (e.g. TCU-4k9Fm2Xz8Qw1B) usable as a stable LLM reference."),
-    )
+    uid = uid_field("TCU")
 
     # Long enough to hold prefixed copies (e.g. "copy_copy_TC-01.1.1").
     code = models.CharField(

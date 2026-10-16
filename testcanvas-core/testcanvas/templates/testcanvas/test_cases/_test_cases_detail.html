@@ -15,13 +15,13 @@
 
     <div class="detail-code">{{ test_case.code }}</div>
 
-    {% if test_case.tc_uid %}
+    {% if test_case.uid %}
         <div class="detail-uid">
             <span class="detail-uid-label">{% translate "UID" %}</span>
-            <code>{{ test_case.tc_uid }}</code>
+            <code>{{ test_case.uid }}</code>
             <button type="button"
                     class="btn btn-sm btn-secondary detail-copy-btn"
-                    data-copy-text="{{ test_case.tc_uid }}"
+                    data-copy-text="{{ test_case.uid }}"
                     data-copy-label="📋"
                     data-copy-success-label="✔"
                     title="{% translate 'Copy Test Case UID' %}"

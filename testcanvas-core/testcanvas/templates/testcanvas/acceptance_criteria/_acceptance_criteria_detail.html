@@ -15,13 +15,13 @@
 
     <div class="detail-code">{{ criterion.code }}</div>
 
-    {% if criterion.ac_uid %}
+    {% if criterion.uid %}
         <div class="detail-uid">
             <span class="detail-uid-label">{% translate "UID" %}</span>
-            <code>{{ criterion.ac_uid }}</code>
+            <code>{{ criterion.uid }}</code>
             <button type="button"
                     class="btn btn-sm btn-secondary detail-copy-btn"
-                    data-copy-text="{{ criterion.ac_uid }}"
+                    data-copy-text="{{ criterion.uid }}"
                     data-copy-label="📋"
                     data-copy-success-label="✔"
                     title="{% translate 'Copy Acceptance Criterion UID' %}"
@@ -119,7 +119,7 @@
     <div class="detail-actions">
          <a class="btn btn-secondary btn-sm full-page-spinner" href="{% url 'testcanvas:test_case_manage' criterion.pk %}">🧪 {% translate "Manage Test Cases" %}</a>
          {# Clone and Delete need write access on the flow. #}
-         {% if can_write and criterion.ac_uid %}
+         {% if can_write and criterion.uid %}
              {# Clone: plain POST to clone_by_uid, which duplicates the criterion #}
              {# with its Test Cases and redirects to the copy highlighted in the #}
              {# traceability graph. No hx-* attributes: a full page load is #}
@@ -129,7 +129,7 @@
                    action="{% url 'testcanvas:clone_by_uid' %}"
                    onsubmit="if (!confirm('{{ clone_confirm_msg|escapejs }}')) return false; if (window.PageSpinner) window.PageSpinner.show(); return true;">
                  {% csrf_token %}
-                 <input type="hidden" name="uid" value="{{ criterion.ac_uid }}">
+                 <input type="hidden" name="uid" value="{{ criterion.uid }}">
                  <button type="submit" class="btn btn-secondary btn-sm"
                          title="{% translate 'Clone this Acceptance Criterion' %}">{% translate "Clone Acceptance Criterion" %}</button>
              </form>

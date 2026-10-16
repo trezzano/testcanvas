@@ -124,7 +124,7 @@
                                     data-search="{{ m.collection.title|default:'' }}">
                                     {% if m.collection %}
                                         <a class="full-page-spinner"
-                                           href="{% url 'testcanvas:collection_tree_highlight' m.flow_uid %}"
+                                           href="{% url 'testcanvas:collection_tree_highlight' m.uid %}"
                                            title="{% translate 'View this map in its collection tree' %}">{{ m.collection.title }}</a>
                                     {% else %}
                                         <span class="muted">—</span>

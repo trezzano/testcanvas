@@ -18,9 +18,9 @@ class FlowNodeInline(admin.TabularInline):
     # FKs pointing to ApplicationMap (application_map vs. sub_flow).
     fk_name = "application_map"
     extra = 0
-    fields = ("node_uid", "local_graph_id", "title", "node_type", "sub_flow", "description")
-    # node_uid is auto-generated (editable=False), so expose it read-only.
-    readonly_fields = ("node_uid",)
+    fields = ("uid", "local_graph_id", "title", "node_type", "sub_flow", "description")
+    # uid is auto-generated (editable=False), so expose it read-only.
+    readonly_fields = ("uid",)
     autocomplete_fields = ("sub_flow",)
     show_change_link = True
 
@@ -84,7 +84,7 @@ class CollectionPermissionAdmin(admin.ModelAdmin):
 
 @admin.register(ApplicationMap)
 class ApplicationMapAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "collection", "node_count", "created_at", "flow_uid")
+    list_display = ("id", "name", "collection", "node_count", "created_at", "uid")
     list_filter = ("collection",)
     search_fields = ("name",)
     date_hierarchy = "created_at"
@@ -100,19 +100,19 @@ class ApplicationMapAdmin(admin.ModelAdmin):
 
 @admin.register(FlowNode)
 class FlowNodeAdmin(admin.ModelAdmin):
-    list_display = ("id", "node_uid", "title", "local_graph_id", "node_type", "sub_flow", "application_map")
+    list_display = ("id", "uid", "title", "local_graph_id", "node_type", "sub_flow", "application_map")
     list_filter = ("node_type", "application_map")
-    search_fields = ("node_uid", "title", "description")
+    search_fields = ("uid", "title", "description")
     list_select_related = ("application_map", "sub_flow")
-    # node_uid is auto-generated (editable=False), so expose it read-only.
-    readonly_fields = ("node_uid",)
+    # uid is auto-generated (editable=False), so expose it read-only.
+    readonly_fields = ("uid",)
     autocomplete_fields = ("application_map", "sub_flow")
     inlines = (UserStoryInline,)
 
 
 @admin.register(UserStory)
 class UserStoryAdmin(admin.ModelAdmin):
-    list_display = ("id", "code", "title", "flow_node", "user_story_uid")
+    list_display = ("id", "code", "title", "flow_node", "uid")
     list_filter = ("flow_node__application_map",)
     search_fields = ("code", "title", "description")
     list_select_related = ("flow_node",)
@@ -122,7 +122,7 @@ class UserStoryAdmin(admin.ModelAdmin):
 
 @admin.register(AcceptanceCriterion)
 class AcceptanceCriterionAdmin(admin.ModelAdmin):
-    list_display = ("id", "code", "criterion_type", "user_story", "has_gherkin", "ac_uid")
+    list_display = ("id", "code", "criterion_type", "user_story", "has_gherkin", "uid")
     list_filter = ("user_story__flow_node__application_map",)
     search_fields = ("code", "description", "gherkin_text")
     list_select_related = ("user_story",)
@@ -132,12 +132,12 @@ class AcceptanceCriterionAdmin(admin.ModelAdmin):
 
 @admin.register(TestCase)
 class TestCaseAdmin(admin.ModelAdmin):
-    list_display = ("id", "code", "acceptance_criterion", "tc_uid")
+    list_display = ("id", "code", "acceptance_criterion", "uid")
     list_filter = ("acceptance_criterion__user_story__flow_node__application_map",)
-    search_fields = ("code", "description", "tc_uid")
+    search_fields = ("code", "description", "uid")
     list_select_related = ("acceptance_criterion",)
-    # tc_uid is auto-generated (editable=False), so expose it read-only.
-    readonly_fields = ("tc_uid",)
+    # uid is auto-generated (editable=False), so expose it read-only.
+    readonly_fields = ("uid",)
     autocomplete_fields = ("acceptance_criterion",)
 
 

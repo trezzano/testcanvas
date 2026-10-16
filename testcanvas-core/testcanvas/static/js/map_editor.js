@@ -283,9 +283,9 @@
     const edgeProps = document.getElementById('edge-props');
     // Read-only field that displays the selected node's unique Cytoscape id.
     const nodeIdInput = document.getElementById('node-id');
-    // Read-only field showing the node's compact, globally unique id (node_uid).
+    // Read-only field showing the node's compact, globally unique id (uid).
     const nodeUidInput = document.getElementById('node-uid');
-    // Button that copies the node_uid to the clipboard.
+    // Button that copies the node uid to the clipboard.
     const copyUidButton = document.getElementById('btn-copy-uid');
     const nodeNameInput = document.getElementById('node-name');
     const nodeDescriptionInput = document.getElementById('node-description');
@@ -404,7 +404,7 @@
         updateSubflowLink(val || null);
     });
 
-    // Copy the currently displayed node_uid to the clipboard. Falls back to a
+    // Copy the currently displayed uid to the clipboard. Falls back to a
     // legacy execCommand copy when the async Clipboard API is unavailable
     // (e.g. non-secure contexts).
     if (copyUidButton) {
@@ -475,7 +475,7 @@
             edgeProps.style.display = 'none';
             // Show the unique node id (read-only) so the user can identify the node.
             if (nodeIdInput) nodeIdInput.value = el.id();
-            // Show the compact global node_uid (read-only). It only exists for
+            // Show the compact global uid (read-only). It only exists for
             // nodes already persisted server-side; new unsaved nodes show a hint.
             if (nodeUidInput) {
                 const uids = CONFIG.nodeUids || {};
@@ -762,12 +762,12 @@
     // --- Clone selected node ---
     // Cloning is delegated to the server (`clone_by_uid`), which duplicates the
     // FlowNode with its US/AC/TC chain, updates graph_data and redirects back to
-    // the editor with the clone highlighted. The client only POSTs the node_uid.
+    // the editor with the clone highlighted. The client only POSTs the node uid.
     const cloneNodeButton = document.getElementById('btn-clone-node');
 
-    // Return the node_uid of the single selected node if it can be cloned:
+    // Return the node uid of the single selected node if it can be cloned:
     // exactly one node, not a SUBFLOW reference, and already persisted
-    // (unsaved nodes have no node_uid yet). Returns null otherwise.
+    // (unsaved nodes have no uid yet). Returns null otherwise.
     function getCloneableNodeUid() {
         const sel = cy.$(':selected');
         if (sel.length !== 1 || !sel[0].isNode()) return null;
@@ -868,8 +868,8 @@
                          }
                      });
                  }
-                 // Refresh the node_uid mapping: nodes created since the page
-                 // loaded only get a node_uid once saved. Without this, the
+                 // Refresh the node uid mapping: nodes created since the page
+                 // loaded only get a uid once saved. Without this, the
                  // "Node UUID" field and the "Clone node" button would stay
                  // stale until a full page reload.
                  if (result.node_uids) {

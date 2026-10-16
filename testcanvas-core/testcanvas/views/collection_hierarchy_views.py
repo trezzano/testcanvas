@@ -95,7 +95,7 @@ def collection_tree(request, application_map_uid=None):
     """
     highlight_collection_id = None
     if application_map_uid:
-        app_map = ApplicationMap.objects.filter(flow_uid=application_map_uid).first()
+        app_map = ApplicationMap.objects.filter(uid=application_map_uid).first()
         # Never reveal where an unreadable map lives.
         if app_map and can_read(request.user, app_map):
             highlight_collection_id = app_map.collection_id

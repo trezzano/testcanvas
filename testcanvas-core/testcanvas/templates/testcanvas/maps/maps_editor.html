@@ -17,7 +17,7 @@
                    title="{% translate 'Click to rename the flow' %}"  placeholder="{% translate 'Flow name…' %}">
             {# Flow UID: stable LLM reference, read-only with one-click copy. #}
             <span class="header-flow-uid">
-                <code id="map-flow-uid" title="{% translate 'Flow UID' %}">{{ application_map.flow_uid }}</code>
+                <code id="map-flow-uid" title="{% translate 'Flow UID' %}">{{ application_map.uid }}</code>
                 <button type="button" id="btn-copy-flow-uid" class="btn btn-sm btn-secondary"
                         title="{% translate 'Copy Flow UID' %}">📋</button>
             </span>
@@ -43,7 +43,7 @@
         <div class="app-header__actions">
             {# Link to view this map's collection in the tree (if assigned to one). #}
             {% if application_map.collection_id %}
-                <a class="header-link" href="{% url 'testcanvas:collection_tree_highlight' application_map.flow_uid %}"
+                <a class="header-link" href="{% url 'testcanvas:collection_tree_highlight' application_map.uid %}"
                    title="{% translate 'View this map in its collection tree' %}">
                      {% translate "View the collection" %}
                 </a>
@@ -55,7 +55,7 @@
             <form method="post" action="{% url 'testcanvas:clone_by_uid' %}" class="d-inline m-0"
                   onsubmit="if (!confirm('{{ clone_confirm_msg|escapejs }}')) return false; if (window.PageSpinner) window.PageSpinner.show(); return true;">
                 {% csrf_token %}
-                <input type="hidden" name="uid" value="{{ application_map.flow_uid }}">
+                <input type="hidden" name="uid" value="{{ application_map.uid }}">
                 <button type="submit" class="header-link full-page-spinner"
                         title="{% translate 'Clone this flow' %}">
                     {% translate "Clone" %}
@@ -119,7 +119,7 @@
                         <label>{% translate "Node UUID" %}</label>
                         <div class="input-group">
                             <input type="text" id="node-uid" class="node-id-input form-control" readonly>
-                            {# One-click copy of the node_uid to the clipboard. #}
+                            {# One-click copy of the node uid to the clipboard. #}
                             <button type="button" id="btn-copy-uid" class="btn btn-secondary"
                                     title="{% translate 'Copy the node UUID' %}">📋</button>
                         </div>
@@ -243,7 +243,7 @@
             subflows: {{ subflows_json|safe }},
             nodeUids: {{ node_uids_json|safe }},
             mapEditorUrl: "{% url 'testcanvas:map_editor' 0 %}",
-            {# POST endpoint that clones a node by its node_uid and redirects to the editor. #}
+            {# POST endpoint that clones a node by its uid and redirects to the editor. #}
             cloneUrl: "{% url 'testcanvas:clone_by_uid' %}",
             cloneConfirmMsg: "{% translate 'Clone this node with all its User Stories, Acceptance Criteria and Test Cases? Unsaved changes in the editor will be lost.' as clone_node_msg %}{{ clone_node_msg|escapejs }}",
             highlightNodeId: "{{ highlight_node_id|escapejs }}",
