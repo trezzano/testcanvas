@@ -80,6 +80,10 @@
     --tc-signal-soft:    color-mix(in srgb, var(--tc-signal) 15%, transparent);
     --tc-on-ink-soft:    color-mix(in srgb, var(--tc-on-ink) 15%, transparent);
     --tc-shadow:         0 4px 12px rgba(0, 0, 0, 0.1);
+    /* Primary accent alias used by page stylesheets (map editor, traceability,
+       collection tree, page spinner). Without it, active tabs/buttons fell back
+       to a transparent background and rendered white text on white. */
+    --tc-primary:        var(--tc-ink);
 
     /* ---- 1.7 Bootstrap bridge ---------------------------------------------
        Maps TestCanvas tokens onto Bootstrap CSS variables so native Bootstrap
