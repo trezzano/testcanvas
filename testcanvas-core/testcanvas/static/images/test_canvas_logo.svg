@@ -1,0 +1,17 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-label="Test Canvas logo: una griglia di celle attraversata da un segno di spunta">
+  <!-- Griglia 3x3 di celle nere (il canvas) -->
+  <rect x="58" y="58" width="44" height="44" fill="#000"/>
+  <rect x="178" y="58" width="44" height="44" fill="#000"/>
+  <rect x="178" y="178" width="44" height="44" fill="#000"/>
+  <rect x="298" y="178" width="44" height="44" fill="#000"/>
+  <rect x="58" y="298" width="44" height="44" fill="#000"/>
+  <rect x="298" y="298" width="44" height="44" fill="#000"/>
+
+  <!-- Segno di spunta rosa (la verifica) -->
+  <path d="M80 200 L200 320 L320 80" fill="none" stroke="#ff4081" stroke-width="12" stroke-linejoin="miter"/>
+
+  <!-- Celle rosa evidenziate (punti del segno di spunta) -->
+  <rect x="52" y="172" width="56" height="56" fill="#ff4081"/>
+  <rect x="172" y="292" width="56" height="56" fill="#ff4081"/>
+  <rect x="292" y="52" width="56" height="56" fill="#ff4081"/>
+</svg>

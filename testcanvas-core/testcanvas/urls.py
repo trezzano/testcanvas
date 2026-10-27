@@ -90,6 +90,7 @@ urlpatterns = [
     # user story
     # - HTMX side panel of the map editor
     path('<int:pk>/node/<str:node_id>/user-stories/', node_user_stories, name='node_user_stories'),
+
     # - full pages
     path('flow-node/<int:node_id>/user-stories/manage/', user_story_manage, name='user_story_manage'),
     path('flow-node/<int:node_id>/user-stories/<int:pk>/edit/', user_story_edit, name='user_story_edit'),
@@ -105,7 +106,6 @@ urlpatterns = [
     path('acceptance-criteria/<int:acceptance_criterion_id>/test-cases/manage/', test_case_manage, name='test_case_manage'),
     path('test-cases/<int:pk>/edit/', test_case_edit, name='test_case_edit'),
     path('test-cases/<int:pk>/delete/', test_case_delete, name='test_case_delete'),
-
 
     # application maps collections (logical grouping layer)
     path('collections/create/', collection_create, name='collection_create'),

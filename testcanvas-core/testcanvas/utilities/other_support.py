@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Model
+from django.db.models import Model, Count
 
 from testcanvas.models import (
     AcceptanceCriterion,
@@ -64,8 +64,46 @@ def find_model_object_by_uid(uid: Any) -> Model | None:
     return None
 
 
+def check_acceptance_criteria_coverage(app_map_uid: str) -> dict:
+    """Quick coverage check: are all AC of the given flow covered by TestCases?
+
+    Args:
+        app_map_uid: ApplicationMap UID (e.g., "AMU-abc123def456g").
+
+    Returns:
+        {
+            "covered": bool,              # True if all AC have >= 1 TC
+            "coverage_percentage": float, # 0-100
+            "covered_criteria": int,      # AC with TC
+            "total_criteria": int         # Total AC
+        }
+    """
+    app_map = ApplicationMap.objects.get(uid=app_map_uid)
+
+    # Single query: get all AC with test case count
+    criteria = list(
+        AcceptanceCriterion.objects.filter(
+            user_story__flow_node__application_map=app_map
+        ).annotate(tc_count=Count('test_cases')).values_list('tc_count')
+    )
+
+    total = len(criteria)
+    covered = sum(1 for (tc_count,) in criteria if tc_count > 0)
+    percentage = (covered / total * 100) if total > 0 else 100.0
+
+    return {
+        "covered": covered == total,
+        "coverage_percentage": round(percentage, 2),
+        "covered_criteria": covered,
+        "total_criteria": total,
+    }
+
+
+
+
 __all__ = [
     "UID_MODELS",
     "find_model_object_by_uid",
+    "check_acceptance_criteria_coverage"
 ]
 

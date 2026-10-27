@@ -15,6 +15,10 @@
         {% csrf_token %}
         {# Redirect target: the view returns here on save or cancel (list or tree view). #}
         <input type="hidden" name="next" value="{{ next_url }}">
+        {# Forced parent (sub-collection creation): keep it across the POST. #}
+        {% if parent_collection_id %}
+            <input type="hidden" name="parent_collection_id" value="{{ parent_collection_id }}">
+        {% endif %}
 
         <div class="field">
             <label for="{{ form.title.id_for_label }}">{% translate "Title" %}</label>

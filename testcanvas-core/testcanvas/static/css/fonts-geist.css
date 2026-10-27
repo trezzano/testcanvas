@@ -1,0 +1,25 @@
+/* ==========================================================================
+   Geist Mono Font (Optional CDN Load)
+
+   Geist Mono is used for code, identifiers, and test steps in Test Canvas.
+   If Internet access is available, this loads from CDN. Otherwise, host the
+   WOFF2 files locally and replace the URL below.
+
+   For offline environments:
+   - Download Geist Mono from: https://github.com/vercel/geist-font
+   - Place fonts in: testcanvas/static/fonts/
+   - Update @font-face URLs below accordingly
+   ========================================================================== */
+
+/* Geist Mono Regular (400) */
+@font-face {
+    font-family: 'Geist Mono';
+    src: url('https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono-regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Fallback: if Geist Mono unavailable, use system monospace */
+/* (already defined in testcanvas.css: --tc-font-mono fallbacks) */
+

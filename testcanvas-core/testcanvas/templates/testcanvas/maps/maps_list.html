@@ -97,6 +97,7 @@
                             <th>{% translate "Subflow" %}</th>
                             <th>{% translate "Collection" %}</th>
                             <th>{% translate "Created" %}</th>
+                            <th>{% translate "Coverage" %}</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -133,7 +134,15 @@
                                 {# ISO timestamp in data-order guarantees a correct chronological sort. #}
                                 <td class="muted"
                                     data-order="{{ m.created_at|date:'c' }}">{{ m.created_at|date:"Y-m-d H:i" }}</td>
-                            </tr>
+                                <td data-order="{% if m.coverage_info.total_criteria == 0 %}0{% elif m.coverage_info.covered %}100{% else %}{{ m.coverage_info.coverage_percentage }}{% endif %}">
+                                    {% if m.coverage_info.total_criteria == 0 %}
+                                        <span class="badge bg-secondary">{% translate "No AC" %}</span>
+                                    {% elif m.coverage_info.covered %}
+                                        <span class="badge bg-success">✓ {% translate "Closed" %}</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">{{ m.coverage_info.coverage_percentage }}%</span>
+                                    {% endif %}
+                                </td>
                         {% endfor %}
                         </tbody>
                     </table>
@@ -164,8 +173,8 @@
                 lengthMenu: [10, 30, 50, 100],
                 order: [[2, 'desc']],
                 columnDefs: [
-                    // Actions hold buttons only: no sorting nor searching.
-                    {targets: -1, orderable: false, searchable: false}
+                    // Subflow actions hold buttons only: no sorting nor searching.
+                    {targets: 1, orderable: false, searchable: false}
                 ],
                 language: {
                     search: "{% translate 'Search:' %}",

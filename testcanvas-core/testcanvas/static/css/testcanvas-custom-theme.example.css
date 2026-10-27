@@ -1,0 +1,74 @@
+/* ==========================================================================
+   TestCanvas — Custom Theme (example / starting point)
+
+   HOW TO USE
+   1. Copy this file into a static directory of YOUR Django project and
+      rename it to exactly:
+
+          testcanvas-custom-theme.css
+
+      e.g. <project>/static/testcanvas-custom-theme.css
+      (the directory must be listed in STATICFILES_DIRS, or be the static/
+      folder of one of your apps).
+
+   2. Uncomment and change only the variables you need. Anything you leave
+      commented keeps the TestCanvas default.
+
+   3. Reload the page. TestCanvas detects the file automatically and loads it
+      after its own stylesheet, so your values win.
+      In production remember to run "python manage.py collectstatic" and to
+      restart the server (the detection result is cached when DEBUG=False).
+
+   This file is NOT loaded by TestCanvas: only "testcanvas-custom-theme.css"
+   is. Full reference: docs "Custom theme".
+   ========================================================================== */
+
+:root {
+    /* ---- Brand palette ------------------------------------------------- */
+    /* --tc-ink:            #111111; */  /* Navbar, primary buttons, strong text */
+    /* --tc-ink-hover:      #333333; */  /* Hover of elements filled with --tc-ink */
+    /* --tc-on-ink:         #FFFFFF; */  /* Text on --tc-ink (navbar, primary button) */
+    /* --tc-signal:         #FF4081; */  /* Accent: focus ring, active link, logo badge */
+    /* --tc-signal-text:    #C2185B; */  /* Accent as text on light bg (links, codes) */
+    /* --tc-signal-tint:    #FFE4EE; */  /* Light accent bg: selected rows, chips */
+
+    /* ---- Neutrals ------------------------------------------------------ */
+    /* --tc-bg:             #F7F7F8; */  /* Page background */
+    /* --tc-surface:        #FFFFFF; */  /* Cards, tables, inputs, drawers */
+    /* --tc-border:         #E1E1E5; */  /* Subtle borders */
+    /* --tc-border-strong:  #CBCBD1; */  /* Input / secondary button borders */
+    /* --tc-text:           #18181B; */  /* Main text */
+    /* --tc-text-muted:     #6B6B76; */  /* Secondary text */
+    /* --tc-hover:          #EFEFF1; */  /* Hover background */
+
+    /* ---- Status colours ------------------------------------------------ */
+    /* --tc-success-text:   #0A7A3D; */  /* --tc-success-bg: #E3F4EA; */
+    /* --tc-error-text:     #D92D20; */  /* --tc-error-bg:   #FDE8E6; */
+    /* --tc-warning-text:   #B54708; */  /* --tc-warning-bg: #FEF0C7; */
+    /* --tc-info-text:      #175CD3; */  /* --tc-info-bg:    #E3EEFD; */
+    /* --tc-neutral-text:   #6B6B76; */  /* --tc-neutral-bg: #EFEFF1; */
+    /* --tc-on-status:      #FFFFFF; */  /* Text on solid status fills */
+
+    /* ---- Typography ---------------------------------------------------- */
+    /* --tc-font-sans:    'Inter', system-ui, sans-serif; */
+    /* --tc-font-heading: 'Inter Tight', 'Inter', system-ui, sans-serif; */
+    /* --tc-font-mono:    'Geist Mono', ui-monospace, monospace; */
+
+    /* ---- Shape & motion ------------------------------------------------ */
+    /* --tc-radius:     4px; */
+    /* --tc-radius-lg:  6px; */
+    /* --tc-transition: 0.15s ease; */
+
+    /* ---- Bootstrap bridge ---------------------------------------------- */
+    /* Keep in sync with --tc-ink as an "R, G, B" triplet. */
+    /* --bs-primary-rgb: 17, 17, 17; */
+}
+
+/* ---- Optional: extra rules ----------------------------------------------
+   You can also add or override any rule. Prefer using the tokens above. */
+/*
+.app-navbar {
+    background: linear-gradient(90deg, var(--tc-ink), var(--tc-signal));
+}
+*/
+

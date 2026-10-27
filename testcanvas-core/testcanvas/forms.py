@@ -135,7 +135,7 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
             "parent": _("Parent collection"),
         }
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, user=None, parent_collection_id=None, **kwargs):
         """Restrict the ``parent`` choices to avoid cycles and enforce permissions.
 
         When editing an existing collection, the instance itself and all of its
@@ -147,16 +147,27 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
         collections (plus the current parent, so an unchanged value stays
         valid), and a parent is mandatory: they cannot create root collections.
 
+        When ``parent_collection_id`` is given (the "Create sub-collection"
+        shortcut), the ``parent`` field is locked to that collection: it is
+        rendered disabled and Django ignores any submitted value for it, using
+        the initial value instead. All the checks above still apply to it.
+
         Args:
             *args: Positional arguments forwarded to ``ModelForm``.
             user: The acting user, used to apply collection permissions.
                 ``None`` disables the permission filtering.
+            parent_collection_id: Primary key of the parent to force, or
+                ``None`` to let the user choose it freely.
             **kwargs: Keyword arguments forwarded to ``ModelForm``.
         """
         super().__init__(*args, **kwargs)
         self.user = user
 
         queryset = ApplicationMapsCollection.objects.all()
+        if parent_collection_id is not None:
+            # Locked parent: the only valid choice is the forced collection.
+            queryset = queryset.filter(pk=parent_collection_id)
+
         if self.instance and self.instance.pk:
             # Exclude self and every descendant: none of them can be the parent.
             forbidden_ids = [self.instance.pk] + [
@@ -178,6 +189,15 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
         # never create a new root nor move a collection to the top level.
         is_existing_root = bool(self.instance.pk) and self.instance.parent_id is None
         self.fields["parent"].required = self._restricted and not is_existing_root
+
+        if parent_collection_id is not None:
+            # A disabled field is cleaned from ``form.initial`` (not from the
+            # POST data). ``ModelForm`` pre-fills ``initial["parent"]`` from the
+            # instance (``None`` for a new one), which would win over
+            # ``field.initial``: set the form-level initial explicitly.
+            self.fields["parent"].disabled = True
+            self.fields["parent"].required = True
+            self.initial["parent"] = parent_collection_id
 
     def clean_parent(self):
         """Reject cycles and parents the acting user cannot write.
@@ -218,6 +238,7 @@ class ApplicationMapsCollectionForm(forms.ModelForm):
                     _("A collection cannot be moved under its own descendants.")
                 )
         return parent
+
 
 
 class UserStoryForm(DynamicOptionalFieldsMixin, forms.ModelForm):

@@ -44,6 +44,7 @@ from testcanvas.utilities.permissions import (
     is_unrestricted,
 )
 from testcanvas.views._permissions import ensure_can_read, ensure_can_write, get_object_by_uid_or_404
+from testcanvas.utilities.other_support import check_acceptance_criteria_coverage
 
 
 def _add_service_errors(form, exc: ValidationError) -> None:
@@ -130,7 +131,7 @@ def _ensure_read_or_write(request, obj) -> None:
         ensure_can_read(request.user, obj)
 
 
-DEFAULT_LOGIN_LOGO_STATIC_PATH = 'images/white_small_logo_trasparent.png'
+DEFAULT_LOGIN_LOGO_STATIC_PATH = 'images/test_canvas_logo.svg'
 
 
 def _resolve_login_logo_url() -> str:
@@ -883,6 +884,12 @@ def map_list(request):
         .order_by('-created_at')
         .prefetch_related('referencing_nodes'),
     )
+
+    # add the coverage info to each map
+    for app_map in maps:
+        app_map.coverage_info = check_acceptance_criteria_coverage(app_map.uid)
+
+
     writable_collections = filter_collections(
         request.user, ApplicationMapsCollection.objects.order_by('title'), write=True,
     )
@@ -1502,6 +1509,10 @@ def collection_create(request):
     Superusers can create root collections; other users can only create
     sub-collections of a collection they can write (enforced by the form).
 
+    An optional ``parent_collection_id`` (query string on GET, hidden input on
+    POST) locks the parent field, so the "Create sub-collection" shortcut
+    always creates the new collection under that parent.
+
     Args:
         request: The incoming HTTP request.
 
@@ -1515,15 +1526,24 @@ def collection_create(request):
     if not is_unrestricted(request.user) and not get_access(request.user).writable:
         raise PermissionDenied(_("You do not have write access to any collection."))
 
-    # Where to go back after save/cancel; falls back to the flat list view.
+    # Where to go back after save/cancel; falls back to the tree view.
     next_url = (
         request.POST.get('next')
         or request.GET.get('next')
         or reverse('testcanvas:collection_tree')
     )
+    # Forced parent (from the "Create sub-collection" button). On GET it comes
+    # from the query string; on POST it is carried by a hidden form input,
+    # because the form action URL does not keep the query string.
+    parent_collection_id = (
+        request.POST.get('parent_collection_id')
+        or request.GET.get('parent_collection_id')
+        or None
+    )
+    form_kwargs = {'user': request.user, 'parent_collection_id': parent_collection_id}
 
     if request.method == 'POST':
-        form = ApplicationMapsCollectionForm(request.POST, user=request.user)
+        form = ApplicationMapsCollectionForm(request.POST, **form_kwargs)
         if form.is_valid():
             collection = form.save()
             # The new collection inherits the parent grants: refresh the cache.
@@ -1531,12 +1551,13 @@ def collection_create(request):
             messages.success(request, _("Collection '%(title)s' created.") % {"title": collection.title})
             return redirect(next_url)
     else:
-        form = ApplicationMapsCollectionForm(user=request.user)
+        form = ApplicationMapsCollectionForm(**form_kwargs)
 
     return render(request, 'testcanvas/collections/collections_form.html', {
         'form': form,
         'is_edit': False,
         'next_url': next_url,
+        'parent_collection_id': parent_collection_id,
     })
 
 @login_required

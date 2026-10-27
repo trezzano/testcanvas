@@ -186,11 +186,48 @@ def branding_settings(request):
 
     Returns:
         A context dict containing global branding values used by shared layout
-        templates.
+        templates, including ``custom_theme_css`` (the static path of the
+        user-provided theme override, or ``None`` when it does not exist).
     """
     return {
         "navbar_logo_text": getattr(settings, "NAVBAR_LOGO_TEXT", "Test Canvas"),
+        "custom_theme_css": _custom_theme_css(),
     }
+
+
+# Static path (relative to any static root) of the optional user theme file.
+# Kept fixed on purpose: zero configuration, the file just has to exist.
+CUSTOM_THEME_CSS_PATH = "testcanvas-custom-theme.css"
+
+# Cached lookup result in production; ``None`` means "not computed yet".
+_custom_theme_cache: list[str | None] | None = None
+
+
+def _custom_theme_css() -> str | None:
+    """Return the custom theme static path if the host project provides it.
+
+    The lookup uses Django's staticfiles finders, so the file can live in any
+    ``STATICFILES_DIRS`` entry or in another app's ``static/`` folder. Only
+    linking the file when it exists avoids a 404 on every page and avoids the
+    ``ValueError`` raised by ``ManifestStaticFilesStorage`` for missing files.
+
+    In ``DEBUG`` mode the lookup runs on every request so a newly created file
+    is picked up without restarting the server; otherwise the result is cached
+    for the process lifetime.
+
+    Returns:
+        ``CUSTOM_THEME_CSS_PATH`` when the file is found, otherwise ``None``.
+    """
+    global _custom_theme_cache
+    if _custom_theme_cache is not None and not settings.DEBUG:
+        return _custom_theme_cache[0]
+
+    # Imported lazily so the module stays importable without staticfiles.
+    from django.contrib.staticfiles import finders
+
+    found = CUSTOM_THEME_CSS_PATH if finders.find(CUSTOM_THEME_CSS_PATH) else None
+    _custom_theme_cache = [found]
+    return found
 
 
 def _normalize_item(item: dict[str, Any], app_label: str, request) -> dict[str, Any] | None:
