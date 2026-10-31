@@ -77,6 +77,16 @@
         <span>{{ test_case.acceptance_criterion.code }}</span>
     </div>
 
+    {% if plugin_widgets %}
+        {# Plugin extension slot: widgets contributed by installed plugins. #}
+        <div class="detail-plugins">
+            <span class="detail-label">{% translate "Plugins" %}</span>
+            <div class="detail-plugins-widgets">
+                {% include "testcanvas/slots/_object_widgets.html" with widgets=plugin_widgets %}
+            </div>
+        </div>
+    {% endif %}
+
     <div class="detail-actions">
          {# Delete with a native confirmation dialog; the view redirects back to #}
          {# the node's traceability in the user's preferred view (graph/matrix). #}

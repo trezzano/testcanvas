@@ -18,6 +18,15 @@ the file, it adds a `<link>` tag after its own stylesheets. The CSS cascade then
 gives priority to your values. If the file is missing, no tag is added. You get
 no 404 error and no error from `ManifestStaticFilesStorage`.
 
+The detection runs in the context processor
+`testcanvas.context_processors.app_context`: it must be listed in
+`TEMPLATES[0]["OPTIONS"]["context_processors"]`, otherwise the file is never
+linked.
+
+Plugin pages that extend `testcanvas/bases/base_page.html` receive the theme
+and your custom file too: their stylesheets are loaded in step 3, so your
+file still wins.
+
 !!! note
     The file name is fixed: `testcanvas-custom-theme.css`, placed at the
     **root** of a static directory (not inside a sub-folder).
@@ -228,13 +237,31 @@ your rules stay consistent with the theme:
 !!! warning
     TestCanvas does not treat CSS class names as a public API. Variables are
     stable across releases. Rules that target internal classes may need to be
-    updated after an upgrade.
+    updated after an upgrade. The only exception is the short list below.
+
+## Stable CSS classes for plugins
+
+Plugin templates may use these classes. They are kept stable across minor
+releases. Every other core class is internal.
+
+| Class | Where | Purpose |
+|---|---|---|
+| `wrap-narrow`, `wrap-wide` | `wrap_class` block of `base_page.html` | width of the content area |
+| `crumbs` | `crumbs` block of `base_page.html` | breadcrumb text style |
+| `header-link` | `header_link` block of `base_page.html` | top-right header link |
+| `full-page-spinner` | any `<a>` | show the full-page spinner while the next page loads |
+| `hx-no-spinner` | any HTMX element (or ancestor) | hide the global HTMX spinner for that request |
+
+Bootstrap 5 classes are always allowed: Bootstrap is themed through the
+`--bs-*` mapping. How to style plugin pages:
+[Plugin templates and theming](plugin-templates-and-theming.md).
 
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
-| Nothing changes | File name must be exactly `testcanvas-custom-theme.css`, at the root of a static directory. |
+| Nothing changes | File name must be exactly `testcanvas-custom-theme.css`, at the root of a static directory. Check that `testcanvas.context_processors.app_context` is registered. |
+| A plugin page ignores the theme | The plugin layout must extend `testcanvas/bases/base_page.html` and its CSS must use `--tc-*` variables. |
 | Works in dev, not in prod | Run `collectstatic` and restart the server (detection is cached when `DEBUG = False`). |
 | Only some colors change | Make sure you set the related variables (e.g. `--tc-signal-text` and `--tc-signal-tint` together with `--tc-signal`). |
 | Bootstrap primary color unchanged | Set `--bs-primary-rgb` as an `R, G, B` triplet. |

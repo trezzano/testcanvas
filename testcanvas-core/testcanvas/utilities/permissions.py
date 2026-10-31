@@ -140,24 +140,40 @@ class _ModelSpec:
         resolve_map: Callable returning the owning ``ApplicationMap`` of an
             instance, used by single-object checks. ``None`` for models that
             are collections or maps themselves.
+        resolve_collection: Callable returning the governing collection id
+            (``None`` = default collection) of an instance. Used by plugin
+            models governed directly by a collection, without a map.
     """
     collection_path: str
     resolve_map: Callable[[Any], Any] | None
+    resolve_collection: Callable[[Any], Any] | None = None
 _REGISTRY: dict[type, _ModelSpec] = {}
 
 def register_permission_model(
     model: type[Model],
     *,
     collection_path: str,
-    resolve_map: Callable[[Any], Any],
+    resolve_map: Callable[[Any], Any] | None = None,
+    resolve_collection: Callable[[Any], Any] | None = None,
 ) -> None:
     """Make a plugin model governed by the collection permissions.
+
+    Exactly one resolver must be given: ``resolve_map`` for models that hang
+    below a flow, ``resolve_collection`` for models that belong directly to a
+    collection (e.g. a per-collection board).
+
     Args:
         model: The model class to register.
         collection_path: ORM lookup from ``model`` to the governing collection
             id, e.g. ``"flow_node__application_map__collection_id"``.
         resolve_map: Callable returning the owning ``ApplicationMap`` of an
             instance of ``model``.
+        resolve_collection: Callable returning the governing collection id
+            (or ``None`` for the default collection) of an instance.
+
+    Raises:
+        TypeError: If both or neither resolvers are given.
+
     Example:
         >>> register_permission_model(
         ...     TestRun,
@@ -165,8 +181,19 @@ def register_permission_model(
         ...                     "__flow_node__application_map__collection_id",
         ...     resolve_map=lambda run: resolve_map(run.test_case),
         ... )
+        >>> register_permission_model(
+        ...     Board,
+        ...     collection_path="collection_id",
+        ...     resolve_collection=lambda board: board.collection_id,
+        ... )
     """
-    _REGISTRY[model] = _ModelSpec(collection_path=collection_path, resolve_map=resolve_map)
+    if (resolve_map is None) == (resolve_collection is None):
+        raise TypeError("Pass exactly one of resolve_map or resolve_collection.")
+    _REGISTRY[model] = _ModelSpec(
+        collection_path=collection_path,
+        resolve_map=resolve_map,
+        resolve_collection=resolve_collection,
+    )
 
 def _register_core_models() -> None:
     """Register the core TestCanvas models (called lazily, once)."""
@@ -373,6 +400,10 @@ def governing_collection_id(obj: Any) -> int | None:
         return obj
     if isinstance(obj, ApplicationMapsCollection):
         return obj.pk
+    # Plugin models governed directly by a collection (no owning map).
+    spec = _spec_for(type(obj))
+    if spec is not None and spec.resolve_collection is not None:
+        return spec.resolve_collection(obj)
     return resolve_map(obj).collection_id
 # --------------------------------------------------------------------------- #
 # Checks
@@ -579,6 +610,54 @@ def readable_or_none(user: Any, obj: Any):
         return None
     return obj if can_read(user, obj) else None
 
+def users_with_access(collection: Any, level: AccessLevel = AccessLevel.READ) -> QuerySet:
+    """Return the active users holding at least ``level`` on a collection.
+
+    Inverse of :func:`get_access`: it answers "who can access this collection"
+    (e.g. to offer mentions or assignees in a plugin). Grants cascade down the
+    tree, so a grant on any ancestor of ``collection`` counts as well.
+    Superusers are always included.
+
+    Args:
+        collection: A collection instance, its id, or ``None`` for the default
+            (ungrouped) collection, which only superusers can access.
+        level: Minimum access level (``READ`` or ``WRITE``).
+
+    Returns:
+        A queryset of active users without duplicates, ordered by username.
+    """
+    from django.contrib.auth import get_user_model
+    from testcanvas.models import ApplicationMapsCollection
+
+    users = get_user_model().objects.filter(is_active=True).order_by("username")
+    if level <= AccessLevel.NONE:
+        return users.none()
+    collection_id = governing_collection_id(collection)
+    if collection_id is None:
+        # The default collection is reserved to superusers.
+        return users.filter(is_superuser=True)
+
+    # Climb the tree: a grant on the collection or on any ancestor applies.
+    parents = dict(ApplicationMapsCollection.objects.values_list("pk", "parent_id"))
+    ancestor_ids: set[int] = set()
+    current = collection_id
+    while current is not None and current not in ancestor_ids:
+        ancestor_ids.add(current)
+        current = parents.get(current)
+
+    # Write implies read, so a READ request is satisfied by either flag.
+    direct = Q(testcanvas_collection_permissions__collection_id__in=ancestor_ids)
+    via_group = Q(groups__testcanvas_collection_permissions__collection_id__in=ancestor_ids)
+    if level >= AccessLevel.WRITE:
+        direct &= Q(testcanvas_collection_permissions__can_write=True)
+        via_group &= Q(groups__testcanvas_collection_permissions__can_write=True)
+    else:
+        direct &= (Q(testcanvas_collection_permissions__can_read=True)
+                   | Q(testcanvas_collection_permissions__can_write=True))
+        via_group &= (Q(groups__testcanvas_collection_permissions__can_read=True)
+                      | Q(groups__testcanvas_collection_permissions__can_write=True))
+    return users.filter(Q(is_superuser=True) | direct | via_group).distinct()
+
 __all__ = [
     "AccessDenied",
     "AccessLevel",
@@ -604,4 +683,5 @@ __all__ = [
     "require_read",
     "require_write",
     "resolve_map",
+    "users_with_access",
 ]

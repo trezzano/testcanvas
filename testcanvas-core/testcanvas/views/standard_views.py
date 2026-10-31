@@ -810,6 +810,8 @@ def test_case_detail(request, pk):
         'form': form,
         'saved': saved,
         'can_write': can_write(request.user, test_case),
+        # Plugin extension slot for this test case (empty without plugins).
+        'plugin_widgets': collect_object_widgets('test_case', test_case, request),
     })
 
 @require_POST

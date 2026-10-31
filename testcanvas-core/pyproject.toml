@@ -12,7 +12,7 @@ keywords = ["django", "testing", "automation", "testcanvas"]
 authors = [
   { name = "Maurizio Gorenszach" }
 ]
-license = { file = "LICENSE.md" }
+license = { file = "LICENCE.md" }
 
 # Dipendenze minime richieste dal Core
 dependencies = [

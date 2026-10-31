@@ -1,9 +1,22 @@
 # Writing a plugin
 
-This page describes the **public plugin API** of `testcanvas-core` (since
-version 1.1.0). A plugin (MCP server, CLI, REST adapter…) must never
+This page describes the **public Python API** of `testcanvas-core` (since
+version 1.1.0). A plugin (MCP server, CLI, REST adapter, web pages…) must never
 re-implement permissions or ISTQB business rules: it calls the core and only
 adapts the results to its own transport.
+
+!!! tip "Where to start"
+    For the full list of setup steps (settings, `AppConfig`, URLs, navbar,
+    widgets, templates, tests) read the [Plugin quickstart](plugin-quickstart.md)
+    first. This page covers only the Python API.
+
+| Topic | Guide |
+|---|---|
+| Setup steps, in order | [Plugin quickstart](plugin-quickstart.md) |
+| Navbar link | [Navbar](navbar-plugin-setup.md) |
+| Widgets on core pages | [Object widgets — user guide](object-widgets-user-guide.md) |
+| Permissions in depth, plugin models | [Collection permissions — integration](collection-permission-integration.md) |
+| Templates, CSS, theme | [Plugin templates and theming](plugin-templates-and-theming.md) |
 
 ## 1. Import only from `testcanvas.api`
 
@@ -12,7 +25,24 @@ from testcanvas import api
 ```
 
 Everything re-exported by `testcanvas.api` (see its `__all__`) is supported
-across minor releases. Anything else is an implementation detail.
+across minor releases. Anything else (`testcanvas.models`,
+`testcanvas.utilities.*`, `testcanvas.services`…) is an implementation detail.
+
+| Group | Names (all in `testcanvas.api`) |
+|---|---|
+| Models (read only; write through services) | `ApplicationMapsCollection`, `ApplicationMap`, `FlowNode`, `UserStory`, `AcceptanceCriterion`, `TestCase` |
+| Exceptions | `ObjectNotFound`, `AccessDenied`, `BusinessRuleViolation`, `MapInUseAsSubflow`, `SubflowCannotOwnUserStories`, `ValidationError` |
+| Permissions | `AccessLevel`, `can_read`, `can_write`, `require`, `require_read`, `require_write`, `filter_readable`, `filter_maps`, `filter_collections`, `register_permission_model`, `resolve_map`, … |
+| UIDs | `UID_MODELS`, `get_object_by_uid_for_user`, `find_model_object_by_uid`, `get_collection_for_user`, `get_object_url` |
+| Services (writes) | see § 4 |
+| Serialization | see § 5 |
+| Statistics (read only) | `get_dashboard_statistics`, `get_collection_statistics`, `get_flow_statistics` |
+
+In plugin **models**, reference core models by string, not by import:
+
+```python
+test_case = models.ForeignKey("testcanvas.TestCase", on_delete=models.CASCADE)
+```
 
 ## 2. Permission rules (summary)
 
@@ -28,6 +58,11 @@ across minor releases. Anything else is an implementation detail.
 - A SUBFLOW reference may only target a map the user can read.
 
 The full rules are in [Collection permissions — integration](collection-permission-integration.md).
+
+Plugin models that must follow the same rules are registered with
+`api.register_permission_model(...)` in `AppConfig.ready()`. Read the known
+limitation in [§ 4.2 of the integration guide](collection-permission-integration.md#42-extending-the-system-to-your-own-models)
+before doing it.
 
 ## 3. UIDs
 

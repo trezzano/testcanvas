@@ -64,6 +64,27 @@ def find_model_object_by_uid(uid: Any) -> Model | None:
     return None
 
 
+def get_object_url(uid: str) -> str:
+    """Return the stable TestCanvas URL that opens the artefact with ``uid``.
+
+    The URL points to the core UID resolver, which finds the artefact and
+    redirects to the right page. No lookup or permission check happens here:
+    the resolver enforces permissions when the link is opened (unknown or
+    unreadable UIDs answer 404), so plugins can store and render links without
+    touching the linked object.
+
+    Args:
+        uid: The artefact UID (opaque string).
+
+    Returns:
+        The absolute path of the resolver for ``uid``.
+    """
+    # Local import keeps this module importable before the URLconf is loaded.
+    from django.urls import reverse
+
+    return reverse("testcanvas:dynamic_show_by_uid", args=[uid])
+
+
 def check_acceptance_criteria_coverage(app_map_uid: str) -> dict:
     """Quick coverage check: are all AC of the given flow covered by TestCases?
 

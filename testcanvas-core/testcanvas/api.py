@@ -13,6 +13,8 @@ The surface is grouped as follows:
 * **Services** — the single entry point for every write (permissions and
   ISTQB business rules included).
 * **Serialization** — plain-dict representations shared by every transport.
+* **Statistics** — read-only, permission-aware test-basis metrics per flow,
+  collection or for the whole visible scope.
 * **Exceptions** — the domain errors a plugin must map to its own responses.
 
 Example:
@@ -47,7 +49,7 @@ from testcanvas.services import (
     update_application_map,
     update_artefact,
 )
-from testcanvas.utilities.other_support import UID_MODELS, find_model_object_by_uid
+from testcanvas.utilities.other_support import UID_MODELS, find_model_object_by_uid, get_object_url
 from testcanvas.utilities.permissions import (
     AccessDenied,
     AccessLevel,
@@ -73,6 +75,7 @@ from testcanvas.utilities.permissions import (
     require_read,
     require_write,
     resolve_map,
+    users_with_access,
 )
 from testcanvas.utilities.serialization import (
     serialize_acceptance_criterion,
@@ -82,9 +85,17 @@ from testcanvas.utilities.serialization import (
     serialize_test_case,
     serialize_user_story,
 )
+from testcanvas.utilities.statistics import (
+    get_collection_statistics,
+    get_dashboard_statistics,
+    get_flow_statistics,
+)
 
 #: Version of the public plugin API (mirrors the package version).
-API_VERSION = "1.1.0"
+#: 1.2.0 adds the read-only statistics functions.
+#: 2.0.0 removes the flow-node coverage and gap from the statistics payload
+#: (breaking: statistics ``schema_version`` "2.0").
+API_VERSION = "2.0.0"
 
 __all__ = [
     "API_VERSION",
@@ -123,11 +134,13 @@ __all__ = [
     "require_read",
     "require_write",
     "resolve_map",
+    "users_with_access",
     # UID utilities and resolution (every artefact exposes ``obj.uid``).
     "UID_MODELS",
     "find_model_object_by_uid",
     "get_collection_for_user",
     "get_object_by_uid_for_user",
+    "get_object_url",
     # Services.
     "create_acceptance_criteria",
     "create_application_map",
@@ -145,5 +158,8 @@ __all__ = [
     "serialize_flow_overview",
     "serialize_test_case",
     "serialize_user_story",
+    # Statistics (read-only, permission-aware).
+    "get_collection_statistics",
+    "get_dashboard_statistics",
+    "get_flow_statistics",
 ]
-

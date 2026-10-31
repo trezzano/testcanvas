@@ -15,7 +15,8 @@ in `testcanvas/templates/testcanvas/slots/`.
 The object-widgets mechanism is a **one-way extension contract**:
 
 - Installed Django apps (plugins) may attach ordered UI fragments to a core
-  object (`ApplicationMap`, `FlowNode`, `UserStory`, `AcceptanceCriterion`).
+  object (`ApplicationMap`, `FlowNode`, `UserStory`, `AcceptanceCriterion`,
+  `TestCase`).
 - **The core never imports a plugin.** A plugin is enabled or disabled by
   editing `INSTALLED_APPS` alone.
 - A plugin declares **structured data** (typed widget dicts), never HTML. The
@@ -25,6 +26,12 @@ The object-widgets mechanism is a **one-way extension contract**:
 This mirrors the navbar collector in `testcanvas/context_processors.py`
 (`plugin_navbar` / `_normalize_item`): both iterate over every `AppConfig`,
 read an optional declaration, and normalise it defensively.
+
+The contract is **deliberately small**. Do not extend it with raw HTML widgets,
+custom HTML attributes, JavaScript injected into core pages or hooks on the
+save lifecycle: each of them ties plugins to the core internals or lets them
+interfere with the business rules. A plugin that needs more links to a page of
+its own through a button widget.
 
 ---
 
@@ -44,6 +51,10 @@ def get_object_widgets(self, object_type, obj, request) -> list[dict]:
   (one of `WIDGET_TYPES`) plus the fields that type expects. Widgets render in
   list order.
 
+The method runs on every render of the object, inside the core request, so it
+must be fast and read-only. The core cannot enforce this: it is a rule for
+plugin authors.
+
 ```python
 # testcanvas/plugins.py
 OBJECT_TYPES = (
@@ -51,6 +62,7 @@ OBJECT_TYPES = (
     "flow_node",
     "user_story",
     "acceptance_criterion",
+    "test_case",
 )
 ```
 
@@ -95,15 +107,26 @@ callable `get_object_widgets` attribute, and calls it.
 Key defensive behaviours:
 
 - A config **without** the method is skipped (`callable(getter)` check).
-- A provider that **raises** is caught and skipped, so a faulty plugin can never
-  break the core render:
+- A provider that **raises** (also while a generator is consumed) is caught,
+  logged and skipped, so a faulty plugin can never break the core render.
+- A widget that makes its normaliser **raise** is caught, logged and skipped; the
+  other widgets of the same plugin still render.
 
 ```python
 try:
-    raw_items = getter(object_type, obj, request) or []
+    # list() also consumes generators here, so their errors are caught.
+    raw_items = list(getter(object_type, obj, request) or [])
 except Exception:
     # A broken provider contributes nothing; the core keeps rendering.
+    logger.exception("Plugin %s: get_object_widgets failed", config.name)
     continue
+for item in raw_items:
+    try:
+        widget = _normalize_widget(item=item, request=request)
+    except Exception:
+        # A malformed widget is dropped; its siblings still render.
+        logger.exception("Plugin %s: invalid widget skipped", config.name)
+        continue
 ```
 
 The relative order is preserved: widgets from earlier-installed apps come first,
@@ -159,7 +182,9 @@ Each `_normalize_*` function validates one raw dict and returns a template-ready
 - `_normalize_button` — enforces the optional `permission` via
   `request.user.has_perm`, requires `url_name`, and reverses it with
   `django.urls.reverse`, catching `NoReverseMatch` to stay robust if a plugin
-  route is missing or renamed.
+  route is missing or renamed. A button is always a plain link: it has no HTMX
+  variant, so a plugin cannot depend on core DOM selectors or change data
+  through a `GET`.
 
 ### Bootstrap safety
 
@@ -238,14 +263,15 @@ context = {
 }
 ```
 
-It is called for `flow_node`, `user_story`, `acceptance_criterion` and
-`application_map` across the flow node, user story, criterion and map views.
+It is called for `flow_node`, `user_story`, `acceptance_criterion`, `test_case`
+and `application_map` across the flow node, user story, criterion, test case and
+map views.
 
 ---
 
 ## 8. Adding a new widget type
 
-Adding a widget type is a **two-step change**, fully contained in the core;
+Adding a widget type is a **three-step change**, fully contained in the core;
 plugins never touch the registry:
 
 1. **Write a normaliser** `_normalize_<name>(item, request)` in `plugins.py`
@@ -264,8 +290,9 @@ flowchart LR
 
 Guidelines:
 
-- Keep the normaliser total: it must accept *any* dict and never raise, always
-  returning either a clean `data` dict or `None`.
+- Keep the normaliser total: it should accept *any* dict and return either a
+  clean `data` dict or `None`. The collector catches an exception as a last
+  resort, but logs it as an error.
 - Never trust plugin input for styling — always run it through `_clean_context`
   or an equivalent whitelist.
 - Do the URL reversing in the normaliser (like `_normalize_button`), never in

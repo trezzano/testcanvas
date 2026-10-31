@@ -101,7 +101,7 @@ it needs. This keeps the impact of the automation limited and visible.
 ---
 ## 4. The permission API
 
-Module: `testcanvas.utilities.permissions`
+Import from the public API: `from testcanvas.api import ...` (the implementation lives in `testcanvas.utilities.permissions`, which is **not** a public module).
 This module is a **pure domain layer**: it never raises or depends on
 HTTP-specific exceptions (no `Http404`). It is safe to use from a view, a
 management command, a background job or any other integration. Deciding what
@@ -138,26 +138,72 @@ Notes:
 - 
 ### 4.2 Extending the system to your own models
 
-If your plugin adds a model linked to a flow (e.g. a `TestRun` linked to a
-`TestCase`), register it so `filter_readable` and `resolve_map` understand it:
+Register your plugin models so `filter_readable`, `can_read`, `can_write` and
+`require_*` understand them. Pass **exactly one** resolver:
+
+| Your model belongs to… | Use | Example |
+|---|---|---|
+| something below a flow (e.g. a `TestRun` linked to a `TestCase`) | `resolve_map` | see `TestRun` below |
+| a collection directly (e.g. a per-collection board) | `resolve_collection` | see `Board` below |
+
+Register in `AppConfig.ready()` (models are importable there):
+
 ```python
-from testcanvas.utilities.permissions import register_permission_model, resolve_map
-register_permission_model(
-    TestRun,
-    collection_path=(
-        "test_case__acceptance_criterion__user_story"
-        "__flow_node__application_map__collection_id"
-    ),
-    resolve_map=lambda run: resolve_map(run.test_case),
-)
+# my_plugin/apps.py
+from django.apps import AppConfig
+
+
+class MyPluginConfig(AppConfig):
+    name = "my_plugin"
+    label = "my_plugin"
+
+    def ready(self) -> None:
+        """Register plugin models in the collection permission system."""
+        from testcanvas import api
+
+        from .models import Board, TestRun
+
+        # Known limitation: the core registers its own models lazily, only
+        # while the registry is still empty. Touch the registry first (lazy
+        # queryset, no DB query) so the core models are registered before ours.
+        api.filter_readable(None, api.ApplicationMapsCollection.objects.none())
+
+        api.register_permission_model(
+            TestRun,
+            collection_path=(
+                "test_case__acceptance_criterion__user_story"
+                "__flow_node__application_map__collection_id"
+            ),
+            resolve_map=lambda run: api.resolve_map(run.test_case),
+        )
+        api.register_permission_model(
+            Board,
+            collection_path="collection_id",
+            resolve_collection=lambda board: board.collection_id,
+        )
 ```
+
+!!! warning "Do not skip the first call"
+    Without the `filter_readable(...)` line, registering a plugin model first
+    leaves the registry non-empty, so the core models are never registered and
+    permission checks on core objects stop working.
+
 If you only need single-object checks (no queryset filtering), it is enough to
 add a `get_permission_map()` method to the model instead:
+
 ```python
+from django.db import models
+from testcanvas import api
+
+
 class TestRun(models.Model):
-    test_case = models.ForeignKey(TestCase, on_delete=models.CASCADE)
+    # Reference core models by string: plugins never import core models
+    # into their model definitions.
+    test_case = models.ForeignKey("testcanvas.TestCase", on_delete=models.CASCADE)
+
     def get_permission_map(self):
-        return resolve_map(self.test_case)
+        """Return the ApplicationMap that governs access to this run."""
+        return api.resolve_map(self.test_case)
 ```
 ---
 
@@ -167,8 +213,8 @@ class TestRun(models.Model):
 
 ```python
 from django.core.exceptions import PermissionDenied
-from testcanvas.models import ApplicationMap, ApplicationMapsCollection
-from testcanvas.utilities.permissions import can_write_collection
+from testcanvas.api import ApplicationMap, ApplicationMapsCollection
+from testcanvas.api import can_write_collection
 def create_flow(user, name: str, collection_id: int | None) -> ApplicationMap:
     """Create a flow inside a collection the user can write."""
     collection = None
@@ -187,8 +233,8 @@ def create_flow(user, name: str, collection_id: int | None) -> ApplicationMap:
 ### 5.2 Modify or delete an existing object
 
 ```python
-from testcanvas.utilities.other_support import find_model_object_by_uid
-from testcanvas.utilities.permissions import require_write
+from testcanvas.api import find_model_object_by_uid
+from testcanvas.api import require_write
 def update_by_uid(user, uid: str, changes: dict):
     """Apply changes to any artefact identified by its UID."""
     obj = find_model_object_by_uid(uid)
@@ -210,9 +256,9 @@ def update_by_uid(user, uid: str, changes: dict):
 ### 5.3 Read, list, search
 
 ```python
-from testcanvas.models import ApplicationMap
-from testcanvas.utilities.other_support import find_model_object_by_uid
-from testcanvas.utilities.permissions import filter_maps, require_read
+from testcanvas.api import ApplicationMap
+from testcanvas.api import find_model_object_by_uid
+from testcanvas.api import filter_maps, require_read
 def list_flows(user):
     """Return only the flows the user can read."""
     return filter_maps(user, ApplicationMap.objects.select_related("collection"))
@@ -232,7 +278,7 @@ def get_by_uid(user, uid):
 `AccessDenied` is deliberately **not** tied to any transport. Your code
 decides what to do with it, based on `exc.level`:
 ```python
-from testcanvas.utilities.permissions import AccessDenied, AccessLevel, require_write
+from testcanvas.api import AccessDenied, AccessLevel, require_write
 def handle_update(user, uid, changes):
     try:
         return update_by_uid(user, uid, changes)
@@ -263,8 +309,8 @@ jobs, other APIs), map `AccessDenied` to your own error format.
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
-from testcanvas.models import ApplicationMap
-from testcanvas.utilities.permissions import AccessDenied, AccessLevel, can_write, require_read
+from testcanvas.api import ApplicationMap
+from testcanvas.api import AccessDenied, AccessLevel, can_write, require_read
 @login_required
 def flow_summary(request, pk):
     """Show a read-only summary of a flow, with an edit link when allowed."""

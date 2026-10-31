@@ -23,16 +23,19 @@ Contract summary:
     :data:`WIDGET_TYPES`) plus the fields that type expects. **Widgets are
     rendered in list order**, so a plugin controls the layout by ordering them.
 
+    The method runs on every render of the object, so it must be fast and
+    read-only: it decides what to show and never changes data.
+
 Why typed widgets instead of raw HTML:
     A plugin declares *what* to show (structured data); the core decides *how*
     to render it. This keeps URL reversing, permission checks, HTML escaping and
     Bootstrap styling in the core, exactly where the project rules want them. A
-    plugin that needs full markup freedom uses Django's native per-path template
-    override instead (a separate, complementary mechanism).
+    plugin that needs its own markup or an action that changes data links to a
+    page of its own through a button widget.
 
 Design rules:
-    * Providers that raise are skipped, so a faulty plugin can never break the
-      core render.
+    * Providers that raise and widgets that fail validation are skipped and
+      logged, so a faulty plugin can never break the core render.
     * Unknown widget types are skipped, so a plugin can never inject markup the
       core does not understand.
     * Plugins should reference core objects through their stable ``*_uid`` when
@@ -41,10 +44,13 @@ Design rules:
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from django.apps import apps
 from django.urls import NoReverseMatch, reverse
+
+logger = logging.getLogger(__name__)
 
 
 # Canonical set of object families a plugin can attach to. Kept here so the
@@ -54,6 +60,7 @@ OBJECT_TYPES = (
     "flow_node",
     "user_story",
     "acceptance_criterion",
+    "test_case",
 )
 
 
@@ -87,12 +94,19 @@ def collect_object_widgets(object_type: str, obj: Any, request) -> list[dict[str
         if not callable(getter):
             continue
         try:
-            raw_items = getter(object_type, obj, request) or []
+            # list() also consumes generators here, so their errors are caught.
+            raw_items = list(getter(object_type, obj, request) or [])
         except Exception:
             # A broken provider contributes nothing; the core keeps rendering.
+            logger.exception("Plugin %s: get_object_widgets failed", config.name)
             continue
         for item in raw_items:
-            widget = _normalize_widget(item=item, request=request)
+            try:
+                widget = _normalize_widget(item=item, request=request)
+            except Exception:
+                # A malformed widget is dropped; its siblings still render.
+                logger.exception("Plugin %s: invalid widget skipped", config.name)
+                continue
             if widget is not None:
                 widgets.append(widget)
     return widgets
@@ -244,7 +258,7 @@ def _normalize_divider(item: dict[str, Any], request) -> dict[str, Any]:
 
 
 def _normalize_button(item: dict[str, Any], request) -> dict[str, Any] | None:
-    """Validate a button widget (an action link styled as a Bootstrap button).
+    """Validate a button widget (a link styled as a Bootstrap button).
 
     The core reverses the URL server-side, so templates never build URLs, and
     enforces an optional Django permission before the button is shown.
@@ -252,15 +266,14 @@ def _normalize_button(item: dict[str, Any], request) -> dict[str, Any] | None:
     Args:
         item: Raw widget dict. Keys: ``label`` and ``url_name`` (required);
             optional ``args``, ``kwargs``, ``icon``, ``class_type`` (Bootstrap
-            button context, defaults to ``secondary``), ``htmx`` (render as an
-            ``hx-get`` link), ``target`` (``hx-target`` selector) and
-            ``permission`` (Django permission required to see the button).
+            button context, defaults to ``secondary``) and ``permission``
+            (Django permission required to see the button).
         request: The current HTTP request, used to enforce ``permission``.
 
     Returns:
-        A data dict with ``label``, ``url``, ``icon``, ``context``, ``htmx`` and
-        ``target``, or ``None`` when the permission check fails or the URL name
-        is missing/unreversible.
+        A data dict with ``label``, ``url``, ``icon`` and ``context``, or
+        ``None`` when the permission check fails or the URL name is
+        missing/unreversible.
     """
     permission = item.get("permission")
     if permission and not request.user.has_perm(permission):
@@ -281,8 +294,6 @@ def _normalize_button(item: dict[str, Any], request) -> dict[str, Any] | None:
         "url": url,
         "icon": item.get("icon", ""),
         "context": _clean_context(item.get("class_type"), "secondary"),
-        "htmx": bool(item.get("htmx", False)),
-        "target": item.get("target", ""),
     }
 
 

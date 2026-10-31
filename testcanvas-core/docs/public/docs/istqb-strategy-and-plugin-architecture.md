@@ -187,6 +187,8 @@ one recipe:
 - enrich core pages through the object-widget slot rather than editing core
   templates.
 
+Step-by-step procedure: [Plugin quickstart](plugin-quickstart.md).
+
 !!! tip "Reading the core"
     A plugin reads the core forward (flow nodes, user stories, acceptance
     criteria, test cases) and never relies on the core knowing it exists.

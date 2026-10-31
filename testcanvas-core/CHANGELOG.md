@@ -3,6 +3,39 @@
 All notable changes to `testcanvas-core` are documented here. The project
 follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Removed (breaking)
+
+- Statistics payload (`get_flow_statistics`, `get_collection_statistics`,
+  `get_dashboard_statistics`): removed the flow-node traceability metrics
+  `coverage.pure_nodes_with_user_stories`, `coverage.node_coverage_pct` and
+  `gaps.pure_nodes_without_user_stories`. A flow node may be purely
+  descriptive, so a node without user stories is not a traceability hole.
+  Node counts remain available in `structure.flow_nodes`.
+- Statistics `schema_version` bumped to `"2.0"`; public `api.API_VERSION`
+  bumped to `"2.0.0"`.
+- Button object widgets: removed the `htmx` and `target` options. A button is
+  now always a plain link to a plugin page; the two keys are ignored, so a
+  plugin still passing them gets a normal navigation.
+
+### Fixed
+
+- Object widgets: a malformed widget (not a dict, or a button with both `args`
+  and `kwargs`) or a provider returning a failing generator no longer breaks
+  the core page. The faulty contribution is skipped and logged.
+
+### Changed
+
+- Object widgets: a `get_object_widgets` that raises is now logged on the
+  `testcanvas.plugins` logger instead of being skipped silently.
+
+### Documentation
+
+- Object widgets and plugin quickstart: `get_object_widgets` must be fast and
+  read-only, examples identify objects by `uid`, `test_case` is listed among the
+  object types, and plugins are told not to override core templates.
+
 ## [1.1.0] — 2026-10-16
 
 Plugin-friendly public API: plugins can now resolve artefacts, enforce

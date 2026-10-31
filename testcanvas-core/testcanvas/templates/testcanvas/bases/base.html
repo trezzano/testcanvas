@@ -36,7 +36,8 @@
     <link rel="stylesheet" href="{% static custom_theme_css %}">
     {% endif %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+{# hx-headers: every HTMX request (core and plugins) carries the CSRF token. #}
+<body class="{% block body_class %}{% endblock %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     {% comment %}
         Shared top navbar (logo + app name + logout). Rendered on every page
         for authenticated users. Pages that must not show it (e.g. the login
