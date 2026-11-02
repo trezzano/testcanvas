@@ -28,14 +28,14 @@ class DynamicOptionalFieldsMixin:
     The optional fields are declared in ``utilities/optional_fields.py``.
     """
 
-    def __init__(self, *args, project=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Drop the optional fields disabled globally.
 
         Args:
-            project: Deprecated parameter, ignored (kept for backward compatibility).
+            *args: Positional arguments forwarded to the ``ModelForm``.
+            **kwargs: Keyword arguments forwarded to the ``ModelForm``.
         """
         super().__init__(*args, **kwargs)
-        self._project = project
         # Names of the optional fields kept in the form, in catalogue order, so
         # templates can render them generically via the ``optional_fields``
         # property (core fields keep their explicit, hand-written markup).

@@ -65,7 +65,7 @@ def get_optional_field_specs(model_name: str) -> list[OptionalFieldSpec]:
     return OPTIONAL_FIELDS.get(model_name, [])
 
 
-def get_visible_optional_field_names(model_name: str, project=None) -> list[str]:
+def get_visible_optional_field_names(model_name: str) -> list[str]:
     """Return the ordered names of optional fields visible globally.
 
     A field is visible only when a ``FieldVisibilityPreference`` row exists with
@@ -74,7 +74,6 @@ def get_visible_optional_field_names(model_name: str, project=None) -> list[str]
 
     Args:
         model_name: The model class name (e.g. ``"TestCase"``).
-        project: Deprecated parameter, ignored (kept for backward compatibility).
 
     Returns:
         The optional field names to show, in catalogue order.
@@ -96,19 +95,50 @@ def get_visible_optional_field_names(model_name: str, project=None) -> list[str]
     return [spec.name for spec in specs if spec.name in visible]
 
 
-def resolve_project_for(obj) -> None:
-    """Deprecated: field visibility is now global, not per-project.
+def get_optional_fields_status() -> dict[str, list[dict]]:
+    """Return the whole optional-fields catalogue with its enabled state.
 
-    This function is kept for backward compatibility but always returns ``None``.
-    Forms and views can call ``get_visible_optional_field_names()`` directly
-    without passing a project.
+    Mirrors the structure of :data:`OPTIONAL_FIELDS`, but each field is a plain
+    dict carrying an extra ``enabled`` flag read from the global
+    ``FieldVisibilityPreference`` rows. The result contains only built-in
+    types, so callers (e.g. external plugins) can serialise it as they like.
 
-    Args:
-        obj: Ignored (for backward compatibility with existing code).
+    A field without a preference row is reported as disabled, consistently
+    with :func:`get_visible_optional_field_names`.
 
     Returns:
-        Always ``None``.
+        A dict keyed by model class name; each value is the list of the
+        model's optional fields, in catalogue order, shaped as
+        ``{"name": str, "label": str, "enabled": bool}``.
+
+    Examples:
+        >>> get_optional_fields_status()["UserStory"][0]
+        {'name': 'story_points', 'label': 'Story points', 'enabled': True}
     """
-    return None
+    # Imported lazily to avoid a circular import at module load time.
+    from testcanvas.models import FieldVisibilityPreference
+
+    # A single query fetches every enabled (model, field) pair, instead of
+    # one query per model.
+    enabled_pairs = set(
+        FieldVisibilityPreference.objects.filter(is_visible=True).values_list(
+            "target_model", "field_name"
+        )
+    )
+
+    status: dict[str, list[dict]] = {}
+    for model_name, specs in OPTIONAL_FIELDS.items():
+        status[model_name] = [
+            {
+                "name": spec.name,
+                "label": spec.label,
+                "enabled": (model_name, spec.name) in enabled_pairs,
+            }
+            for spec in specs
+        ]
+    return status
+
+
+
 
 

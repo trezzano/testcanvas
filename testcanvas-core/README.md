@@ -62,7 +62,132 @@ For full legal terms, please read the [LICENCE.md](./LICENCE.md) file in the roo
 
 ---
 
-## How to Install
+# How to Install
+
+## Requirements
+
+- Python 3.10 or later
+- Django 4.2 or later
+
+
+## install the core
 
 ```bash
 pip install "git+[https://github.com/trezzano/testcanvas.git#subdirectory=testcanvas-core](https://github.com/trezzano/testcanvas.git#subdirectory=testcanvas-core)"
+```
+
+## Configuring TestCanvas in a Django application
+
+How to add the TestCanvas core to an existing Django project. The configuration
+comes from a project that already uses the core.
+
+## 2. Configure `settings.py`
+
+These settings are required.
+
+Add the app:
+
+```python
+INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    # at the bottom :
+    "testcanvas",
+]
+```
+
+Add the core's context processor:
+
+```python
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                # HERE add testcanvas
+                "testcanvas.context_processors.app_context",
+            ],
+        },
+    },
+]
+```
+
+Without the context processor, pages still open, but the navbar has no links and
+the custom theme isn't loaded. No error is raised.
+
+Set the authentication redirects. The core's landing page is also the login page:
+
+```python
+LOGIN_URL = "testcanvas:index"
+LOGIN_REDIRECT_URL = "testcanvas:map_list"
+LOGOUT_REDIRECT_URL = "testcanvas:index"
+```
+
+## 3. Configure `urls.py`
+
+```python
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    # Endpoint for the language switcher in the navbar.
+    path("i18n/", include("django.conf.urls.i18n")),
+    # The core is mounted at the site root: plugin URLs go before it.
+    path("", include("testcanvas.urls")),
+]
+```
+
+## Optional settings
+
+| Setting | Purpose |
+| --- | --- |
+| `NAVBAR_LOGO_TEXT` | Logo text in the navbar |
+| `LOGIN_PAGE_LOGO_PATH` | Logo on the login page, file path or url |
+| `NAVBAR_APP_ORDER` | Order of the sections in the navbar |
+| `STATICFILES_DIRS` | Project static files, such as the custom theme |
+
+```python
+import os
+
+NAVBAR_LOGO_TEXT = os.environ.get("NAVBAR_LOGO_TEXT", "Test Canvas")
+
+# Static path, absolute path or external URL.
+LOGIN_PAGE_LOGO_PATH = "images/my_logo.png"
+
+# Keys are AppConfig.label values: lower numbers are shown first.
+NAVBAR_APP_ORDER = {
+    "testcanvas": 10,
+}
+
+# The folder must exist. It can contain testcanvas-custom-theme.css.
+STATICFILES_DIRS = [BASE_DIR / "static"]
+```
+
+## Adding a plugin
+
+1. Install the plugin's package.
+2. Add its app to `INSTALLED_APPS`, along with any apps it depends on.
+3. Mount its URLs **before** the core's:
+
+   ```python
+   path("<pip-name>/", include("testcanvas_plugin_<name>.urls")),
+   path("", include("testcanvas.urls")),
+   ```
+
+4. Add its `label` to `NAVBAR_APP_ORDER` if you want to set its position.
+5. Run `python manage.py migrate`.
+
+Some plugins require other settings, described in their documentation. For
+example, the kanban plugin in the core's sandbox uses the `ordered_model` app and
+`MEDIA_ROOT` for attachments.
+

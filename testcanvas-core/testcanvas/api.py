@@ -85,16 +85,8 @@ from testcanvas.utilities.serialization import (
     serialize_test_case,
     serialize_user_story,
 )
-from testcanvas.utilities.statistics import (
-    get_collection_statistics,
-    get_dashboard_statistics,
-    get_flow_statistics,
-)
 
-#: Version of the public plugin API (mirrors the package version).
-#: 1.2.0 adds the read-only statistics functions.
-#: 2.0.0 removes the flow-node coverage and gap from the statistics payload
-#: (breaking: statistics ``schema_version`` "2.0").
+
 API_VERSION = "2.0.0"
 
 __all__ = [
@@ -158,8 +150,6 @@ __all__ = [
     "serialize_flow_overview",
     "serialize_test_case",
     "serialize_user_story",
-    # Statistics (read-only, permission-aware).
-    "get_collection_statistics",
-    "get_dashboard_statistics",
-    "get_flow_statistics",
+    # Optional fields (catalogue + global enabled state).
+    "get_optional_fields_status",
 ]

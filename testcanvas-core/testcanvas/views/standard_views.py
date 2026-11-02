@@ -33,7 +33,6 @@ from testcanvas.services import (
     update_application_map,
     update_artefact,
 )
-from testcanvas.utilities.optional_fields import resolve_project_for
 from testcanvas.utilities.permissions import (
     AccessDenied,
     can_write,
@@ -216,11 +215,8 @@ def user_story_manage(request, node_id):
     # Reading the list needs read access, creating a story needs write access.
     _ensure_read_or_write(request, flow_node)
 
-    # Optional fields shown depend on global preferences.
-    project = resolve_project_for(flow_node)
-
     if request.method == 'POST':
-        form = UserStoryForm(request.POST, project=project)
+        form = UserStoryForm(request.POST)
         if form.is_valid():
             # The service enforces write access and the SUBFLOW rule.
             user_story = _create_from_form(request, form, create_user_stories, flow_node)
@@ -228,7 +224,7 @@ def user_story_manage(request, node_id):
                 messages.success(request, _("User Story '%(code)s' created.") % {"code": user_story.code})
                 return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
     else:
-        form = UserStoryForm(project=project)
+        form = UserStoryForm()
 
     user_stories = flow_node.user_stories.order_by('code')
     return render(request, 'testcanvas/user_stories/user_stories_manage.html', {
@@ -252,16 +248,13 @@ def user_story_edit(request, node_id, pk):
     user_story = get_object_or_404(UserStory, pk=pk, flow_node=flow_node)
     _ensure_read_or_write(request, flow_node)
 
-    # Optional fields shown depend on global preferences.
-    project = resolve_project_for(user_story)
-
     if request.method == 'POST':
-        form = UserStoryForm(request.POST, instance=user_story, project=project)
+        form = UserStoryForm(request.POST, instance=user_story)
         if form.is_valid() and _update_from_form(request, form, user_story):
             messages.success(request, _("User Story '%(code)s' updated.") % {"code": user_story.code})
             return redirect('testcanvas:user_story_manage', node_id=flow_node.pk)
     else:
-        form = UserStoryForm(instance=user_story, project=project)
+        form = UserStoryForm(instance=user_story)
 
     return render(request, 'testcanvas/user_stories/user_stories_edit.html', {
         'flow_node': flow_node,
@@ -299,18 +292,15 @@ def acceptance_criterion_manage(request, user_story_id):
     flow_node = user_story.flow_node
     _ensure_read_or_write(request, flow_node)
 
-    # Optional fields shown depend on global preferences.
-    project = resolve_project_for(user_story)
-
     if request.method == 'POST':
-        form = AcceptanceCriterionForm(request.POST, project=project)
+        form = AcceptanceCriterionForm(request.POST)
         if form.is_valid():
             criterion = _create_from_form(request, form, create_acceptance_criteria, user_story)
             if criterion is not None:
                 messages.success(request, _("Acceptance Criterion '%(code)s' created.") % {"code": criterion.code})
                 return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
     else:
-        form = AcceptanceCriterionForm(project=project)
+        form = AcceptanceCriterionForm()
 
     criteria = user_story.criteria.order_by('code')
     return render(request, 'testcanvas/acceptance_criteria/acceptance_criteria_manage.html', {
@@ -338,16 +328,13 @@ def acceptance_criterion_edit(request, pk):
     flow_node = user_story.flow_node
     _ensure_read_or_write(request, flow_node)
 
-    # Optional fields shown depend on global preferences.
-    project = resolve_project_for(criterion)
-
     if request.method == 'POST':
-        form = AcceptanceCriterionForm(request.POST, instance=criterion, project=project)
+        form = AcceptanceCriterionForm(request.POST, instance=criterion)
         if form.is_valid() and _update_from_form(request, form, criterion):
             messages.success(request, _("Acceptance Criterion '%(code)s' updated.") % {"code": criterion.code})
             return redirect('testcanvas:acceptance_criterion_manage', user_story_id=user_story.pk)
     else:
-        form = AcceptanceCriterionForm(instance=criterion, project=project)
+        form = AcceptanceCriterionForm(instance=criterion)
 
     return render(request, 'testcanvas/acceptance_criteria/acceptance_criteria_edit.html', {
         'flow_node': flow_node,
@@ -390,18 +377,15 @@ def test_case_manage(request, acceptance_criterion_id):
     flow_node = user_story.flow_node
     _ensure_read_or_write(request, flow_node)
 
-    # Optional TestCase fields shown depend on global preferences.
-    project = resolve_project_for(criterion)
-
     if request.method == 'POST':
-        form = TestCaseForm(request.POST, project=project)
+        form = TestCaseForm(request.POST)
         if form.is_valid():
             test_case = _create_from_form(request, form, create_test_cases, criterion)
             if test_case is not None:
                 messages.success(request, _("Test Case '%(code)s' created.") % {"code": test_case.code})
                 return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
     else:
-        form = TestCaseForm(project=project)
+        form = TestCaseForm()
 
     test_cases = criterion.test_cases.order_by('code')
     return render(request, 'testcanvas/test_cases/test_cases_manage.html', {
@@ -425,16 +409,13 @@ def test_case_edit(request, pk):
     flow_node = user_story.flow_node
     _ensure_read_or_write(request, flow_node)
 
-    # Optional TestCase fields shown depend on global preferences.
-    project = resolve_project_for(test_case)
-
     if request.method == 'POST':
-        form = TestCaseForm(request.POST, instance=test_case, project=project)
+        form = TestCaseForm(request.POST, instance=test_case)
         if form.is_valid() and _update_from_form(request, form, test_case):
             messages.success(request, _("Test Case '%(code)s' updated.") % {"code": test_case.code})
             return redirect('testcanvas:test_case_manage', acceptance_criterion_id=criterion.pk)
     else:
-        form = TestCaseForm(instance=test_case, project=project)
+        form = TestCaseForm(instance=test_case)
 
     return render(request, 'testcanvas/test_cases/test_cases_edit.html', {
         'flow_node': flow_node,
@@ -704,16 +685,15 @@ def user_story_detail(request, pk):
 
     # POST → save inline; GET → show the current values as an editable form.
     saved = False
-    project = resolve_project_for(user_story)
     if request.method == 'POST':
-        form = UserStoryForm(request.POST, instance=user_story, project=project)
+        form = UserStoryForm(request.POST, instance=user_story)
         if form.is_valid() and _update_from_form(request, form, user_story):
             saved = True
             # Rebuild an unbound form from the freshly-saved instance so the
             # partial re-renders with the canonical values and no "dirty" state.
-            form = UserStoryForm(instance=user_story, project=project)
+            form = UserStoryForm(instance=user_story)
     else:
-        form = UserStoryForm(instance=user_story, project=project)
+        form = UserStoryForm(instance=user_story)
 
     return render(request, 'testcanvas/user_stories/_user_stories_detail.html', {
         'user_story': user_story,
@@ -751,14 +731,13 @@ def acceptance_criterion_detail(request, pk):
     _ensure_read_or_write(request, criterion)
 
     saved = False
-    project = resolve_project_for(criterion)
     if request.method == 'POST':
-        form = AcceptanceCriterionForm(request.POST, instance=criterion, project=project)
+        form = AcceptanceCriterionForm(request.POST, instance=criterion)
         if form.is_valid() and _update_from_form(request, form, criterion):
             saved = True
-            form = AcceptanceCriterionForm(instance=criterion, project=project)
+            form = AcceptanceCriterionForm(instance=criterion)
     else:
-        form = AcceptanceCriterionForm(instance=criterion, project=project)
+        form = AcceptanceCriterionForm(instance=criterion)
 
     return render(request, 'testcanvas/acceptance_criteria/_acceptance_criteria_detail.html', {
         'criterion': criterion,
@@ -796,14 +775,13 @@ def test_case_detail(request, pk):
     _ensure_read_or_write(request, test_case)
 
     saved = False
-    project = resolve_project_for(test_case)
     if request.method == 'POST':
-        form = TestCaseForm(request.POST, instance=test_case, project=project)
+        form = TestCaseForm(request.POST, instance=test_case)
         if form.is_valid() and _update_from_form(request, form, test_case):
             saved = True
-            form = TestCaseForm(instance=test_case, project=project)
+            form = TestCaseForm(instance=test_case)
     else:
-        form = TestCaseForm(instance=test_case, project=project)
+        form = TestCaseForm(instance=test_case)
 
     return render(request, 'testcanvas/test_cases/_test_cases_detail.html', {
         'test_case': test_case,

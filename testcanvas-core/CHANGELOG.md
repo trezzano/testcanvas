@@ -5,8 +5,21 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `testcanvas.api.get_optional_fields_status()`: returns the optional-fields
+  catalogue grouped by model, each field as `{name, label, enabled}`, where
+  `enabled` reflects the global `FieldVisibilityPreference` state. Pure
+  Python function: exposing it (JSON, MCP, CLI…) is up to the plugin.
+- Public `api.API_VERSION` bumped to `"2.1.0"` (backward compatible addition).
+
 ### Removed (breaking)
 
+- Optional fields: removed the deprecated `resolve_project_for()` helper and
+  the unused `project` parameter from `get_visible_optional_field_names()` and
+  from the optional-fields form mixin (`UserStoryForm`,
+  `AcceptanceCriterionForm`, `TestCaseForm`). Field visibility is global, so
+  callers simply omit the argument.
 - Statistics payload (`get_flow_statistics`, `get_collection_statistics`,
   `get_dashboard_statistics`): removed the flow-node traceability metrics
   `coverage.pure_nodes_with_user_stories`, `coverage.node_coverage_pct` and
