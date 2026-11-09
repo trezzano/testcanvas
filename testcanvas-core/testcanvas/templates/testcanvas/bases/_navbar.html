@@ -8,7 +8,7 @@
       - the application name (settings-driven ``navbar_logo_text``),
       - plugin-provided navigation links,
       - the language switcher,
-      - the logout button.
+      - the logout button (only when the host sets TESTCANVAS_LOGOUT_URL).
 
     Page-specific actions (e.g. "Back to list", "Rename", etc.) must NOT be
     placed here; keep them in the individual page headers instead.
@@ -53,10 +53,15 @@
                 {% endfor %}
             </select>
         </form>
-        {# Logout is POST-only for CSRF safety; render it as a small inline form. #}
-        <form action="{% url 'testcanvas:logout' %}" method="post" class="logout-form">
+        {% comment %}
+            Logout is owned by the host project: the button is shown only when
+            TESTCANVAS_LOGOUT_URL is configured. POST-only for CSRF safety.
+        {% endcomment %}
+        {% if logout_url %}
+        <form action="{{ logout_url }}" method="post" class="logout-form">
             {% csrf_token %}
             <button type="submit" class="logout-btn btn btn-outline-secondary btn-sm">{% translate "Logout" %}</button>
         </form>
+        {% endif %}
     </div>
 </nav>

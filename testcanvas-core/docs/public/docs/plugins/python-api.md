@@ -1,4 +1,4 @@
-# Writing a plugin
+# Python API
 
 This page describes the **public Python API** of `testcanvas-core` (since
 version 1.1.0). A plugin (MCP server, CLI, REST adapter, web pages…) must never
@@ -7,16 +7,16 @@ adapts the results to its own transport.
 
 !!! tip "Where to start"
     For the full list of setup steps (settings, `AppConfig`, URLs, navbar,
-    widgets, templates, tests) read the [Plugin quickstart](plugin-quickstart.md)
+    widgets, templates, tests) read the [Plugin quickstart](quickstart.md)
     first. This page covers only the Python API.
 
 | Topic | Guide |
 |---|---|
-| Setup steps, in order | [Plugin quickstart](plugin-quickstart.md) |
-| Navbar link | [Navbar](navbar-plugin-setup.md) |
-| Widgets on core pages | [Object widgets — user guide](object-widgets-user-guide.md) |
-| Permissions in depth, plugin models | [Collection permissions — integration](collection-permission-integration.md) |
-| Templates, CSS, theme | [Plugin templates and theming](plugin-templates-and-theming.md) |
+| Setup steps, in order | [Quickstart](quickstart.md) |
+| Navbar link | [Navbar](navbar.md) |
+| Widgets on core pages | [Object widgets](object-widgets.md) |
+| Permissions in depth, plugin models | [Permissions](permissions.md) |
+| Templates, CSS, theme | [Templates and theming](templates-and-theming.md) |
 
 ## 1. Import only from `testcanvas.api`
 
@@ -32,11 +32,11 @@ across minor releases. Anything else (`testcanvas.models`,
 |---|---|
 | Models (read only; write through services) | `ApplicationMapsCollection`, `ApplicationMap`, `FlowNode`, `UserStory`, `AcceptanceCriterion`, `TestCase` |
 | Exceptions | `ObjectNotFound`, `AccessDenied`, `BusinessRuleViolation`, `MapInUseAsSubflow`, `SubflowCannotOwnUserStories`, `ValidationError` |
-| Permissions | `AccessLevel`, `can_read`, `can_write`, `require`, `require_read`, `require_write`, `filter_readable`, `filter_maps`, `filter_collections`, `register_permission_model`, `resolve_map`, … |
-| UIDs | `UID_MODELS`, `get_object_by_uid_for_user`, `find_model_object_by_uid`, `get_collection_for_user`, `get_object_url` |
-| Services (writes) | see § 4 |
-| Serialization | see § 5 |
-| Statistics (read only) | `get_dashboard_statistics`, `get_collection_statistics`, `get_flow_statistics` |
+| Permissions | `AccessLevel`, `CollectionAccess`, `is_unrestricted`, `access_level`, `can_read`, `can_write`, `can_read_collection`, `can_write_collection`, `require`, `require_read`, `require_write`, `filter_readable`, `filter_maps`, `filter_collections`, `resolve_map`, `governing_collection_id`, `users_with_access`, `get_access`, `clear_access_cache`, `register_permission_model` |
+| UIDs | `UID_MODELS`, `get_object_by_uid_for_user`, `find_model_object_by_uid`, `get_collection_for_user`, `readable_or_none`, `get_object_url` |
+| Services (writes) | see [§ 4](#4-services-all-writes) |
+| Serialization | see [§ 5](#5-serialization) |
+| Other | `API_VERSION`, `get_optional_fields_status` |
 
 In plugin **models**, reference core models by string, not by import:
 
@@ -57,11 +57,11 @@ test_case = models.ForeignKey("testcanvas.TestCase", on_delete=models.CASCADE)
   collection.
 - A SUBFLOW reference may only target a map the user can read.
 
-The full rules are in [Collection permissions — integration](collection-permission-integration.md).
+The full rules are in [Permissions](permissions.md).
 
 Plugin models that must follow the same rules are registered with
 `api.register_permission_model(...)` in `AppConfig.ready()`. Read the known
-limitation in [§ 4.2 of the integration guide](collection-permission-integration.md#42-extending-the-system-to-your-own-models)
+limitation in [§ 4.2 of the integration guide](permissions.md#42-extending-the-system-to-your-own-models)
 before doing it.
 
 ## 3. UIDs
@@ -75,6 +75,13 @@ the same field: `uid`. Read it with `obj.uid`, filter with
 !!! warning "No format assumptions"
     A UID is an **opaque string**. Never parse it, never rely on a prefix or a
     length, never infer the artefact type from it. Use the API instead.
+
+!!! note "Codes are labels, not identifiers"
+    The `code` field (`US-01`, `AC-01.1`, `TC-01.1.1`) is a human
+    traceability label. User story codes can repeat (a duplicated flow keeps
+    the same codes); acceptance criterion codes are unique only within their
+    user story; test case codes only within their acceptance criterion.
+    Always identify artefacts by `uid`.
 
 | Function | Purpose |
 |----------|---------|

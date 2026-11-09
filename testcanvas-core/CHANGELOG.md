@@ -12,9 +12,17 @@ follows [Semantic Versioning](https://semver.org/).
   `enabled` reflects the global `FieldVisibilityPreference` state. Pure
   Python function: exposing it (JSON, MCP, CLI…) is up to the plugin.
 - Public `api.API_VERSION` bumped to `"2.1.0"` (backward compatible addition).
+- `TESTCANVAS_LOGOUT_URL` setting (URL name or path): when set, the navbar
+  shows a logout button posting to the host project's logout endpoint.
 
 ### Removed (breaking)
 
+- Authentication: TestCanvas is now authentication-agnostic. Removed the
+  built-in login page (`testcanvas/index.html`, `css/login.css`, fallback
+  logo), the `testcanvas:logout` route/view and the `LOGIN_PAGE_LOGO_PATH`
+  setting. `testcanvas:index` is now a `@login_required` redirect to
+  `testcanvas:map_list`. Host projects must provide their own login/logout
+  views and set `LOGIN_URL` accordingly (e.g. `django.contrib.auth.urls`).
 - Optional fields: removed the deprecated `resolve_project_for()` helper and
   the unused `project` parameter from `get_visible_optional_field_names()` and
   from the optional-fields form mixin (`UserStoryForm`,

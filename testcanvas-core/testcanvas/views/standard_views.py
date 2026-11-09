@@ -130,76 +130,23 @@ def _ensure_read_or_write(request, obj) -> None:
         ensure_can_read(request.user, obj)
 
 
-DEFAULT_LOGIN_LOGO_STATIC_PATH = 'images/test_canvas_logo.svg'
-
-
-def _resolve_login_logo_url() -> str:
-    """Return the login logo URL from settings with safe fallback behavior.
-
-    ``LOGIN_PAGE_LOGO_PATH`` can be configured as an external URL, an absolute
-    path, or a static-relative path. Empty values fall back to the default
-    bundled logo so the login page always renders a valid image.
-
-    Returns:
-        The final URL that the login page should use for the logo image.
-    """
-    configured_path = (getattr(settings, 'LOGIN_PAGE_LOGO_PATH', '') or '').strip()
-    if not configured_path:
-        return static(DEFAULT_LOGIN_LOGO_STATIC_PATH)
-
-    if configured_path.startswith(('http://', 'https://', '/')):
-        return configured_path
-
-    return static(configured_path)
-
-
+@login_required
 def index(request):
-    """Render the login page and authenticate users.
+    """Redirect the TestCanvas landing URL to the flow list.
 
-    The landing page doubles as the sign-in screen: on GET it shows the login
-    form, on POST it validates the credentials with Django's
-    ``AuthenticationForm`` and, on success, starts the session and redirects to
-    the flow list. Already-authenticated users skip the form entirely.
+    TestCanvas is authentication-agnostic: login, logout and credential
+    validation are owned by the host Django project. ``login_required`` sends
+    anonymous users to the host's ``settings.LOGIN_URL``; authenticated users
+    land on the flow list.
 
     Args:
         request: The incoming HTTP request.
 
     Returns:
-        An ``HttpResponse`` rendering the login page, or a redirect to the
-        flow list once the user is authenticated.
+        A redirect to the flow list.
     """
-    # Authenticated users have no reason to see the login screen again.
-    if request.user.is_authenticated:
-        return redirect('testcanvas:map_list')
+    return redirect('testcanvas:map_list')
 
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            # ``get_user`` returns the user validated by the form's clean step.
-            auth_login(request, form.get_user())
-            messages.success(request, _("Welcome back, %(username)s!") % {"username": form.get_user().username})
-            return redirect('testcanvas:map_list')
-    else:
-        form = AuthenticationForm(request)
-
-    return render(request, 'testcanvas/index.html', {
-        'form': form,
-        'login_logo_url': _resolve_login_logo_url(),
-    })
-
-@require_POST
-def logout_view(request):
-    """Log the current user out and return to the login page.
-
-    Args:
-        request: The incoming HTTP request (POST only, for CSRF safety).
-
-    Returns:
-        A redirect to the login page.
-    """
-    auth_logout(request)
-    messages.info(request, _("You have been logged out."))
-    return redirect('testcanvas:index')
 
 @login_required
 def user_story_manage(request, node_id):

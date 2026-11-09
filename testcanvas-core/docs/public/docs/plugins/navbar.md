@@ -1,8 +1,7 @@
-# How to Add a Django App to the Shared Navbar
+# Navbar
 
-This guide explains how to make any Django app appear in the shared TestCanvas navbar.
-
-It is designed to be simple, practical, and copy-paste friendly.
+This guide explains how to make any Django app appear in the shared TestCanvas
+navbar. It is simple, practical and copy-paste friendly.
 
 ## Goal
 
@@ -25,7 +24,7 @@ Before adding links:
   `TEMPLATES[0]["OPTIONS"]["context_processors"]` (it is the navbar
   collector; without it the navbar has no links and no error is raised).
 
-New to plugins? Start from the [Plugin quickstart](plugin-quickstart.md).
+New to plugins? Start from the [Plugin quickstart](quickstart.md).
 
 ## Step 1 - Add the app to `INSTALLED_APPS`
 
@@ -211,9 +210,9 @@ Why this matters:
   block instead.
 
 Blocks, CSS order and styling rules:
-[Plugin templates and theming](plugin-templates-and-theming.md).
+[Templates and theming](templates-and-theming.md).
 
-![include_testcanvas_navbar.png](assets/include_testcanvas_navbar.png)
+![include_testcanvas_navbar.png](../assets/include_testcanvas_navbar.png)
 
 ## Visibility: Authenticated Users Only
 

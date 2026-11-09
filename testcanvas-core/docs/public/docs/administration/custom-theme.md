@@ -254,7 +254,7 @@ releases. Every other core class is internal.
 
 Bootstrap 5 classes are always allowed: Bootstrap is themed through the
 `--bs-*` mapping. How to style plugin pages:
-[Plugin templates and theming](plugin-templates-and-theming.md).
+[Templates and theming](../plugins/templates-and-theming.md).
 
 ## Troubleshooting
 

@@ -124,12 +124,19 @@ TEMPLATES = [
 Without the context processor, pages still open, but the navbar has no links and
 the custom theme isn't loaded. No error is raised.
 
-Set the authentication redirects. The core's landing page is also the login page:
+TestCanvas does not handle authentication: login, logout and credential
+validation belong to the host project. The core only protects its views with
+`@login_required`, so `LOGIN_URL` must point to a login view of the host. For
+example, with Django's built-in views (`path("accounts/", include("django.contrib.auth.urls"))`
+plus a `registration/login.html` template):
 
 ```python
-LOGIN_URL = "testcanvas:index"
+LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "testcanvas:map_list"
-LOGOUT_REDIRECT_URL = "testcanvas:index"
+LOGOUT_REDIRECT_URL = "login"
+
+# Optional: show a logout button in the TestCanvas navbar (URL name or path).
+TESTCANVAS_LOGOUT_URL = "logout"
 ```
 
 ## 3. Configure `urls.py`
@@ -152,7 +159,7 @@ urlpatterns = [
 | Setting | Purpose |
 | --- | --- |
 | `NAVBAR_LOGO_TEXT` | Logo text in the navbar |
-| `LOGIN_PAGE_LOGO_PATH` | Logo on the login page, file path or url |
+| `TESTCANVAS_LOGOUT_URL` | Host logout URL name or path; shows the navbar logout button |
 | `NAVBAR_APP_ORDER` | Order of the sections in the navbar |
 | `STATICFILES_DIRS` | Project static files, such as the custom theme |
 

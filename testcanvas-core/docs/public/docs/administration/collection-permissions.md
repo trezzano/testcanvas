@@ -1,8 +1,12 @@
-# Collection Permissions — User Guide
+# Collection permissions
 
 This guide explains how to control **who can see** and **who can edit** the
 application flows of TestCanvas by assigning permissions to
 **collections**.
+
+!!! info "Writing a plugin?"
+    This page is for administrators. Developers who must apply these rules in
+    their own code should read [Permissions in plugins](../plugins/permissions.md).
 
 ---
 

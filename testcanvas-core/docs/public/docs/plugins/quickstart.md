@@ -24,7 +24,7 @@ the core**.
    break silently. Add widgets to core pages, and put anything else on a plugin
    page.
 
-Background: [ISTQB strategy and plugin architecture](istqb-strategy-and-plugin-architecture.md).
+Background: [Architecture](../concepts/architecture.md).
 
 ## 0. Project prerequisites
 
@@ -117,7 +117,7 @@ class MyPluginConfig(AppConfig):
 
     def ready(self) -> None:
         """Step 6 — register plugin models in the permission system."""
-        # See collection-permission-integration.md § 4.2.
+        # See the Permissions guide, section 4.2.
 
     def get_object_widgets(self, object_type: str, obj, request) -> list[dict]:
         """Step 5 — add widgets to core object pages (optional)."""
@@ -126,10 +126,10 @@ class MyPluginConfig(AppConfig):
 
 | Attribute / method | Purpose | Guide |
 |---|---|---|
-| `label` | unique app id, navbar ordering | [Navbar](navbar-plugin-setup.md) |
-| `nav_items` / `get_nav_items(request)` | links in the shared navbar | [Navbar](navbar-plugin-setup.md) |
-| `get_object_widgets(object_type, obj, request)` | buttons/progress/… on core pages | [Object widgets — user guide](object-widgets-user-guide.md) |
-| `ready()` | register plugin models in the permission system | [Collection permissions](collection-permission-integration.md#42-extending-the-system-to-your-own-models) |
+| `label` | unique app id, navbar ordering | [Navbar](navbar.md) |
+| `nav_items` / `get_nav_items(request)` | links in the shared navbar | [Navbar](navbar.md) |
+| `get_object_widgets(object_type, obj, request)` | buttons/progress/… on core pages | [Object widgets](object-widgets.md) |
+| `ready()` | register plugin models in the permission system | [Permissions](permissions.md#42-extending-the-system-to-your-own-models) |
 
 ## 3. URLs and views
 
@@ -164,27 +164,27 @@ Use function-based views. Every view acting for a user must check permissions
 ## 4. Navbar link
 
 Declared in the `AppConfig` (step 2). Details, ordering, permissions, tests:
-[How to add a Django app to the shared navbar](navbar-plugin-setup.md).
+[Navbar](navbar.md).
 
 ## 5. Object widgets (optional)
 
 Show buttons, progress bars or text on core pages (flow, flow node, user story,
 acceptance criterion, test case) without touching core templates. The hook runs
 on every render, so it must be fast and read-only:
-[Object widgets — user guide](object-widgets-user-guide.md).
+[Object widgets](object-widgets.md).
 
 ## 6. Data access and permissions
 
 - Read and write core data through `testcanvas.api`:
-  [Writing a plugin](writing-a-plugin.md).
+  [Python API](python-api.md).
 - Respect collection permissions and register your own models:
-  [Collection permissions — integration](collection-permission-integration.md).
+  [Permissions](permissions.md).
 
 ## 7. Templates and styling
 
 Extend the core layout, add your CSS, use the theme variables:
-[Plugin templates and theming](plugin-templates-and-theming.md).
-Project-wide colors and fonts: [Custom theme](custom-theme.md).
+[Templates and theming](templates-and-theming.md).
+Project-wide colors and fonts: [Custom theme](../administration/custom-theme.md).
 
 ## 8. Tests
 
@@ -192,9 +192,9 @@ Minimum set:
 
 | Test | Why |
 |---|---|
-| navbar link is collected | broken links fail silently ([example](navbar-plugin-setup.md#how-to-test-your-navbar-link)) |
-| pages use `base_page.html` and load CSS after `testcanvas.css` | theme inheritance ([example](plugin-templates-and-theming.md#9-test-it)) |
-| a user without access gets 404/403 | permissions ([patterns](collection-permission-integration.md#54-error-handling)) |
+| navbar link is collected | broken links fail silently ([example](navbar.md#how-to-test-your-navbar-link)) |
+| pages use `base_page.html` and load CSS after `testcanvas.css` | theme inheritance ([example](templates-and-theming.md#9-test-it)) |
+| a user without access gets 404/403 | permissions ([patterns](permissions.md#54-error-handling)) |
 
 ```bash
 python manage.py test my_plugin

@@ -30,7 +30,7 @@ contains:
 
 **Prerequisite:** the project must register the TestCanvas context processor,
 otherwise the navbar and the user theme are silently missing (see
-[Project prerequisites](plugin-quickstart.md#0-project-prerequisites)).
+[Project prerequisites](quickstart.md#0-project-prerequisites)).
 
 ## 2. CSS load order
 
@@ -159,7 +159,7 @@ Full width for a specific page:
 
 ## 6. Writing plugin CSS
 
-Use the theme variables (full list in [Custom theme](custom-theme.md#variables-reference)).
+Use the theme variables (full list in [Custom theme](../administration/custom-theme.md#variables-reference)).
 Add a fallback value so the rule still works if a variable is missing.
 
 | Need | Variable |
@@ -194,7 +194,7 @@ Rules:
   clashes with the core and other plugins.
 - Bootstrap components (`btn btn-primary`, `card`, `table`, `form-control`,
   `badge`…) are already themed: use them as they are.
-- Only the classes listed in [Stable CSS classes](custom-theme.md#stable-css-classes-for-plugins)
+- Only the classes listed in [Stable CSS classes](../administration/custom-theme.md#stable-css-classes-for-plugins)
   are a public contract. Do not style other core classes.
 
 ## 7. Static files and templates naming

@@ -187,12 +187,38 @@ def branding_settings(request):
     Returns:
         A context dict containing global branding values used by shared layout
         templates, including ``custom_theme_css`` (the static path of the
-        user-provided theme override, or ``None`` when it does not exist).
+        user-provided theme override, or ``None`` when it does not exist) and
+        ``logout_url`` (the host-provided logout URL, or ``None``).
     """
     return {
         "navbar_logo_text": getattr(settings, "NAVBAR_LOGO_TEXT", "Test Canvas"),
         "custom_theme_css": _custom_theme_css(),
+        "logout_url": _logout_url(),
     }
+
+
+def _logout_url() -> str | None:
+    """Resolve the host project's logout URL from ``TESTCANVAS_LOGOUT_URL``.
+
+    TestCanvas does not own authentication: the host project may expose a
+    logout endpoint and advertise it through this setting. The value can be a
+    URL name (e.g. ``"logout"``) or a literal path/URL.
+
+    Returns:
+        The resolved logout URL, or ``None`` when the setting is empty, so the
+        navbar can hide the logout button.
+    """
+    configured = (getattr(settings, "TESTCANVAS_LOGOUT_URL", "") or "").strip()
+    if not configured:
+        return None
+    # Accept literal paths/URLs as-is; otherwise treat the value as a URL name.
+    if configured.startswith(("/", "http://", "https://")):
+        return configured
+    try:
+        return reverse(configured)
+    except NoReverseMatch:
+        # A misconfigured name must not break every page: hide the button.
+        return None
 
 
 # Static path (relative to any static root) of the optional user theme file.

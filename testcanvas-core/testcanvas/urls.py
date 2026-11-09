@@ -1,9 +1,8 @@
 from django.urls import path
 
 from .views.standard_views import (
-    # index / authentication
+    # index (authentication is delegated to the host project)
     index,
-    logout_view,
     # main map page
     map_list,
     map_create,
@@ -55,9 +54,9 @@ from .views.collection_hierarchy_views import (
 app_name = 'testcanvas'
 
 urlpatterns = [
-    # index / authentication
+    # index: authenticated redirect to the flow list. Login/logout routes are
+    # provided by the host project, TestCanvas is authentication-agnostic.
     path('', index, name='index'),
-    path('logout/', logout_view, name='logout'),
 
     # main map page
     path('map_list/', map_list, name='map_list'),

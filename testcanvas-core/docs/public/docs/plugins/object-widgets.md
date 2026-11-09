@@ -1,12 +1,9 @@
-# Object Widgets — User Guide
+# Object widgets
 
-This guide explains, from a **user / plugin author** point of view, how the
-`get_object_widgets` extension point lets an installed plugin add small pieces
-of interface (called **widgets**) onto TestCanvas core objects — without ever
-touching the core code.
+This guide explains how the `get_object_widgets` extension point lets an
+installed plugin add small pieces of interface (called **widgets**) onto
+TestCanvas core pages — without ever touching the core code.
 
-If you want to understand how the mechanism is built internally, read the
-companion document **Object Widgets — Developer Guide**.
 
 ---
 
@@ -36,13 +33,12 @@ flowchart LR
         A["get_object_widgets()"]
     end
     subgraph Core["TestCanvas Core"]
-        B["collect_object_widgets()"]
-        C["Normalise & validate"]
-        D["Render Bootstrap partials"]
+        C["Validate widgets"]
+        D["Render with Bootstrap"]
     end
     Page["Core page<br/>(flow node, user story, ...)"]
 
-    A -- "list of widget dicts" --> B --> C --> D --> Page
+    A -- "list of widget dicts" --> C --> D --> Page
 ```
 
 ---
@@ -244,7 +240,7 @@ The core protects itself and you:
 
 These rules protect the page from mistakes, not from the plugin itself: a plugin
 runs in the same Python process as the core. Respecting the
-[plugin rules](plugin-quickstart.md#rules-always-true) is what keeps the core
+[plugin rules](quickstart.md#rules-always-true) is what keeps the core
 safe.
 
 ```mermaid
